@@ -1,0 +1,45 @@
+# Environment variables (SECURITY: NEVER COMMIT SECRETS)
+.env
+.env.local
+.env.*.local
+Backend/.env
+Frontend/.env
+
+# Python Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+Backend/.venv/
+Backend/venv/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+
+# Node & Frontend Build Artifacts
+node_modules/
+Frontend/node_modules/
+.output/
+Frontend/.output/
+.wrangler/
+Frontend/.wrangler/
+dist/
+build/
+.nitro/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Qdrant local storage (if any)
+qdrant_storage/
+Backend/qdrant_storage/

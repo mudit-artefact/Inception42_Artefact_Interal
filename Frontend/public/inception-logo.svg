@@ -1,0 +1,27 @@
+<svg viewBox="0 0 280 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Letter 'i' - square pixel dot and stem -->
+  <rect x="8" y="16" width="10" height="10" fill="#111827" rx="1.5" />
+  <rect x="8" y="30" width="10" height="26" fill="#111827" rx="1.5" />
+
+  <!-- Letters 'nception' -->
+  <text
+    x="24"
+    y="56"
+    font-family="Inter, 'Space Grotesk', system-ui, -apple-system, sans-serif"
+    font-size="34"
+    font-weight="800"
+    letter-spacing="-0.04em"
+    fill="#111827"
+  >nception</text>
+
+  <!-- Superscript '42' -->
+  <text
+    x="226"
+    y="28"
+    font-family="Inter, 'Space Grotesk', system-ui, -apple-system, sans-serif"
+    font-size="19"
+    font-weight="800"
+    letter-spacing="-0.02em"
+    fill="#111827"
+  >42</text>
+</svg>
