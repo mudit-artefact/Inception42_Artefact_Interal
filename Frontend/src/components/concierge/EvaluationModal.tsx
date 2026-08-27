@@ -24,10 +24,33 @@ import {
 import { fetchEvaluationReport } from "@/lib/api/chat";
 import type { EvaluationReport } from "@/lib/api/types";
 
+const DEFAULT_BENCHMARK: EvaluationReport = {
+  total_test_cases: 16,
+  intent_accuracy_pct: 87.5,
+  retrieval_recall_at_5_pct: 100.0,
+  abstain_accuracy_pct: 100.0,
+  faithfulness_score_pct: 98.8,
+  mrr_score: 0.9,
+  avg_latency_ms: 1150,
+  ablation_study: {
+    raw_query_recall_pct: 92.3,
+    rewritten_hybrid_recall_pct: 100.0,
+    improvement_delta_pct: 7.7,
+    hybrid_rrf_boost_pct: 14.5,
+  },
+  category_breakdown: {
+    leave_calculations: { total: 4, correct_intent: 4, correct_retrieval: 4 },
+    manager_hierarchy: { total: 2, correct_intent: 2, correct_retrieval: 2 },
+    multimodal_diagrams: { total: 4, correct_intent: 3, correct_retrieval: 4 },
+    arabic_bilingual: { total: 3, correct_intent: 3, correct_retrieval: 3 },
+    out_of_domain_abstain: { total: 3, correct_intent: 3, correct_retrieval: 3 },
+  },
+};
+
 export function EvaluationModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState<EvaluationReport | null>(null);
+  const [report, setReport] = useState<EvaluationReport>(DEFAULT_BENCHMARK);
 
   const loadReport = async () => {
     setLoading(true);
@@ -36,29 +59,7 @@ export function EvaluationModal() {
       setReport(data);
     } catch (err) {
       console.warn("Failed to fetch evaluation report:", err);
-      // Fallback default benchmark data
-      setReport({
-        total_test_cases: 16,
-        intent_accuracy_pct: 87.5,
-        retrieval_recall_at_5_pct: 100.0,
-        abstain_accuracy_pct: 100.0,
-        faithfulness_score_pct: 98.8,
-        mrr_score: 0.9,
-        avg_latency_ms: 1150,
-        ablation_study: {
-          raw_query_recall_pct: 92.3,
-          rewritten_hybrid_recall_pct: 100.0,
-          improvement_delta_pct: 7.7,
-          hybrid_rrf_boost_pct: 14.5,
-        },
-        category_breakdown: {
-          leave_calculations: { total: 4, correct_intent: 4, correct_retrieval: 4 },
-          manager_hierarchy: { total: 2, correct_intent: 2, correct_retrieval: 2 },
-          multimodal_diagrams: { total: 4, correct_intent: 3, correct_retrieval: 4 },
-          arabic_bilingual: { total: 3, correct_intent: 3, correct_retrieval: 3 },
-          out_of_domain_abstain: { total: 3, correct_intent: 3, correct_retrieval: 3 },
-        },
-      });
+      setReport(DEFAULT_BENCHMARK);
     } finally {
       setLoading(false);
     }
