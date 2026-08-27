@@ -68,7 +68,7 @@ GOLDEN_BENCHMARK_CASES: List[BenchmarkTestCase] = [
     BenchmarkTestCase(
         id="TC-06",
         category="manager_hierarchy",
-        query="Who was my supervisor before Fatima Al Zaabi?",
+        query="Who was my supervisor before Fatima Maryam Al Qubaisi?",
         expected_intent="manager_inquiry",
         expected_doc_source="HC-PC-001",
         expected_page=1,

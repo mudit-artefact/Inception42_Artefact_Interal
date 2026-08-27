@@ -181,7 +181,7 @@ Standard RAG assumes the retriever always fetches the correct documents. **Corre
 When a user simply types `"Hi"`, `"Hello"`, or switches personas, rather than responding with a generic *"How can I help you?"*, execute an **Intelligent Pre-Fetch Pipeline**:
 
 ```
-[User triggers "Hi" or switches to Sarah Ahmed (EMP001)]
+[User triggers "Hi" or switches to Ahmed Abdullah Al Mansoori (EMP001)]
                            │
                            ▼
            [Background Pre-Fetch Orchestrator]
@@ -189,8 +189,8 @@ When a user simply types `"Hi"`, `"Hello"`, or switches personas, rather than re
   ┌────────────────────────┼────────────────────────┐
   ▼                        ▼                        ▼
 [SQL Query: Balances]   [SQL Query: Manager]    [Policy Calendar Check]
-14 days annual leave    Fatima Al Zaabi         Upcoming Public Holiday
-3 carry-over expiring   (New effective date)    (Eid / National Day in 12d)
+18 days annual leave    Fatima Maryam Al Qubaisi Upcoming Public Holiday
+3 carry-over expiring   (VP, People & Culture)   (Eid / National Day in 12d)
   └────────────────────────┬────────────────────────┘
                            │
                            ▼
@@ -199,9 +199,9 @@ When a user simply types `"Hi"`, `"Hello"`, or switches personas, rather than re
 
 ### Dynamic Welcome Payload Structure:
 1. **Personalized Snapshot**:
-   > *"Good morning, Sarah! Here is your quick HR status overview:*
-   > * *🌴 **14 Days Annual Leave Available** (+3 carry-over days expiring Dec 31)*
-   > * *👔 **Line Manager**: Fatima Al Zaabi (effective Aug 26, 2026)*
+   > *"Good morning, Ahmed! Here is your quick HR status overview:*
+   > * *🌴 **18 Days Annual Leave Available** (+3 carry-over days expiring Dec 31)*
+   > * *👔 **Line Manager**: Fatima Maryam Al Qubaisi (VP, People & Culture)*
    > * *📅 **Upcoming Holiday**: UAE National Day in 12 days*
 2. **Context-Aware Quick Action Pills**:
    * `[Request Annual Leave]`
