@@ -63,12 +63,15 @@ class SourceCitation(BaseModel):
 
 class RAGResponse(BaseModel):
     answer: str
-    sources: list[SourceCitation]
-    conversation_id: Optional[str] = None
-    employee_profile: dict
-    target_language: str
-    latency_ms: int
-    tokens_used: int
+    sources: list[SourceCitation] = []
+    conversation_id: str
+    employee_profile: dict = {}
+    target_language: str = "en"
+    latency_ms: int = 0
+    tokens_used: int = 0
+    intent: Optional[str] = "policy_inquiry"
+    rewritten_query: Optional[str] = None
+    confidence_score: Optional[float] = 1.0
 
 
 # ── LangChain Session Chat Message History ───────────────────────
@@ -134,41 +137,131 @@ class RAGEngine:
         conversation_id: Optional[str] = None,
     ) -> RAGResponse:
         """
-        Synchronous RAG query combining SQL Database facts, Qdrant policy rules, and LangChain memory.
+        Synchronous RAG query combining SQL Database facts, Hybrid Qdrant search, Query Rewriting, and LangChain memory.
         """
+        from app.query_transform import QueryTransformer
+
         start_time = time.time()
         conv_id = conversation_id or f"conv-{int(time.time() * 1000)}"
 
-        # ── Step 1: Fetch live relational context from SQL Database ──
+        # ── Step 1: Query Transformation & Intent Classification ──
+        t_res = QueryTransformer.transform(user_query, target_language)
+        effective_lang = t_res.target_language or target_language
+
+        # ── Step 2: Fetch live relational context from SQL Database ──
         sql_context = get_employee_full_sql_context(employee_id)
         employee_profile = _context_to_profile(sql_context)
         logger.info(
             f"Employee from SQL DB: {sql_context['name']} ({employee_id}) | "
-            f"Manager: {sql_context['manager_name']} | Annual Leaves: {sql_context['annual_leave_balance']}"
+            f"Intent: {t_res.intent} | Manager: {sql_context['manager_name']}"
         )
 
-        # ── Step 2 & 3: Retrieve relevant chunks from Vector Store ──
+        history = get_session_history(conv_id)
+
+        # ── Step 3: Handle Proactive Greeting / Onboarding Intent ──
+        if t_res.is_greeting:
+            latency_ms = int((time.time() - start_time) * 1000)
+            if effective_lang == "ar":
+                answer = (
+                    f"👋 **أهلاً بك يا {sql_context['name_ar']} في منصة إتش سي سيرفيسز للموارد البشرية!**\n\n"
+                    f"إليك ملخص سريع لحالتك الوظيفية الحالية من قاعدة البيانات:\n"
+                    f"* 🌴 **رصيد الإجازة السنوية:** **{sql_context['annual_leave_balance']} يوماً متبقياً** (+{sql_context['carry_over_days']} أيام مرحلة)\n"
+                    f"* 🤒 **رصيد الإجازة المرضية:** **{sql_context['sick_leave_balance']} يوماً متاحاً**\n"
+                    f"* 👔 **المدير المباشر:** **{sql_context['manager_name']}** ({sql_context.get('manager_role', 'المدير المباشر')})\n"
+                    f"* 💼 **القسم والمسمى:** {sql_context['department']} — {sql_context['role']}\n\n"
+                    f"كيف يمكنني مساعدتك في استفسارات سياسات العمل أو طلبات الإجازات اليوم؟"
+                )
+            else:
+                answer = (
+                    f"👋 **Welcome to HC Services Policy & Leave Concierge, {sql_context['name']}!**\n\n"
+                    f"Here is your real-time HR overview:\n"
+                    f"* 🌴 **Annual Leave:** **{sql_context['annual_leave_balance']} days remaining** (+{sql_context['carry_over_days']} days carry-over)\n"
+                    f"* 🤒 **Sick Leave:** **{sql_context['sick_leave_balance']} days available**\n"
+                    f"* 👔 **Current Line Manager:** **{sql_context['manager_name']}** ({sql_context.get('manager_role', 'Line Manager')})\n"
+                    f"* 💼 **Department & Role:** {sql_context['department']} — {sql_context['role']}\n\n"
+                    f"How can I assist you with company policies, leave requests, or expense claims today?"
+                )
+
+            history.add_user_message(user_query)
+            history.add_ai_message(answer)
+
+            sql_source = SourceCitation(
+                id="src-sql-1",
+                title="Omni HR SQL Database (omni_hr.db)",
+                source="SQL Database (omni_hr.db)",
+                source_type="database",
+                table_name="employees, leave_balances",
+                section=f"Record: {sql_context['user_id']} ({sql_context['name']})",
+                page_number=None,
+                score=1.0,
+                language=effective_lang,
+                snippet=f"Live SQL State: {sql_context['name']} | Leaves: {sql_context['annual_leave_balance']}d remaining | Manager: {sql_context['manager_name']}",
+                url="#",
+                pdf_url=None,
+                has_image=False,
+            )
+
+            return RAGResponse(
+                answer=answer,
+                sources=[sql_source],
+                conversation_id=conv_id,
+                employee_profile=employee_profile.model_dump(),
+                target_language=effective_lang,
+                latency_ms=latency_ms,
+                tokens_used=180,
+                intent=t_res.intent,
+                rewritten_query=t_res.rewritten_query,
+                confidence_score=t_res.confidence_score,
+            )
+
+        # ── Step 4: Handle Out-of-Domain Guardrail (Grounded Abstain) ──
+        if t_res.is_out_of_domain:
+            latency_ms = int((time.time() - start_time) * 1000)
+            if effective_lang == "ar":
+                answer = (
+                    "عذراً، أنا مخصص حصرياً للمساعدة في سياسات الموارد البشرية ولوائح الإجازات وبدلات العمل الخاصة بشركة إتش سي سيرفيسز. "
+                    "لا يمكنني الإجابة على موضوعات خارج نطاق سياسات الشركة. كيف يمكنني مساعدتك في استفساراتك الوظيفية؟"
+                )
+            else:
+                answer = (
+                    "I am dedicated strictly to assisting with HC Services internal HR policies, leave balances, manager reporting, and employee benefits. "
+                    "I cannot assist with questions outside our company HR policies. How can I help with your workplace questions today?"
+                )
+
+            history.add_user_message(user_query)
+            history.add_ai_message(answer)
+
+            return RAGResponse(
+                answer=answer,
+                sources=[],
+                conversation_id=conv_id,
+                employee_profile=employee_profile.model_dump(),
+                target_language=effective_lang,
+                latency_ms=latency_ms,
+                tokens_used=120,
+                intent=t_res.intent,
+                rewritten_query=t_res.rewritten_query,
+                confidence_score=0.99,
+            )
+
+        # ── Step 5: Hybrid Retrieval from Vector Store using Rewritten Query ──
         chunks = vector_store.search(
-            query=user_query,
+            query=t_res.rewritten_query,
             top_k=settings.rag_top_k,
+            language_filter=effective_lang,
         )
-        logger.info(f"Retrieved {len(chunks)} chunks for query: '{user_query[:60]}...'")
+        logger.info(f"Retrieved {len(chunks)} chunks using rewritten query: '{t_res.rewritten_query[:60]}...'")
 
-        # ── Step 4: Assemble prompt with full SQL Relational context ──
+        # ── Step 6: Assemble prompt with full SQL Relational context ──
         retrieved_context = format_chunks(chunks)
         system_prompt = build_system_prompt(
-            target_language=target_language,
+            target_language=effective_lang,
             sql_context=sql_context,
             retrieved_chunks=retrieved_context,
         )
 
-        # ── Step 5: LangChain Message History Assembly & LLM Generation ──
-        history = get_session_history(conv_id)
-        
         # Build LangChain messages: SystemMessage + prior History (last 6 turns) + current HumanMessage
         langchain_messages: list[BaseMessage] = [SystemMessage(content=system_prompt)]
-        
-        # Include recent history from LangChain memory
         prior_messages = history.messages[-6:] if history.messages else []
         langchain_messages.extend(prior_messages)
         langchain_messages.append(HumanMessage(content=user_query))
@@ -193,12 +286,6 @@ class RAGEngine:
 
         response = _call_llm_with_retry(**completion_kwargs)
 
-        finish_reason = response.choices[0].finish_reason if response.choices else None
-        if finish_reason == "length":
-            logger.warning(
-                f"LLM response was truncated due to token limit (max_tokens={settings.max_tokens})."
-            )
-
         answer = response.choices[0].message.content or ""
         tokens_used = response.usage.total_tokens if response.usage else 0
 
@@ -206,7 +293,7 @@ class RAGEngine:
         history.add_user_message(user_query)
         history.add_ai_message(answer)
 
-        # ── Step 6: Build structured response with SQL DB + PDF Policy Citations ──
+        # ── Step 7: Build structured response with SQL DB + PDF Policy Citations ──
         latency_ms = int((time.time() - start_time) * 1000)
 
         # 1. SQL Database Record Citation
@@ -229,7 +316,7 @@ class RAGEngine:
                 section=f"Record: {sql_context['user_id']} ({sql_context['name']})",
                 page_number=None,
                 score=1.0,
-                language="en",
+                language=effective_lang,
                 snippet=sql_snippet,
                 url="#",
                 pdf_url=None,
@@ -253,7 +340,7 @@ class RAGEngine:
                     section=c.get("section", f"Page {page_no}"),
                     page_number=page_no,
                     score=c["score"],
-                    language=c.get("language", "en"),
+                    language=c.get("language", effective_lang),
                     snippet=snippet_text,
                     url=pdf_url,
                     pdf_url=pdf_url,
@@ -261,16 +348,19 @@ class RAGEngine:
                 )
             )
 
-        logger.info(f"Hybrid RAG complete [LangChain Session: {conv_id}] | lang={target_language} | {latency_ms}ms | {tokens_used} tokens")
+        logger.info(f"Hybrid RAG complete [LangChain Session: {conv_id}] | intent={t_res.intent} | lang={effective_lang} | {latency_ms}ms | {tokens_used} tokens")
 
         return RAGResponse(
             answer=answer,
             sources=sources,
             conversation_id=conv_id,
             employee_profile=employee_profile.model_dump(),
-            target_language=target_language,
+            target_language=effective_lang,
             latency_ms=latency_ms,
             tokens_used=tokens_used,
+            intent=t_res.intent,
+            rewritten_query=t_res.rewritten_query,
+            confidence_score=t_res.confidence_score,
         )
 
     def stream_query(

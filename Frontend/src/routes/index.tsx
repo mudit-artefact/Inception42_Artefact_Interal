@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 import { useActiveEmployee } from "@/hooks/useActiveEmployee";
 import { useConcierge } from "@/hooks/useConcierge";
 import { InceptionLogo } from "@/components/common/InceptionLogo";
+import { EvaluationModal } from "@/components/concierge/EvaluationModal";
 
 const TITLE = "HCS-01 Policy & Leave Concierge";
 const DESCRIPTION =
@@ -80,6 +81,7 @@ function ConciergePage() {
           <p className="text-xs text-muted-foreground">Health Corporate Services · Employee Self-Service</p>
         </div>
 
+        <EvaluationModal />
         <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
       </header>
 

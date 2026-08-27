@@ -267,6 +267,21 @@ async def trigger_ingest(force: bool = False) -> IngestResponse:
 
 
 @app.get(
+    "/api/v1/hcs01/eval",
+    summary="Run automated technical benchmarks evaluation",
+    tags=["HCS-01 RAG"],
+)
+async def get_eval_benchmarks():
+    """Executes the automated benchmark evaluation suite and returns precision & recall metrics."""
+    try:
+        from app.evaluator import run_benchmark_evaluation
+        report = run_benchmark_evaluation()
+        return report.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
     "/api/v1/hcs01/health",
     summary="Health check",
     tags=["HCS-01 RAG"],

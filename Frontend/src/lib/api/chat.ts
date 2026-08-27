@@ -1,7 +1,7 @@
 import { apiRequest } from "./client";
 import { isApiConfigured } from "./config";
 import { mockChat } from "./mock";
-import type { ChatRequest, ChatResponse } from "./types";
+import type { ChatRequest, ChatResponse, EvaluationReport } from "./types";
 
 /**
  * Send chat message to backend /api/v1/hcs01/query (or fallback to mock data).
@@ -50,6 +50,9 @@ export async function sendChatMessage(
       target_language: data.target_language,
       latency_ms: data.latency_ms,
       tokens_used: data.tokens_used,
+      intent: data.intent,
+      rewritten_query: data.rewritten_query,
+      confidence_score: data.confidence_score,
     };
   } catch (err) {
     console.warn("Backend chat request error:", err);
@@ -57,3 +60,11 @@ export async function sendChatMessage(
   }
 }
 
+/**
+ * Fetch automated benchmark evaluation report from /api/v1/hcs01/eval
+ */
+export async function fetchEvaluationReport(): Promise<EvaluationReport> {
+  return apiRequest<EvaluationReport>("/api/v1/hcs01/eval", {
+    method: "GET",
+  });
+}

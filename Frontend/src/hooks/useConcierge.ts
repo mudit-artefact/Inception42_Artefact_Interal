@@ -105,6 +105,9 @@ export function useConcierge(employeeId: string) {
           createdAt: new Date().toISOString(),
           sources: res.sources,
           feedback: null,
+          intent: res.intent,
+          rewritten_query: res.rewritten_query,
+          confidence_score: res.confidence_score,
         };
         patchActive((c) => ({
           ...c,

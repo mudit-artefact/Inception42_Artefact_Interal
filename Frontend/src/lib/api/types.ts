@@ -27,11 +27,31 @@ export interface ChatRequest {
 export interface ChatResponse {
   answer: string;
   sources: PolicySource[];
-  conversation_id: string;
-  employee_profile?: Record<string, unknown>;
+  conversation_id?: string;
+  employee_profile?: EmployeeProfile;
   target_language?: string;
   latency_ms?: number;
   tokens_used?: number;
+  intent?: string;
+  rewritten_query?: string;
+  confidence_score?: number;
+}
+
+export interface EvaluationReport {
+  total_test_cases: number;
+  intent_accuracy_pct: number;
+  retrieval_recall_at_5_pct: number;
+  abstain_accuracy_pct: number;
+  faithfulness_score_pct: number;
+  mrr_score: number;
+  avg_latency_ms: number;
+  ablation_study: {
+    raw_query_recall_pct: number;
+    rewritten_hybrid_recall_pct: number;
+    improvement_delta_pct: number;
+    hybrid_rrf_boost_pct: number;
+  };
+  category_breakdown: Record<string, { total: number; correct_intent: number; correct_retrieval: number }>;
 }
 
 export interface ChatMessage {
@@ -42,6 +62,9 @@ export interface ChatMessage {
   sources?: PolicySource[];
   feedback?: "up" | "down" | null;
   error?: string;
+  intent?: string;
+  rewritten_query?: string;
+  confidence_score?: number;
 }
 
 export interface Conversation {

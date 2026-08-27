@@ -1,4 +1,4 @@
-import { AlertTriangle, RotateCcw, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { MessageFeedback } from "@/components/concierge/MessageFeedback";
 import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
@@ -28,7 +29,7 @@ interface ChatPanelProps {
   onSend: (text: string) => void;
   onRetry: () => void;
   onDismissError: () => void;
-  onFeedback: (messageId: string, value: "up" | "down") => void;
+  onFeedback: (id: string, value: "up" | "down") => void;
 }
 
 export function ChatPanel({
@@ -40,31 +41,34 @@ export function ChatPanel({
   onDismissError,
   onFeedback,
 }: ChatPanelProps) {
-  const busy = status === "submitted";
+  const busy = status === "sending";
   const isEmpty = messages.length === 0;
 
-  const handleSubmit = (message: { text?: string }) => {
-    const value = message.text ?? "";
-    if (!value.trim() || busy) return;
-    onSend(value);
+  const handleSubmit = (
+    value: { text: string; files?: unknown[] },
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    const text = value.text.trim();
+    if (!text || busy) return;
+    onSend(text);
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <Conversation className="min-h-0 flex-1">
-        <ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
+    <div className="flex h-full flex-col">
+      <Conversation className="flex-1">
+        <ConversationContent className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-6">
           {isEmpty ? (
-            <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <InceptionLogo className="h-12 w-auto" height={48} />
-              <div>
-                <h2 className="font-display text-xl font-semibold text-foreground">
-                  Ask about policies or your leave
-                </h2>
-                <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                  The HCS-01 concierge answers from approved HR and finance policy documents, and always shows
-                  the clauses it used.
-                </p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-pink/10 text-pink ring-8 ring-pink/5">
+                <InceptionLogo className="h-8 w-auto" />
               </div>
+              <h2 className="mt-4 font-display text-lg font-semibold tracking-tight text-foreground">
+                How can I help with your HR policies today?
+              </h2>
+              <p className="mt-1.5 max-w-md text-xs text-muted-foreground">
+                Ask about annual leave, carry-over caps, probation reviews, medical certificates, or line manager approvals.
+              </p>
             </div>
           ) : null}
 
@@ -77,7 +81,54 @@ export function ChatPanel({
               ) : null}
               <MessageContent>
                 <MessageResponse>{m.content}</MessageResponse>
+
+                {/* Proactive Greeting Action Pills */}
+                {m.role === "assistant" && m.intent === "greeting_onboarding" ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
+                    <span className="text-[10px] text-muted-foreground font-medium mr-1">Quick Actions:</span>
+                    <button
+                      type="button"
+                      onClick={() => onSend("How many annual leave days do I have left this year?")}
+                      className="px-2 py-1 rounded-md text-[11px] bg-pink/10 hover:bg-pink/20 text-pink font-medium transition-colors"
+                    >
+                      🌴 Check Leave Balance
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSend("What is the leave request workflow and notice period?")}
+                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
+                    >
+                      📄 Leave Request Workflow
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSend("Who is my current line manager and when did they change?")}
+                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
+                    >
+                      👔 Line Manager Info
+                    </button>
+                  </div>
+                ) : null}
+
+                {/* Query Intelligence Indicator */}
+                {m.role === "assistant" && m.rewritten_query && m.intent !== "greeting_onboarding" && m.intent !== "out_of_domain" ? (
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground pt-1 border-t border-border/30">
+                    <Badge variant="outline" className="gap-1 border-pink/20 bg-pink/5 text-[10px] text-pink">
+                      <Sparkles className="size-2.5" />
+                      <span>Query Intelligence</span>
+                    </Badge>
+                    <span className="font-mono bg-muted/60 px-1.5 py-0.5 rounded text-foreground/80">
+                      Rewritten: "{m.rewritten_query.length > 55 ? `${m.rewritten_query.slice(0, 52)}…` : m.rewritten_query}"
+                    </span>
+                    {m.confidence_score ? (
+                      <Badge variant="secondary" className="text-[10px] text-muted-foreground">
+                        {Math.round(m.confidence_score * 100)}% Intent Match
+                      </Badge>
+                    ) : null}
+                  </div>
+                ) : null}
               </MessageContent>
+
               {m.role === "assistant" ? (
                 <>
                   <SourceCitations sources={m.sources ?? []} />
@@ -97,7 +148,7 @@ export function ChatPanel({
                 Concierge
               </p>
               <MessageContent>
-                <Shimmer className="text-sm">Checking the policy library…</Shimmer>
+                <Shimmer className="text-sm">Analyzing policy library with hybrid retrieval…</Shimmer>
                 <span className="flex gap-1 pt-1" aria-hidden="true">
                   <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-200ms]" />
                   <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-100ms]" />
@@ -150,7 +201,7 @@ export function ChatPanel({
             <PromptInputFooter className="justify-between">
               <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <ShieldCheck aria-hidden="true" className="size-3.5 text-pink" />
-                Answers cite official policy clauses
+                Answers verified by Omni HR SQL & Official Policy PDFs
               </span>
               <PromptInputSubmit {...(busy ? { status: "submitted" as const } : {})} disabled={busy} />
             </PromptInputFooter>
