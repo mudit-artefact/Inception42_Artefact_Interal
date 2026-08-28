@@ -16,6 +16,9 @@ import logging
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 
 # Load .env before importing app modules
 from dotenv import load_dotenv
