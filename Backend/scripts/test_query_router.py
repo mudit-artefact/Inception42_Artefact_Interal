@@ -110,6 +110,7 @@ def run_test_cases():
     passed = 0
     failed = 0
 
+    import time
     for i, tc in enumerate(TEST_CASES, 1):
         query = tc["query"]
         expected = tc["expected_intent"]
@@ -137,6 +138,8 @@ def run_test_cases():
         except Exception as e:
             print(f"  ERROR: {e}")
             failed += 1
+
+        time.sleep(1.5)
 
     print("\n" + "=" * 70)
     print(f"RESULTS: {passed} passed, {failed} failed out of {len(TEST_CASES)}")
