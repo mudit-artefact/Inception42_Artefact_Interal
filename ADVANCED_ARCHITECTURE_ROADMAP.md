@@ -4,7 +4,7 @@ This technical document outlines the complete architectural roadmap and advanced
 
 ---
 
-## 📑 Table of Contents
+##  Table of Contents
 1. [0 & 1. Complex Multimodality & Input Source Layouts](#0--1-complex-multimodality--input-source-complexity)
 2. [2. Advanced Chunking Strategy: Sizing, Overlap & Techniques](#2-advanced-chunking-strategy-sizing-overlap--techniques)
 3. [3. Deep-Dive: Embedding Model Rationale & Benchmarks](#3-deep-dive-embedding-model-rationale--benchmarks)
