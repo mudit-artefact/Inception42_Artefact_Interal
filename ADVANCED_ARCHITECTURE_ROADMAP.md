@@ -1,4 +1,4 @@
-# 🧠 Technical Blueprint: Advanced Enterprise Architecture for HCS-01
+#  Technical Blueprint: Advanced Enterprise Architecture for HCS-01
 
 This technical document outlines the complete architectural roadmap and advanced AI/RAG strategies for scaling the **HCS-01 Policy & Leave Concierge** into an enterprise-grade multimodal intelligence platform.
 
