@@ -22,6 +22,9 @@ export interface ChatRequest {
   conversation_id?: string | null;
   employee_id?: string;
   target_language?: string;
+  // For clarification follow-up (ambiguous query handling)
+  original_question?: string | null;
+  user_clarification?: string | null;
 }
 
 export interface ChatResponse {
@@ -35,6 +38,10 @@ export interface ChatResponse {
   intent?: string;
   rewritten_query?: string;
   confidence_score?: number;
+  // Clarification handling (for ambiguous queries)
+  is_awaiting_clarification?: boolean;
+  original_question?: string | null;
+  clarifying_question?: string | null;
 }
 
 export interface EvaluationReport {
@@ -65,6 +72,9 @@ export interface ChatMessage {
   intent?: string;
   rewritten_query?: string;
   confidence_score?: number;
+  // Clarification handling
+  is_awaiting_clarification?: boolean;
+  original_question?: string | null;
 }
 
 export interface Conversation {

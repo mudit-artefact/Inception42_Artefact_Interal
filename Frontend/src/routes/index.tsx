@@ -105,6 +105,7 @@ function ConciergePage() {
             onRetry={concierge.retry}
             onDismissError={concierge.dismissError}
             onFeedback={concierge.setFeedback}
+            isAwaitingClarification={concierge.isAwaitingClarification}
           />
         </main>
 

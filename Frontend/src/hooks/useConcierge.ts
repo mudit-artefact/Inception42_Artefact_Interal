@@ -4,7 +4,7 @@ import type { ChatMessage, Conversation } from "@/lib/api/types";
 
 const storageKey = (employeeId: string) => `hcs01.conversations.${employeeId}`;
 
-export type ChatStatus = "ready" | "submitted" | "error";
+export type ChatStatus = "ready" | "submitted" | "error" | "awaiting_clarification";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -36,6 +36,8 @@ export function useConcierge(employeeId: string) {
   const [status, setStatus] = useState<ChatStatus>("ready");
   const [error, setError] = useState<string | null>(null);
   const lastMessage = useRef<string | null>(null);
+  // Track pending clarification state
+  const pendingClarification = useRef<{ originalQuestion: string } | null>(null);
 
   useEffect(() => {
     const stored = load(key);
@@ -97,7 +99,19 @@ export function useConcierge(employeeId: string) {
       }));
 
       try {
-        const res = await sendChatMessage(message, active?.remoteId ?? null, { employeeId });
+        // Check if this is a clarification response
+        const clarificationData = pendingClarification.current;
+
+        const res = await sendChatMessage(message, active?.remoteId ?? null, {
+          employeeId,
+          // Pass clarification context if pending
+          originalQuestion: clarificationData?.originalQuestion ?? null,
+          userClarification: clarificationData ? message : null,
+        });
+
+        // Clear pending clarification after sending
+        pendingClarification.current = null;
+
         const assistant: ChatMessage = {
           id: uid(),
           role: "assistant",
@@ -108,14 +122,24 @@ export function useConcierge(employeeId: string) {
           intent: res.intent,
           rewritten_query: res.rewritten_query,
           confidence_score: res.confidence_score,
+          is_awaiting_clarification: res.is_awaiting_clarification,
+          original_question: res.original_question,
         };
+
         patchActive((c) => ({
           ...c,
           remoteId: res.conversation_id || c.remoteId,
           updatedAt: assistant.createdAt,
           messages: [...c.messages, assistant],
         }));
-        setStatus("ready");
+
+        // Check if awaiting clarification
+        if (res.is_awaiting_clarification && res.original_question) {
+          pendingClarification.current = { originalQuestion: res.original_question };
+          setStatus("awaiting_clarification");
+        } else {
+          setStatus("ready");
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
         setStatus("error");
@@ -186,6 +210,12 @@ export function useConcierge(employeeId: string) {
     deleteConversation,
     dismissError: () => {
       setError(null);
+      setStatus("ready");
+    },
+    // Clarification helpers
+    isAwaitingClarification: status === "awaiting_clarification",
+    cancelClarification: () => {
+      pendingClarification.current = null;
       setStatus("ready");
     },
   };

@@ -72,6 +72,10 @@ class RAGResponse(BaseModel):
     intent: Optional[str] = "policy_inquiry"
     rewritten_query: Optional[str] = None
     confidence_score: Optional[float] = 1.0
+    # Clarification handling (for ambiguous queries)
+    original_question: Optional[str] = None
+    clarifying_question: Optional[str] = None
+    is_awaiting_clarification: bool = False
 
 
 # ── LangChain Session Chat Message History ───────────────────────

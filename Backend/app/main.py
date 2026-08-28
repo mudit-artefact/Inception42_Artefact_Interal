@@ -13,7 +13,8 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.mock_omni import router as omni_router
-from app.rag_engine import rag_engine, RAGResponse
+from app.rag_engine import RAGResponse
+from app.orchestrator import process_query
 from app import vector_store
 
 # ── Logging ───────────────────────────────────────────────────────
@@ -102,6 +103,9 @@ class QueryRequest(BaseModel):
     employee_id: str = "EMP001"
     conversation_id: Optional[str] = None
     target_language: Optional[Literal["en", "ar"]] = None
+    # For clarification follow-up (ambiguous query handling)
+    original_question: Optional[str] = None
+    user_clarification: Optional[str] = None
 
 
 class IngestResponse(BaseModel):
@@ -142,11 +146,14 @@ async def hcs01_query(request: QueryRequest) -> RAGResponse:
     """
     Main RAG endpoint for both Frontend UI and external orchestrators.
 
-    - Accepts either `query` or `message` in payload.
-    - Embeds the query (multilingual).
-    - Retrieves relevant policy chunks from Qdrant.
-    - Fetches employee profile from Mock Omni.
-    - Generates a response in the target language (auto-detected if not specified).
+    Flow:
+    1. Route query through LangGraph Query Router (classify intent)
+    2. Terminal flows (greeting/not_in_scope/ambiguous) return immediately
+    3. In-scope queries are rewritten and passed to RAG Engine
+
+    Supports clarification follow-up for ambiguous queries:
+    - If previous response had is_awaiting_clarification=True
+    - Frontend sends original_question + user_clarification in next request
     """
     text = (request.query or request.message or "").strip()
     if not text:
@@ -156,18 +163,20 @@ async def hcs01_query(request: QueryRequest) -> RAGResponse:
     emp_id = request.employee_id or "EMP001"
 
     try:
-        result = rag_engine.query(
+        result = process_query(
             user_query=text,
             employee_id=emp_id,
             target_language=target_lang,
             conversation_id=request.conversation_id,
+            original_question=request.original_question,
+            user_clarification=request.user_clarification,
         )
         return result
     except RuntimeError as e:
         # E.g., missing API key
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        logger.error(f"RAG query failed: {e}", exc_info=True)
+        logger.error(f"Query processing failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 

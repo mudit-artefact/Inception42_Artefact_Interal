@@ -30,6 +30,7 @@ interface ChatPanelProps {
   onRetry: () => void;
   onDismissError: () => void;
   onFeedback: (id: string, value: "up" | "down") => void;
+  isAwaitingClarification?: boolean;
 }
 
 export function ChatPanel({
@@ -40,8 +41,9 @@ export function ChatPanel({
   onRetry,
   onDismissError,
   onFeedback,
+  isAwaitingClarification = false,
 }: ChatPanelProps) {
-  const busy = status === "sending";
+  const busy = status === "submitted";
   const isEmpty = messages.length === 0;
 
   const handleSubmit = (
@@ -82,8 +84,21 @@ export function ChatPanel({
               <MessageContent>
                 <MessageResponse>{m.content}</MessageResponse>
 
+                {/* Clarification Indicator for Ambiguous Queries */}
+                {m.role === "assistant" && m.is_awaiting_clarification ? (
+                  <div className="mt-3 flex items-center gap-2 pt-2 border-t border-amber-500/30">
+                    <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-600 text-[10px]">
+                      <AlertTriangle className="size-2.5" />
+                      <span>Clarification Needed</span>
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      Please provide more details so I can give you an accurate answer.
+                    </span>
+                  </div>
+                ) : null}
+
                 {/* Proactive Greeting Action Pills */}
-                {m.role === "assistant" && m.intent === "greeting_onboarding" ? (
+                {m.role === "assistant" && m.intent === "greeting" ? (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
                     <span className="text-[10px] text-muted-foreground font-medium mr-1">Quick Actions:</span>
                     <button
@@ -111,7 +126,7 @@ export function ChatPanel({
                 ) : null}
 
                 {/* Query Intelligence Indicator */}
-                {m.role === "assistant" && m.rewritten_query && m.intent !== "greeting_onboarding" && m.intent !== "out_of_domain" ? (
+                {m.role === "assistant" && m.rewritten_query && m.intent !== "greeting" && m.intent !== "greeting_onboarding" && m.intent !== "not_in_scope" && m.intent !== "out_of_domain" && m.intent !== "ambiguous" ? (
                   <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground pt-1 border-t border-border/30">
                     <Badge variant="outline" className="gap-1 border-pink/20 bg-pink/5 text-[10px] text-pink">
                       <Sparkles className="size-2.5" />
@@ -194,7 +209,11 @@ export function ChatPanel({
           ) : null}
           <PromptInput onSubmit={handleSubmit}>
             <PromptInputTextarea
-              placeholder="Ask about leave entitlement, notice periods, medical certificates…"
+              placeholder={
+                isAwaitingClarification
+                  ? "Please provide more details to clarify your question…"
+                  : "Ask about leave entitlement, notice periods, medical certificates…"
+              }
               disabled={busy}
               aria-label="Message the policy concierge"
             />

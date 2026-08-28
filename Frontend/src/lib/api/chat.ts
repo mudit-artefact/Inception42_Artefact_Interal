@@ -9,7 +9,14 @@ import type { ChatRequest, ChatResponse, EvaluationReport } from "./types";
 export async function sendChatMessage(
   message: string,
   conversationId: string | null,
-  options?: { signal?: AbortSignal; employeeId?: string | null; targetLanguage?: "en" | "ar" },
+  options?: {
+    signal?: AbortSignal;
+    employeeId?: string | null;
+    targetLanguage?: "en" | "ar";
+    // For clarification follow-up
+    originalQuestion?: string | null;
+    userClarification?: string | null;
+  },
 ): Promise<ChatResponse> {
   if (!isApiConfigured()) {
     return mockChat(message, conversationId, options?.employeeId ?? null);
@@ -21,6 +28,9 @@ export async function sendChatMessage(
     conversation_id: conversationId,
     employee_id: options?.employeeId ?? "EMP001",
     target_language: options?.targetLanguage,
+    // Include clarification data if provided
+    original_question: options?.originalQuestion,
+    user_clarification: options?.userClarification,
   };
 
   try {
@@ -53,6 +63,10 @@ export async function sendChatMessage(
       intent: data.intent,
       rewritten_query: data.rewritten_query,
       confidence_score: data.confidence_score,
+      // Clarification handling
+      is_awaiting_clarification: data.is_awaiting_clarification ?? false,
+      original_question: data.original_question,
+      clarifying_question: data.clarifying_question,
     };
   } catch (err) {
     console.warn("Backend chat request error:", err);

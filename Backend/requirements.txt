@@ -12,6 +12,21 @@ openai>=1.40.0
 litellm>=1.44.0
 tiktoken>=0.7.0
 
+# LangChain (Conversation Memory)
+langchain-core>=0.2.0
+
+# LangGraph (Agent Orchestration)
+langgraph>=0.2.0
+
+# Database ORM
+sqlalchemy>=2.0.0
+
+# Retry Logic
+tenacity>=8.2.0
+
+# PDF Parsing
+pymupdf>=1.24.0
+
 # Streamlit UI
 streamlit>=1.36.0
 
