@@ -1,90 +1,99 @@
 # HC Services — People Code
 ## Section 3: Probation Policy
 
+---
+
+### 3.0 Document Control
+
 **Document Reference:** HC-PC-003  
 **Version:** 2.1  
 **Effective Date:** 1 January 2025  
+**Status:** current  
 **Owner:** People & Culture Division
+
+| Version | Effective from | Superseded on | What changed |
+|---|---|---|---|
+| 2.1 | 1 January 2025 | — | Current version. No clause of this policy has been amended since it took effect. |
 
 ---
 
 ### 3.1 Policy Scope
 
-This policy applies to all new employees joining HC Services on a permanent or fixed-term basis. It outlines the terms, duration, and management of the probationary period.
+This policy applies to every new employee of HC Services and to every employee transferring internally into a materially different role. It governs the probationary period only; performance management after confirmation is dealt with under HC-PC-008.
 
 ---
 
 ### 3.2 Probationary Period Duration
 
-**3.2.1 Standard Probation**  
-All new employees serve a probationary period of **6 months** from their official start date, unless a different period is specified in the employment contract.
+**3.2.1 Standard Period**  
+All new employees serve a probationary period of **6 months** from their official start date, unless their contract specifies otherwise.
 
-**3.2.2 Senior Leadership Roles**  
-Employees joining at Grade 7 (Director) and above may have a probationary period of up to **12 months** as specified in the employment contract.
+**3.2.2 Extended Period by Grade**  
+Employees joining at **Grade 7 and above** — the Leadership and Executive bands defined in HC-PC-007 §7.6 — may serve a probationary period of up to **12 months** where their contract states so.
 
 **3.2.3 Internal Transfers**  
-Employees transferring internally to a significantly different role may be required to serve a reduced probationary period of **3 months** at the discretion of the receiving department head and HR.
+An employee transferring internally into a materially different role may serve a reduced probationary period of **3 months**, at the discretion of the receiving department head and People & Culture. Internal transfer does not break continuous service (HC-PC-007 §7.2), so annual leave entitlement under HC-PC-001 §1.2.2 is unaffected.
 
 ---
 
 ### 3.3 Performance Review During Probation
 
-**3.3.1 Mid-Probation Review**  
-A formal mid-probation review must be conducted at the **3-month mark** by the line manager. The review must be documented using Form HR-P-01 and submitted to HR.
+**3.3.1 Review Milestones**  
+Probation is reviewed against fixed milestones. Days are counted from the start date in calendar days:
 
-**3.3.2 End-of-Probation Review**  
-No later than **4 weeks before** the end of the probationary period, the line manager must initiate the end-of-probation review. The outcome must be one of:
-- **Confirmed** — employee passes probation and continues on permanent terms.
-- **Extended** — probation extended by up to 3 months with documented improvement targets.
-- **Terminated** — employment ends with notice as per the employment contract.
+| Milestone | Due (standard 6-month) | Form | Owner | If missed |
+|---|---|---|---|---|
+| Onboarding check-in | Day 30 | — | Line manager | Escalated to People & Culture |
+| Mid-probation review | Day 90 | HR-P-01 | Line manager | Probation cannot be extended on performance grounds |
+| Confirmation decision | Day 150 | HR-P-03 | Line manager and P&C | Probation lapses and the employee is confirmed |
+| Written outcome issued | Day 165 | HR-P-03 | People & Culture | Employee is confirmed by default |
 
-**3.3.3 Default Confirmation**  
-If no end-of-probation review is initiated or submitted by the deadline, the employee is **automatically confirmed** in their role. HR will notify the line manager of this outcome.
+Forms are listed in the Forms Register at HC-PC-007 §7.9.
+
+**3.3.2 Outcomes**  
+A probation review concludes with one of three outcomes: **Confirmed**, where performance meets the requirements of the role at a rating of 3 or above on the scale at HC-PC-007 §7.8; **Extended**, under §3.6; or **Not confirmed**, terminating employment under §3.4.
+
+Confirmation is the event that makes an employee eligible for remote working (HC-PC-004 §4.2.1) and for annual leave to be taken rather than merely accrued (HC-PC-001 §1.1).
 
 ---
 
 ### 3.4 Notice Period During Probation
 
-**3.4.1 Employee-Initiated Resignation**  
-An employee wishing to resign during probation must give **14 calendar days'** written notice.
+The Company may terminate employment during probation by giving **14 calendar days'** written notice, or payment of 14 days' salary in lieu, in accordance with UAE Labour Law. An employee resigning during probation gives the same 14 calendar days' notice.
 
-**3.4.2 Company-Initiated Termination**  
-The Company may terminate employment during probation by giving **14 calendar days'** written notice or by paying 14 days' salary in lieu of notice, in accordance with UAE Labour Law.
+Note that this is expressed in **calendar** days, unlike the notice periods in HC-PC-001 §1.4.1, which are working days. The distinction is defined at HC-PC-007 §7.3.
 
 ---
 
 ### 3.5 Benefits During Probation
 
 **3.5.1 Annual Leave**  
-Annual leave accrues during probation at the standard rate (Section 1.2). However, employees on probation may not take annual leave during the first 3 months of service without express approval from their line manager and HR. Exceptions apply for emergency situations.
+Annual leave accrues during probation at the standard rate (HC-PC-001 §1.2.2) but may **not be taken** during the first 3 months of service without the express approval of both the line manager and People & Culture. Emergency leave under HC-PC-001 §1.4.3 is not restricted.
 
 **3.5.2 Sick Leave**  
-Sick leave during probation is unpaid (see Section 2.2.2). Excessive sick leave (more than 30 cumulative days) may extend the probationary period.
+Sick leave is available from day one but is paid at half pay throughout probation — see HC-PC-002 §2.2.2. Sick absence exceeding 30 calendar days extends probation under §3.6.1.
 
 **3.5.3 Medical Insurance**  
-Medical insurance coverage commences from the **first day** of employment, regardless of probation status.
+Company medical insurance commences on the start date, without waiting period.
 
 **3.5.4 Air Ticket Allowance**  
-The annual air ticket allowance is not applicable during the probationary period. It commences upon confirmation of employment.
+The annual air ticket allowance commences **on confirmation**, not on the start date, and is not paid in respect of any part of the probationary period. It is not a fixed allowance for the purposes of leave pay — see HC-PC-007 §7.4 and HC-PC-001 §1.6.1.
 
 ---
 
 ### 3.6 Extension of Probation
 
 **3.6.1 Grounds for Extension**  
-Probation may be extended where:
-- Performance is below the required standard as documented in the mid-probation review.
-- Attendance or conduct concerns have been formally raised.
-- The employee was absent on sick leave for more than 30 days during probation.
+Probation may be extended once, by up to **3 months**, where performance is short of the requirement but improvement is judged achievable; where the employee has been absent on sick leave for more than **30 calendar days** during probation, in which case the extension is by the number of days absent in excess of 30; or where a mid-probation review under §3.3.1 could not be held for reasons outside the employee's control.
 
-**3.6.2 Extension Process**  
-The line manager must provide written notice of extension no later than **10 working days** before the end of the original probationary period. The extension period, goals, and support plan must be documented using Form HR-P-02.
+**3.6.2 Notice of Extension**  
+The line manager must give written notice of extension no later than **10 working days** before the end of the original probationary period, documented on Form HR-P-02. Working days exclude public holidays — see HC-PC-007 §7.3 and the holiday table at HC-PC-001 §1.7. Notice given late is invalid and the employee is confirmed.
 
 ---
 
 ### 3.7 Grievances During Probation
 
-Employees on probation have the right to raise a grievance in accordance with the Grievance & Dispute Resolution Policy (HC-PC-009). Access to the grievance procedure is not restricted by probationary status.
+An employee may raise a grievance about the conduct of their probation under HC-PC-009 §9.2. Raising a grievance does not pause the probationary period.
 
 ---
 

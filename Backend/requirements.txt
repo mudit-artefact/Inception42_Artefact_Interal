@@ -12,11 +12,18 @@ openai>=1.40.0
 litellm>=1.44.0
 tiktoken>=0.7.0
 
-# LangChain (Conversation Memory)
-langchain-core>=0.2.0
+# Rendering the policy PDFs from their Markdown sources. Arabic needs all three:
+# an embedded font, letter joining, and right-to-left reordering. Without them
+# ReportLab silently draws a dingbat for every Arabic character.
+reportlab>=4.0.0
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
 
 # LangGraph (Agent Orchestration)
 langgraph>=0.2.0
+# Saves conversation state, so a clarification can pause and resume across requests
+# and a conversation remembers what was said in it
+langgraph-checkpoint-sqlite>=2.0.0
 
 # Database ORM
 sqlalchemy>=2.0.0
@@ -40,3 +47,7 @@ python-dotenv>=1.0.0
 
 # File parsing
 python-multipart>=0.0.9
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0

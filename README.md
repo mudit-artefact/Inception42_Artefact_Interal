@@ -13,7 +13,9 @@ An enterprise-grade, bilingual (English & Arabic) AI Policy & Leave Concierge co
    * Reads official PDF policy documents page-by-page using **PyMuPDF**.
    * Understands embedded visual decision trees & approval flowcharts on Page 2 of policies.
 3. **Conversational Memory**:
-   * Powered by **LangChain** (`InMemoryChatMessageHistory`) with sliding-window multi-turn memory.
+   * The last few turns are kept in the conversation's own **LangGraph** checkpointed
+     state, so a follow-up like "what about sick leave?" is resolved against what was
+     actually said — and survives a restart, as the clarification pause already did.
 4. **Dual-Source Attribution & Verification**:
    * Interactive citation drawer showing **Live SQL Database Records** and **Direct PDF Page Deep-links** (`#page=2`).
 5. **Modern Bilingual UI**:

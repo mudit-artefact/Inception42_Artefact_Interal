@@ -1,64 +1,45 @@
 """
-scripts/ingest.py — Standalone ingestion script.
-Run this to (re-)index all policy documents into Qdrant.
+Build the policy search index from the command line.
 
-Usage:
-    python scripts/ingest.py            # Skip if already ingested
-    python scripts/ingest.py --force    # Force re-ingestion
+    python scripts/ingest.py            # only if the index is empty
+    python scripts/ingest.py --force    # rebuild it from scratch
 """
-import sys
-import os
+
 import argparse
 import logging
+import sys
+from pathlib import Path
 
-# Add project root to path so `app` package is importable
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# Load .env before importing app modules
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from app import vector_store
+from app.repositories.policy_vector_repository import count_indexed_passages  # noqa: E402
+from app.services.policy_indexing_service import reindex_policies  # noqa: E402
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(message)s",
-    datefmt="%H:%M:%S",
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="HCS-01 Policy Ingestion Script")
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build the policy search index")
     parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force re-ingestion even if Qdrant already has vectors.",
+        "--force", action="store_true", help="rebuild even if the index already has passages"
     )
-    args = parser.parse_args()
+    arguments = parser.parse_args()
 
-    logger.info("=" * 60)
-    logger.info("HCS-01 Policy Ingestion")
-    logger.info("=" * 60)
+    already_indexed = count_indexed_passages()
+    print(f"The index currently holds {already_indexed} passages.")
 
-    # Ensure collection exists
-    vector_store.ensure_collection()
+    indexed_count = reindex_policies(force=arguments.force)
+    if indexed_count == 0 and not arguments.force:
+        print("Nothing to do. Pass --force to rebuild from scratch.")
+        return 0
 
-    current_count = vector_store.collection_count()
-    logger.info(f"Current vector count in Qdrant: {current_count}")
-
-    if current_count > 0 and not args.force:
-        logger.info(
-            "Collection already populated. Use --force to re-ingest.\n"
-            "Tip: python scripts/ingest.py --force"
-        )
-        return
-
-    n = vector_store.ingest_policies(force=args.force)
-    logger.info("=" * 60)
-    logger.info(f"✅ Done! {n} chunks indexed into Qdrant.")
-    logger.info("=" * 60)
+    print(f"Indexed {indexed_count} policy passages.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

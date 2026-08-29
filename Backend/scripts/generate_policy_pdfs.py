@@ -1,475 +1,288 @@
 """
-scripts/generate_policy_pdfs.py
-Generates 5 professional PDF policy documents with embedded flowcharts,
-decision matrices, and timelines for Multimodal RAG showcase.
-"""
-import os
-import sys
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-import matplotlib.pyplot as plt
+Renders every policy PDF from its Markdown source.
 
-import matplotlib.patches as patches
+This script used to hand-write the policy text in Python, independently of
+`data/policies_en/*.md`. The two drifted badly: the Markdown said a medical certificate
+was needed from the third consecutive day and the PDF said the fourth, the Markdown
+scored the Bradford Factor against one set of bands and the PDF against another, and the
+two numbered their sections differently. Because `pdf_page_resolver` looks a section up
+in the *PDF* text, a citation built from the Markdown deep-linked the reader to a page
+stating something else.
+
+There is now one source of truth. The Markdown is the policy; the PDF is a rendering of
+it. Nothing here invents content.
+
+Arabic is rendered with an embedded font, reshaped, and reordered for display. Without
+all three, ReportLab silently substitutes its not-def glyph in ZapfDingbats — which is
+how every Arabic PDF in this project came to contain no Arabic at all.
+
+    python scripts/generate_policy_pdfs.py            # every language
+    python scripts/generate_policy_pdfs.py --language ar
+"""
+
+import argparse
+import re
+import sys
+from dataclasses import dataclass
 from pathlib import Path
-from reportlab.lib.pagesizes import letter
+
+import arabic_reshaper
+from bidi.algorithm import get_display
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_JUSTIFY, TA_RIGHT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, KeepTogether, HRFlowable
+    HRFlowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
 )
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-DIAGRAMS_DIR = DATA_DIR / "policy_diagrams"
-PDFS_DIR = DATA_DIR / "policies_pdf"
+BACKEND = Path(__file__).resolve().parent.parent
+FONT_FILE = BACKEND / "data" / "fonts" / "NotoNaskhArabic-Regular.ttf"
+ARABIC_FONT = "NotoNaskh"
 
-DIAGRAMS_DIR.mkdir(parents=True, exist_ok=True)
-PDFS_DIR.mkdir(parents=True, exist_ok=True)
+BRAND = colors.HexColor("#1F3864")
+RULE = colors.HexColor("#B4C6E7")
+
+# The word each language prints before a section number. `pdf_page_resolver` looks for
+# one of these followed by the number, which is how a citation finds its page.
+SECTION_WORD = {"en": "Section", "ar": "القسم"}
 
 
-# ============================================================================
-# 1. DIAGRAM GENERATION HELPERS (Using Matplotlib for crisp visual flowcharts)
-# ============================================================================
+@dataclass(frozen=True)
+class Block:
+    """One rendered element of a policy: a heading, a paragraph, or a table."""
 
-def create_annual_leave_diagram(save_path: Path):
-    """Generates the Annual Leave Approval Workflow flowchart diagram."""
-    fig, ax = plt.subplots(figsize=(8.5, 4.2), dpi=200)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 5)
-    ax.axis("off")
+    kind: str  # "h1" | "h2" | "h3" | "para" | "table" | "rule"
+    text: str = ""
+    rows: list[list[str]] | None = None
 
-    # Title
-    ax.text(5, 4.6, "Annual Leave Request & Approval Workflow (HC-PC-001)", 
-            ha="center", va="center", fontsize=12, fontweight="bold", color="#0f172a")
 
-    # Boxes: Step 1 -> Step 2 -> Step 3 -> Step 4
-    steps = [
-        ("1. Submit Request", "Employee submits via\nOmni Portal with\nrequired notice period", 1.2, 2.5, "#dbeafe", "#1e40af"),
-        ("2. Manager Review", "Line Manager assesses\nteam cover & verifies\navailable balance", 3.7, 2.5, "#fef3c7", "#92400e"),
-        ("3. HR Validation", "Automatic check against\nleave caps, carry-over\n& public holidays", 6.2, 2.5, "#e0e7ff", "#3730a3"),
-        ("4. Approval & Cal", "System logs approval,\ndeducts balance &\nsyncs Outlook calendar", 8.7, 2.5, "#dcfce7", "#166534"),
+def parse_markdown(markdown: str) -> list[Block]:
+    """Turn a policy's Markdown into the blocks the renderer draws. No interpretation."""
+    blocks: list[Block] = []
+    table_rows: list[list[str]] = []
+
+    def flush_table() -> None:
+        nonlocal table_rows
+        if table_rows:
+            blocks.append(Block("table", rows=table_rows))
+            table_rows = []
+
+    for raw_line in markdown.splitlines():
+        line = raw_line.rstrip()
+
+        if line.startswith("|"):
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            if all(set(cell) <= {"-", ":", " "} for cell in cells):
+                continue  # the |---|---| separator row
+            table_rows.append(cells)
+            continue
+        flush_table()
+
+        if not line:
+            continue
+        if line.startswith("### "):
+            blocks.append(Block("h3", line[4:]))
+        elif line.startswith("## "):
+            blocks.append(Block("h2", line[3:]))
+        elif line.startswith("# "):
+            blocks.append(Block("h1", line[2:]))
+        elif line.startswith("---"):
+            blocks.append(Block("rule"))
+        elif line.startswith("- "):
+            blocks.append(Block("para", "•  " + line[2:]))
+        else:
+            blocks.append(Block("para", line))
+
+    flush_table()
+    return blocks
+
+
+def as_rich_text(text: str, language: str) -> str:
+    """
+    Markdown emphasis into ReportLab markup, and Arabic shaped for display.
+
+    Arabic gets no inline markup. Reordering a line for display moves every character,
+    including the characters of any tag sitting inside it — `<b>` comes back as `<b/>`
+    and the paragraph fails to parse. Emphasis within an Arabic sentence is therefore
+    dropped rather than corrupted; headings and table headers still carry weight,
+    because that comes from the paragraph style and never enters the text.
+    """
+    text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    if language == "ar":
+        return shape_arabic(re.sub(r"\*{1,3}", "", text))
+
+    text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
+    return re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", text)
+
+
+def shape_arabic(text: str) -> str:
+    """
+    Join the letters, then lay them out right to left.
+
+    Both steps are required and in this order. Arabic letters change shape according to
+    their neighbours, and a PDF stores glyphs in the order they are drawn, not the order
+    they are read.
+    """
+    return get_display(arabic_reshaper.reshape(text))
+
+
+def heading_for_pdf(heading: str, language: str) -> str:
+    """
+    `### 1.5 Carry-Over` becomes `Section 1.5: Carry-Over`.
+
+    The section word and number must appear together in the rendered text: it is how
+    `pdf_page_resolver.resolve_pdf_page_number` finds which page to cite.
+    """
+    match = re.match(r"^(\d+\.\d+)\s+(.*)$", heading)
+    if not match:
+        return heading
+    number, title = match.groups()
+    return f"{SECTION_WORD[language]} {number}: {title}"
+
+
+def build_styles(language: str) -> dict[str, ParagraphStyle]:
+    """Paragraph styles for one language, right-aligned and Arabic-fonted when needed."""
+    base = getSampleStyleSheet()
+    is_arabic = language == "ar"
+    body_font = ARABIC_FONT if is_arabic else "Helvetica"
+    bold_font = ARABIC_FONT if is_arabic else "Helvetica-Bold"
+    alignment = TA_RIGHT if is_arabic else TA_JUSTIFY
+
+    return {
+        "h1": ParagraphStyle("h1", parent=base["Title"], fontName=bold_font,
+                             fontSize=16, textColor=BRAND, alignment=alignment,
+                             spaceAfter=4),
+        "h2": ParagraphStyle("h2", parent=base["Heading1"], fontName=bold_font,
+                             fontSize=13, textColor=BRAND, alignment=alignment,
+                             spaceBefore=6, spaceAfter=8),
+        "h3": ParagraphStyle("h3", parent=base["Heading2"], fontName=bold_font,
+                             fontSize=11, textColor=BRAND, alignment=alignment,
+                             spaceBefore=12, spaceAfter=5),
+        "para": ParagraphStyle("para", parent=base["BodyText"], fontName=body_font,
+                               fontSize=9, leading=14, alignment=alignment,
+                               spaceAfter=5),
+        "cell": ParagraphStyle("cell", parent=base["BodyText"], fontName=body_font,
+                               fontSize=8, leading=11, alignment=alignment),
+        "cellhead": ParagraphStyle("cellhead", parent=base["BodyText"], fontName=bold_font,
+                                   fontSize=8, leading=11, alignment=alignment),
+    }
+
+
+def render_table(rows: list[list[str]], styles: dict, language: str) -> Table:
+    """A policy table, header row shaded, wrapped so long cells do not overflow."""
+    header, *body = rows
+    width = (A4[0] - 40 * mm) / max(len(header), 1)
+
+    data = [[Paragraph(as_rich_text(cell, language), styles["cellhead"]) for cell in header]]
+    data += [
+        [Paragraph(as_rich_text(cell, language), styles["cell"]) for cell in row]
+        for row in body
     ]
+    if language == "ar":
+        data = [list(reversed(row)) for row in data]
 
-    for title, desc, x, y, bg_col, border_col in steps:
-        box = patches.FancyBboxPatch(
-            (x - 1.05, y - 1.1), 2.1, 2.2,
-            boxstyle="round,pad=0.15,rounding_size=0.2",
-            facecolor=bg_col, edgecolor=border_col, linewidth=1.5
-        )
-        ax.add_patch(box)
-        ax.text(x, y + 0.6, title, ha="center", va="center", fontsize=9, fontweight="bold", color=border_col)
-        ax.text(x, y - 0.2, desc, ha="center", va="center", fontsize=7.5, color="#334155")
-
-    # Connectors
-    for x in [2.35, 4.85, 7.35]:
-        ax.annotate("", xy=(x + 0.25, 2.5), xytext=(x - 0.05, 2.5),
-                    arrowprops=dict(arrowstyle="->", lw=2, color="#64748b"))
-
-    # Notice Period Footnote
-    notice_text = "Notice Rules: 1-2 days leave = 3 days notice | 3-9 days = 10 days notice | 10+ days = 30 days notice"
-    ax.text(5, 0.4, notice_text, ha="center", va="center", fontsize=8, fontstyle="italic", color="#475569",
-            bbox=dict(boxstyle="square,pad=0.4", facecolor="#f8fafc", edgecolor="#cbd5e1"))
-
-    plt.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight", dpi=200)
-    plt.close()
-    print(f"Generated: {save_path.name}")
+    table = Table(data, colWidths=[width] * len(header), repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), RULE),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#8EA9DB")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    return table
 
 
-def create_sick_leave_diagram(save_path: Path):
-    """Generates the Sick Leave Certification & Bradford Factor chart."""
-    fig, ax = plt.subplots(figsize=(8.5, 4.4), dpi=200)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 5.2)
-    ax.axis("off")
-
-    ax.text(5, 4.8, "Sick Leave Certification Decision Tree & Bradford Formula (HC-PC-002)", 
-            ha="center", va="center", fontsize=11.5, fontweight="bold", color="#0f172a")
-
-    # Left Box: Days 1-3
-    box1 = patches.FancyBboxPatch(
-        (0.5, 1.8), 4.0, 2.4,
-        boxstyle="round,pad=0.15,rounding_size=0.2",
-        facecolor="#fef3c7", edgecolor="#d97706", linewidth=1.5
-    )
-    ax.add_patch(box1)
-    ax.text(2.5, 3.8, "Absence Duration: 1 – 3 Days", ha="center", va="center", fontsize=9.5, fontweight="bold", color="#92400e")
-    ax.text(2.5, 3.2, "• Self-Certification permitted\n• Notify supervisor before 09:00 AM\n• Complete Return-to-Work form\n• 100% full basic salary paid", 
-            ha="center", va="center", fontsize=8, color="#451a03")
-
-    # Right Box: Days 4+
-    box2 = patches.FancyBboxPatch(
-        (5.5, 1.8), 4.0, 2.4,
-        boxstyle="round,pad=0.15,rounding_size=0.2",
-        facecolor="#fee2e2", edgecolor="#dc2626", linewidth=1.5
-    )
-    ax.add_patch(box2)
-    ax.text(7.5, 3.8, "Absence Duration: > 3 Consecutive Days", ha="center", va="center", fontsize=9.5, fontweight="bold", color="#991b1b")
-    ax.text(7.5, 3.2, "• Mandatory Medical Certificate required\n• Must be from licensed DHA/DOH facility\n• Upload within 48 hours of return\n• Uncertified days treated as unpaid leave", 
-            ha="center", va="center", fontsize=8, color="#7f1d1d")
-
-    # Bottom Banner: Bradford Factor Formula
-    box3 = patches.FancyBboxPatch(
-        (0.5, 0.2), 9.0, 1.2,
-        boxstyle="round,pad=0.15,rounding_size=0.15",
-        facecolor="#f1f5f9", edgecolor="#64748b", linewidth=1.2
-    )
-    ax.add_patch(box3)
-    ax.text(5, 1.0, "Bradford Factor Score = S² × D   (S = Number of Spells of absence, D = Total Days absent)", 
-            ha="center", va="center", fontsize=8.5, fontweight="bold", color="#0f172a")
-    ax.text(5, 0.5, "Thresholds: Score < 50: Normal | 51-200: Informal Review | 201-500: Formal Warning | >500: Disciplinary Action", 
-            ha="center", va="center", fontsize=7.5, color="#334155")
-
-    plt.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight", dpi=200)
-    plt.close()
-    print(f"Generated: {save_path.name}")
-
-
-def create_probation_diagram(save_path: Path):
-    """Generates the Probation Review Milestones Timeline."""
-    fig, ax = plt.subplots(figsize=(8.5, 3.8), dpi=200)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 4)
-    ax.axis("off")
-
-    ax.text(5, 3.5, "Probationary Milestones & Performance Review Schedule (HC-PC-003)", 
-            ha="center", va="center", fontsize=11.5, fontweight="bold", color="#0f172a")
-
-    # Timeline bar
-    ax.plot([1, 9], [1.8, 1.8], color="#94a3b8", lw=4, zorder=1)
-
-    points = [
-        (1.5, "Day 1", "Onboarding", "Role objectives\n& mentor assigned", "#3b82f6"),
-        (3.8, "Day 30", "First Check-in", "Informal 30-day\nprogress alignment", "#06b6d4"),
-        (6.2, "Day 90", "Mid-Probation", "Formal mid-term\nperformance review", "#f59e0b"),
-        (8.5, "Day 180", "Confirmation", "Formal sign-off,\nextension or exit", "#10b981"),
-    ]
-
-    for x, day, title, desc, col in points:
-        ax.scatter([x], [1.8], color=col, s=250, zorder=2, edgecolors="white", linewidths=2)
-        ax.text(x, 2.3, f"{day}: {title}", ha="center", va="center", fontsize=8.5, fontweight="bold", color="#0f172a")
-        ax.text(x, 1.1, desc, ha="center", va="center", fontsize=7.5, color="#475569")
-
-    plt.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight", dpi=200)
-    plt.close()
-    print(f"Generated: {save_path.name}")
-
-
-def create_remote_work_diagram(save_path: Path):
-    """Generates the Remote Work Hybrid Eligibility Matrix."""
-    fig, ax = plt.subplots(figsize=(8.5, 4.0), dpi=200)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 4.5)
-    ax.axis("off")
-
-    ax.text(5, 4.1, "Remote & Hybrid Working Eligibility Matrix (HC-PC-004)", 
-            ha="center", va="center", fontsize=11.5, fontweight="bold", color="#0f172a")
-
-    categories = [
-        ("Office-Based", "1.0 - 2.0 days WFH/wk", "Corporate & Ops Staff (Completed Probation)", "#dbeafe", "#1d4ed8"),
-        ("Hybrid Flexible", "Up to 3.0 days WFH/wk", "IT, Strategy & Digital Consultants", "#e0e7ff", "#4338ca"),
-        ("Fully Remote", "100% WFH approved", "Designated contractual remote roles only", "#dcfce7", "#15803d"),
-        ("Probationary", "Office 5 days/wk", "First 90 days of onboarding", "#fee2e2", "#b91c1c"),
-    ]
-
-    for i, (cat, allowance, criteria, bg_col, border_col) in enumerate(categories):
-        x = 0.6 + (i * 2.25)
-        box = patches.FancyBboxPatch(
-            (x, 0.6), 2.1, 3.0,
-            boxstyle="round,pad=0.12,rounding_size=0.15",
-            facecolor=bg_col, edgecolor=border_col, linewidth=1.5
-        )
-        ax.add_patch(box)
-        ax.text(x + 1.05, 3.1, cat, ha="center", va="center", fontsize=9, fontweight="bold", color=border_col)
-        ax.text(x + 1.05, 2.3, allowance, ha="center", va="center", fontsize=8, fontweight="semibold", color="#0f172a")
-        ax.text(x + 1.05, 1.4, criteria, ha="center", va="center", fontsize=7.2, color="#334155", wrap=True)
-
-    plt.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight", dpi=200)
-    plt.close()
-    print(f"Generated: {save_path.name}")
-
-
-def create_expense_claims_diagram(save_path: Path):
-    """Generates the Expense Claims Threshold & Authorization Matrix."""
-    fig, ax = plt.subplots(figsize=(8.5, 4.0), dpi=200)
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 4.5)
-    ax.axis("off")
-
-    ax.text(5, 4.1, "Expense Authorization Thresholds & Tiers (HC-PC-005)", 
-            ha="center", va="center", fontsize=11.5, fontweight="bold", color="#0f172a")
-
-    tiers = [
-        ("Tier 1: Up to AED 500", "Direct Manager Approval", "Local travel, team meals, office sundries.\nReceipt submission within 30 days.", "#f0fdf4", "#15803d"),
-        ("Tier 2: AED 501 - 5,000", "Department Head Approval", "Regional travel, client entertainment, equipment.\nPre-approval required.", "#fef3c7", "#b45309"),
-        ("Tier 3: AED 5,001 - 25,000", "VP / Finance Director", "International flights, conferences, bulk items.\nPO & quotation required.", "#fee2e2", "#b91c1c"),
-        ("Tier 4: > AED 25,000", "CFO & Executive Committee", "Strategic vendor contracts, major travel delegations.", "#f3e8ff", "#7e22ce"),
-    ]
-
-    for i, (title, auth, desc, bg_col, border_col) in enumerate(tiers):
-        x = 0.5 + (i * 2.3)
-        box = patches.FancyBboxPatch(
-            (x, 0.5), 2.15, 3.1,
-            boxstyle="round,pad=0.12,rounding_size=0.15",
-            facecolor=bg_col, edgecolor=border_col, linewidth=1.5
-        )
-        ax.add_patch(box)
-        ax.text(x + 1.07, 3.1, title, ha="center", va="center", fontsize=8.5, fontweight="bold", color=border_col)
-        ax.text(x + 1.07, 2.4, auth, ha="center", va="center", fontsize=7.8, fontweight="semibold", color="#0f172a")
-        ax.text(x + 1.07, 1.4, desc, ha="center", va="center", fontsize=7.2, color="#334155")
-
-    plt.tight_layout()
-    plt.savefig(save_path, bbox_inches="tight", dpi=200)
-    plt.close()
-    print(f"Generated: {save_path.name}")
-
-
-# ============================================================================
-# 2. PDF DOCUMENT GENERATOR
-# ============================================================================
-
-def build_pdf_document(pdf_path: Path, doc_ref: str, title: str, sections: list, diagram_path: Path):
-    """Builds a complete, formatted PDF document with embedded diagram."""
-    doc = SimpleDocTemplate(
-        str(pdf_path),
-        pagesize=letter,
-        leftMargin=40,
-        rightMargin=40,
-        topMargin=40,
-        bottomMargin=40,
-    )
-
-    styles = getSampleStyleSheet()
-    
-    # Custom styles
-    title_style = ParagraphStyle(
-        "DocTitle",
-        parent=styles["Heading1"],
-        fontName="Helvetica-Bold",
-        fontSize=18,
-        leading=22,
-        textColor=colors.HexColor("#0f172a"),
-        spaceAfter=6,
-    )
-    subtitle_style = ParagraphStyle(
-        "DocSubtitle",
-        parent=styles["Normal"],
-        fontName="Helvetica",
-        fontSize=10,
-        leading=14,
-        textColor=colors.HexColor("#64748b"),
-        spaceAfter=12,
-    )
-    h2_style = ParagraphStyle(
-        "H2",
-        parent=styles["Heading2"],
-        fontName="Helvetica-Bold",
-        fontSize=12,
-        leading=16,
-        textColor=colors.HexColor("#1e3a8a"),
-        spaceBefore=10,
-        spaceAfter=6,
-    )
-    body_style = ParagraphStyle(
-        "Body",
-        parent=styles["BodyText"],
-        fontName="Helvetica",
-        fontSize=9,
-        leading=13,
-        textColor=colors.HexColor("#334155"),
-        spaceAfter=6,
-    )
-    bullet_style = ParagraphStyle(
-        "Bullet",
-        parent=body_style,
-        leftIndent=15,
-        spaceAfter=3,
-    )
-
+def render_policy(markdown_path: Path, pdf_path: Path, language: str) -> int:
+    """Render one policy. Returns the page count."""
+    styles = build_styles(language)
     story = []
 
-    # Header block
-    story.append(Paragraph(f"HC SERVICES · PEOPLE CODE POLICY", subtitle_style))
-    story.append(Paragraph(f"{title} ({doc_ref})", title_style))
-    story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#3b82f6"), spaceAfter=10))
+    for block in parse_markdown(markdown_path.read_text(encoding="utf-8")):
+        if block.kind == "table":
+            story.append(Spacer(1, 3))
+            story.append(render_table(block.rows, styles, language))
+            story.append(Spacer(1, 7))
+        elif block.kind == "rule":
+            story.append(Spacer(1, 3))
+            story.append(HRFlowable(width="100%", thickness=0.4, color=RULE))
+            story.append(Spacer(1, 3))
+        elif block.kind == "h3":
+            story.append(Paragraph(
+                as_rich_text(heading_for_pdf(block.text, language), language), styles["h3"]
+            ))
+        else:
+            story.append(Paragraph(as_rich_text(block.text, language), styles[block.kind]))
 
-    # Metadata table
-    meta_data = [
-        ["Document Ref:", doc_ref, "Version:", "3.2"],
-        ["Effective Date:", "1 January 2025", "Owner:", "People & Culture Division"],
-        ["Applicability:", "All HC Services Employees", "Classification:", "Internal Company Policy"]
-    ]
-    meta_table = Table(meta_data, colWidths=[90, 175, 80, 185])
-    meta_table.setStyle(TableStyle([
-        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
-        ('FONTSIZE', (0,0), (-1,-1), 8),
-        ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor("#64748b")),
-        ('TEXTCOLOR', (2,0), (2,-1), colors.HexColor("#64748b")),
-        ('FONTNAME', (0,0), (0,-1), 'Helvetica-Bold'),
-        ('FONTNAME', (2,0), (2,-1), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-        ('TOPPADDING', (0,0), (-1,-1), 2),
-    ]))
-    story.append(meta_table)
-    story.append(Spacer(1, 10))
-
-    # Add sections text
-    for sec_title, sec_paragraphs in sections:
-        story.append(Paragraph(sec_title, h2_style))
-        for p_text in sec_paragraphs:
-            if p_text.startswith("•"):
-                story.append(Paragraph(p_text, bullet_style))
-            else:
-                story.append(Paragraph(p_text, body_style))
-
-    # Add embedded Diagram
-    if diagram_path.exists():
-        story.append(Spacer(1, 10))
-        story.append(Paragraph(f"Official Process Diagram & Visual Guide", h2_style))
-        # Embed diagram image
-        rl_img = RLImage(str(diagram_path), width=520, height=255)
-        story.append(rl_img)
-        story.append(Spacer(1, 10))
-
-    doc.build(story)
-    print(f"Generated PDF: {pdf_path.name}")
-
-
-# ============================================================================
-# 3. MAIN POLICY BUILDER
-# ============================================================================
-
-def generate_all():
-    print("🚀 Generating Policy Diagrams...")
-    diag_annual = DIAGRAMS_DIR / "annual_leave_workflow.png"
-    diag_sick = DIAGRAMS_DIR / "sick_leave_decision_tree.png"
-    diag_probation = DIAGRAMS_DIR / "probation_timeline.png"
-    diag_remote = DIAGRAMS_DIR / "remote_work_matrix.png"
-    diag_expenses = DIAGRAMS_DIR / "expense_approval_thresholds.png"
-
-    create_annual_leave_diagram(diag_annual)
-    create_sick_leave_diagram(diag_sick)
-    create_probation_diagram(diag_probation)
-    create_remote_work_diagram(diag_remote)
-    create_expense_claims_diagram(diag_expenses)
-
-    print("\n📄 Generating PDF Policy Documents...")
-
-    # 1. Annual Leave PDF
-    build_pdf_document(
-        pdf_path=PDFS_DIR / "01_annual_leave_policy.pdf",
-        doc_ref="HC-PC-001",
-        title="Annual Leave Policy",
-        sections=[
-            ("Section 1.1: Purpose & Scope", [
-                "This policy defines the annual leave entitlement, accrual rules, request protocols, and carry-over provisions for all full-time and part-time personnel at HC Services.",
-            ]),
-            ("Section 1.2: Entitlement & Accrual", [
-                "• All eligible full-time employees are entitled to 21 to 30 working days of paid annual leave per calendar year (Grade 9+ employees receive 30 working days).",
-                "• Annual leave accrues monthly on a pro-rata basis at 1.75 to 2.5 working days per completed month of service.",
-                "• Probationary employees accrue leave during their probation period, but taking annual leave is subject to line manager approval.",
-            ]),
-            ("Section 1.3: Request & Notice Requirements", [
-                "• Leave of 1 to 2 days requires a minimum of 3 working days notice.",
-                "• Leave of 3 to 9 days requires a minimum of 10 working days notice.",
-                "• Leave of 10 or more consecutive days requires a minimum of 30 calendar days notice.",
-            ]),
-            ("Section 1.4: Carry-Over & Encashment", [
-                "• Employees may carry over up to 10 days (or 5 days for standard tier) of unused annual leave into the next calendar year with Line Manager approval.",
-                "• Carried-over leave must be utilized before 31 March of the following year, after which unused carried days are forfeited.",
-            ]),
-        ],
-        diagram_path=diag_annual
+    document = SimpleDocTemplate(
+        str(pdf_path), pagesize=A4,
+        leftMargin=20 * mm, rightMargin=20 * mm,
+        topMargin=18 * mm, bottomMargin=18 * mm,
+        title=markdown_path.stem,
     )
+    document.build(story, onFirstPage=_stamp_page, onLaterPages=_stamp_page)
 
-    # 2. Sick Leave PDF
-    build_pdf_document(
-        pdf_path=PDFS_DIR / "02_sick_leave_policy.pdf",
-        doc_ref="HC-PC-002",
-        title="Sick Leave & Medical Certificates Policy",
-        sections=[
-            ("Section 2.1: Purpose & Scope", [
-                "This policy outlines sick leave entitlements, medical certification requirements, and absence management thresholds across all entities.",
-            ]),
-            ("Section 2.2: Sick Leave Entitlement", [
-                "• Employees are entitled to up to 90 calendar days of sick leave per service year: First 15 days at 100% full pay, next 30 days at half pay, and remaining 45 days unpaid.",
-            ]),
-            ("Section 2.3: Medical Certification Rules", [
-                "• Absences of 1 to 3 consecutive days may be self-certified, provided the employee notifies their direct supervisor before 09:00 AM on the first day.",
-                "• Absences exceeding 3 consecutive days strictly require a valid medical certificate issued by a licensed medical practitioner (DHA/DOH/MOHAP registered).",
-                "• Certificates must be uploaded via the employee self-service portal within 48 hours of returning to work.",
-            ]),
-            ("Section 2.4: Bradford Factor Absence Management", [
-                "• The Bradford Factor (S² × D) is utilized to measure the disruption of frequent short-term unplanned absences.",
-                "• Scores exceeding 200 trigger an informal review; scores exceeding 500 trigger formal disciplinary review.",
-            ]),
-        ],
-        diagram_path=diag_sick
-    )
+    import pymupdf
+    with pymupdf.open(str(pdf_path)) as rendered:
+        return rendered.page_count
 
-    # 3. Probation Policy PDF
-    build_pdf_document(
-        pdf_path=PDFS_DIR / "03_probation_policy.pdf",
-        doc_ref="HC-PC-003",
-        title="Probation & Onboarding Policy",
-        sections=[
-            ("Section 3.1: Duration & Scope", [
-                "• Standard probation duration is 6 months (180 calendar days) from the official start date.",
-                "• Management reserves the right to confirm successful completion early at 3 months, or extend for up to an additional 3 months in exceptional cases.",
-            ]),
-            ("Section 3.2: Milestone Reviews", [
-                "• Day 30 Check-in: Review onboarding tasks and initial goal alignment.",
-                "• Day 90 Mid-Term Review: Formal performance evaluation and feedback session.",
-                "• Day 180 Final Review: Formal confirmation of permanent employment status.",
-            ]),
-        ],
-        diagram_path=diag_probation
-    )
 
-    # 4. Remote Work Policy PDF
-    build_pdf_document(
-        pdf_path=PDFS_DIR / "04_remote_work_policy.pdf",
-        doc_ref="HC-PC-004",
-        title="Flexible & Remote Work Policy",
-        sections=[
-            ("Section 4.1: Hybrid Working Model", [
-                "• Regular full-time employees who have passed probation are eligible for up to 2 days of remote work per week.",
-                "• Designated IT and digital engineering roles are eligible for up to 3 days per week.",
-                "• Employees on probation must work on-site during their initial 90 days of onboarding.",
-            ]),
-            ("Section 4.2: Core Hours & Security", [
-                "• All personnel must be available during core business hours (09:00 to 15:00 GST).",
-                "• Company VPN and multi-factor authentication (MFA) are mandatory on all remote connections.",
-            ]),
-        ],
-        diagram_path=diag_remote
-    )
+def _stamp_page(canvas, document) -> None:
+    """The confidentiality footer, on every page."""
+    canvas.saveState()
+    canvas.setFont("Helvetica", 7)
+    canvas.setFillColor(colors.HexColor("#7F7F7F"))
+    canvas.drawString(20 * mm, 10 * mm, "Confidential — Internal Use Only | HC Services UAE")
+    canvas.drawRightString(A4[0] - 20 * mm, 10 * mm, f"Page {document.page}")
+    canvas.restoreState()
 
-    # 5. Expense Claims Policy PDF
-    build_pdf_document(
-        pdf_path=PDFS_DIR / "05_expense_claims_policy.pdf",
-        doc_ref="HC-PC-005",
-        title="Expense Claims & Reimbursement Policy",
-        sections=[
-            ("Section 5.1: General Guidelines", [
-                "• All legitimate, necessary, and reasonable business expenses incurred on company duty are reimbursable.",
-                "• Itemized VAT receipts must be submitted via the expense portal within 30 days of occurrence.",
-            ]),
-            ("Section 5.2: Authorization Thresholds", [
-                "• Tier 1 (Up to AED 500): Line Manager approval.",
-                "• Tier 2 (AED 501 to AED 5,000): Department Head approval.",
-                "• Tier 3 (AED 5,001 to AED 25,000): VP / Finance Director approval.",
-                "• Tier 4 (> AED 25,000): CFO and Executive Committee approval.",
-            ]),
-        ],
-        diagram_path=diag_expenses
-    )
 
-    print("\n✅ All 5 PDF policy documents and diagrams successfully generated!")
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--language", choices=["en", "ar", "all"], default="all")
+    arguments = parser.parse_args()
+
+    if FONT_FILE.exists():
+        pdfmetrics.registerFont(TTFont(ARABIC_FONT, str(FONT_FILE)))
+    elif arguments.language in ("ar", "all"):
+        print(f"Arabic needs an embedded font at {FONT_FILE}. Without it the text is "
+              f"silently replaced with dingbats. See the module docstring.")
+        return 1
+
+    languages = ["en", "ar"] if arguments.language == "all" else [arguments.language]
+    written = 0
+
+    for language in languages:
+        source_directory = BACKEND / "data" / f"policies_{language}"
+        output_directory = BACKEND / "data" / "policies_pdf"
+        output_directory.mkdir(parents=True, exist_ok=True)
+
+        if not source_directory.exists():
+            print(f"  no source for '{language}' at {source_directory}, skipping")
+            continue
+
+        for markdown_path in sorted(source_directory.glob("*.md")):
+            # Names the existing catalogue already points at: "..._policy.pdf" for
+            # English, "..._ar.pdf" for Arabic.
+            suffix = "_ar" if language == "ar" else "_policy"
+            pdf_path = output_directory / f"{markdown_path.stem}{suffix}.pdf"
+            pages = render_policy(markdown_path, pdf_path, language)
+            print(f"  {language}  {markdown_path.name:28} -> {pdf_path.name:34} {pages} pages")
+            written += 1
+
+    print(f"\n{written} PDFs rendered from Markdown.")
+    return 0
 
 
 if __name__ == "__main__":
-    generate_all()
+    sys.exit(main())

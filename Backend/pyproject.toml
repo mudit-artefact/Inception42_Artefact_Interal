@@ -1,0 +1,16 @@
+[project]
+name = "hcs01-policy-and-leave-concierge"
+version = "1.0.0"
+description = "Bilingual HR policy and leave concierge: FastAPI + LangGraph + Qdrant"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers"
+markers = [
+    "contract: pins the JSON contract the React frontend depends on",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:fitz.*",
+]

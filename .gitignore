@@ -43,3 +43,11 @@ Thumbs.db
 # Qdrant local storage (if any)
 qdrant_storage/
 Backend/qdrant_storage/
+
+# Runtime databases. These are rebuilt on startup and written to while the app runs,
+# so committing them makes every demo dirty the working tree — and a stale committed
+# copy makes the seeder skip seeding, because it sees employees already there.
+Backend/data/omni_hr.db
+Backend/data/conversation_checkpoints.sqlite
+Backend/data/conversation_checkpoints.sqlite-wal
+Backend/data/conversation_checkpoints.sqlite-shm
