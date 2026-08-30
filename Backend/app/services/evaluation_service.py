@@ -17,6 +17,7 @@ import time
 from app.domain.enums import ReasoningType
 from app.domain.hr_acronyms import expand_hr_acronyms
 from app.evaluation.benchmark_cases import GOLDEN_BENCHMARK_CASES
+from app.evaluation.retrieval_metrics import as_percentage, rank_of_first_relevant
 from app.schemas.evaluation import EvaluationReport
 from app.services.policy_indexing_service import prepare_index_if_empty
 from app.services.policy_search_service import search_policies
@@ -136,13 +137,20 @@ def run_benchmark_evaluation() -> EvaluationReport:
 def _rank_of_the_best_expected_document(
     retrieved_passages: list, expected_documents: list[str]
 ) -> int | None:
-    """Where the first of the expected documents appears, counting from 1."""
+    """
+    Where the first of the expected documents appears, counting from 1.
+
+    The ranking arithmetic is shared with the retrieval script rather than repeated here.
+    Two implementations of "where did the right thing come" will disagree eventually, and
+    the disagreement reads as the system regressing rather than as two files differing.
+    This one matches on the document a passage came from; the script matches on the clause
+    itself, which is why the identifiers are mapped before being handed over.
+    """
     if not expected_documents:
         return None
-    for position, passage in enumerate(retrieved_passages, start=1):
-        if passage.policy_code in expected_documents:
-            return position
-    return None
+    return rank_of_first_relevant(
+        [passage.policy_code for passage in retrieved_passages], expected_documents
+    )
 
 
 def _share_of_expected_documents_found(retrieved_passages: list, case) -> float:
@@ -211,4 +219,5 @@ def _would_abstain(query: str, language: str) -> bool:
 
 
 def _as_percentage(count: int, total: int) -> float:
-    return round((count / max(total, 1)) * 100.0, 1)
+    """Kept as a name local to this module; the arithmetic is the shared one."""
+    return as_percentage(count, max(total, 1))

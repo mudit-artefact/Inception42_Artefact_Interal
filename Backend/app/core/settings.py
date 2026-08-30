@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     embedding_dim: int = Field(default=3072, alias="EMBEDDING_DIM")
     llm_model: str = Field(default="gpt-4o", alias="LLM_MODEL")
     max_tokens: int = Field(default=4096, alias="MAX_TOKENS")
+    # Zero, because none of the five model calls in a turn wants variety. Four of them are
+    # classifications — what is being asked, how it splits, which sources it needs — and the
+    # fifth extracts figures from documents. Sampling was left at the provider's default
+    # until now, which is why the same question could be answered differently twice in a
+    # row and why a one-point change in a benchmark score meant nothing.
+    llm_temperature: float = Field(default=0.0, alias="LLM_TEMPERATURE")
 
     # ── Search index ──────────────────────────────────────────────
     qdrant_host: str = Field(default="localhost", alias="QDRANT_HOST")

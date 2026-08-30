@@ -1,7 +1,7 @@
 import { apiRequest } from "./client";
 import { API_BASE_URL, isApiConfigured } from "./config";
 import { mockChat } from "./mock";
-import type { ChatRequest, ChatResponse, EvaluationReport } from "./types";
+import type { ChatRequest, ChatResponse } from "./types";
 
 /**
  * Send chat message to backend /api/v1/hcs01/query (or fallback to mock data).
@@ -72,15 +72,6 @@ export async function sendChatMessage(
     console.warn("Backend chat request error:", err);
     throw err;
   }
-}
-
-/**
- * Fetch automated benchmark evaluation report from /api/v1/hcs01/eval
- */
-export async function fetchEvaluationReport(): Promise<EvaluationReport> {
-  return apiRequest<EvaluationReport>("/api/v1/hcs01/eval", {
-    method: "GET",
-  });
 }
 
 /** One step of the workflow, as the interface shows it while the answer is worked out. */

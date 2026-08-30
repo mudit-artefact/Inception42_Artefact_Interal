@@ -26,17 +26,6 @@ logger = logging.getLogger(__name__)
 StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
 
 MAXIMUM_ATTEMPTS = 3
-GROUNDED_ANSWER_TEMPERATURE = 0.1
-
-
-def supports_temperature_setting() -> bool:
-    """
-    Whether this provider accepts a temperature.
-
-    Gemini rejects the parameter, so it is left off for those models. This was previously
-    decided by searching the model name for "gemini" in three separate files.
-    """
-    return "gemini" not in settings.llm_model.lower()
 
 
 @tenacity.retry(
@@ -54,9 +43,8 @@ def generate_text(messages: list[dict], maximum_tokens: int | None = None) -> tu
         "model": settings.llm_model,
         "messages": messages,
         "max_tokens": maximum_tokens or settings.max_tokens,
+        "temperature": settings.llm_temperature,
     }
-    if supports_temperature_setting():
-        request["temperature"] = GROUNDED_ANSWER_TEMPERATURE
 
     try:
         response = _request_completion(**request)
@@ -90,6 +78,12 @@ def generate_structured_output(
             model=settings.llm_model,
             messages=messages,
             response_format=output_model,
+            # These four calls are the ones that decide what a question means, how it
+            # splits and which sources it needs. They had no temperature at all until
+            # now — not because anyone chose that, but because it was only ever set on
+            # the prose call, which the answer step stopped using when it moved to a
+            # structured reply.
+            temperature=settings.llm_temperature,
         )
     except Exception as error:
         logger.error(f"The language model could not be reached: {error}")
