@@ -12,11 +12,17 @@ def validate_answer(state: ConversationState) -> dict:
     """Decide whether the drafted answer may be shown."""
     policy_passages = state.get("policy_passages") or []
     hr_data = state.get("hr_data_facts") or {}
-    has_any_evidence = bool(policy_passages) or bool(hr_data.get("fields"))
+    checkable_evidence = state.get("checkable_evidence", "")
+
+    # A rewrite of an earlier reply retrieves nothing, and is checked against that reply
+    # instead — which was itself checked against real extracts when it was written.
+    has_any_evidence = (
+        bool(policy_passages) or bool(hr_data.get("fields")) or bool(checkable_evidence.strip())
+    )
 
     outcome = run_validation_checks(
         answer=state.get("draft_answer", ""),
-        evidence_text=state.get("evidence_summary", ""),
+        evidence_text=checkable_evidence,
         employee_id=state["employee_id"],
         requested_language=state.get("requested_language", "en"),
         has_any_evidence=has_any_evidence,

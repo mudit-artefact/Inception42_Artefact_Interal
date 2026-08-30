@@ -56,13 +56,14 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "citations": [],
     "answer_status": "",
     "fallback_reason": None,
-    # `remembered_turns` is deliberately NOT here, and must never be added.
+    # `remembered_turns` and `previous_reply` are deliberately NOT here, and must never
+    # be added.
     #
-    # It is the one field that belongs to the conversation rather than to a question:
-    # written at the end of a turn, read at the start of the next. Emptying it here would
-    # wipe it in the single step between those two — and the failure would be invisible,
-    # because every one-turn test would still pass while the follow-up this exists for
-    # silently lost its context. See app/workflow/conversation_memory.py.
+    # They are the fields that belong to the conversation rather than to a question:
+    # written at the end of a turn, read at the start of the next. Emptying them here
+    # would wipe them in the single step between those two — and the failure would be
+    # invisible, because every one-turn test would still pass while the follow-up they
+    # exist for silently lost its context. See app/workflow/conversation_memory.py.
 }
 
 

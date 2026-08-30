@@ -16,6 +16,10 @@ class QuestionIntent(StrEnum):
     GREETING = "greeting"
     HR_QUESTION = "hr_question"
     OUT_OF_SCOPE = "out_of_scope"
+    # A request to change the form of the last reply — shorter, simpler, translated —
+    # rather than a question about HR. The answer already exists; searching the policy
+    # documents for "make that shorter" finds nothing and means nothing.
+    ABOUT_THE_LAST_ANSWER = "about_the_last_answer"
 
 
 class RequiredEvidence(StrEnum):
@@ -45,6 +49,8 @@ class FallbackReason(StrEnum):
     NO_EVIDENCE = "no_evidence"
     UNSUPPORTED_CLAIMS = "unsupported_claims"
     NEEDS_HUMAN = "needs_human"
+    # Asked to rework a reply before there was one to rework.
+    NOTHING_TO_REPHRASE = "nothing_to_rephrase"
 
 
 class HrDataField(StrEnum):

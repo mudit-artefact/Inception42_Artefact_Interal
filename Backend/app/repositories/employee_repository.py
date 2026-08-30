@@ -56,6 +56,7 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
             unit=balance.unit,
             year=balance.year,
             pay_rate_pct=balance.pay_rate_pct,
+            accrued_days=balance.accrued_days,
         )
         for balance in employee.leave_balances
     ]
@@ -102,6 +103,7 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
         manager_name=employee.manager_name,
         manager_email=employee.manager_email,
         manager_role=employee.manager_role,
+        employment_fraction=employee.employment_fraction,
         annual_leave_balance=annual_leave_balance,
         sick_leave_balance=sick_leave_balance,
         carry_over_days=carry_over_days,
@@ -138,6 +140,8 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
                 claim_date=claim.claim_date,
                 status=claim.status,
                 approver=claim.approver,
+                description=claim.description,
+                policy_reference=claim.policy_reference,
             )
             for claim in sorted(
                 employee.expense_claims, key=lambda claim: claim.claim_date, reverse=True

@@ -17,6 +17,7 @@ from app.workflow.prompts import (
     ESCALATION_MESSAGES,
     GREETING_MESSAGES,
     NO_EVIDENCE_MESSAGES,
+    NOTHING_TO_REPHRASE_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     message_in_language,
 )
@@ -82,6 +83,10 @@ def build_safe_fallback(state: ConversationState) -> dict:
         message = message_in_language(OUT_OF_SCOPE_MESSAGES, requested_language)
         citations: list[dict] = []
         status = AnswerStatus.REFUSED.value
+    elif reason == FallbackReason.NOTHING_TO_REPHRASE.value:
+        message = message_in_language(NOTHING_TO_REPHRASE_MESSAGES, requested_language)
+        citations = []
+        status = AnswerStatus.SAFE_FALLBACK.value
     elif reason == FallbackReason.NEEDS_HUMAN.value:
         facts = state.get("employee_facts") or {}
         message = message_in_language(ESCALATION_MESSAGES, requested_language).format(
@@ -137,6 +142,15 @@ def record_conversation_turn(state: ConversationState) -> dict:
         finished_turn["remembered_turns"] = remember_turn(
             state.get("remembered_turns"), state["employee_question"], final_answer
         )
+        # And the reply itself, kept whole. The remembered copy above is clipped short
+        # and flattened onto one line, which is all that resolving a follow-up needs and
+        # nothing like enough to rework a reply from: you cannot shorten what you can
+        # only see the first 300 characters of.
+        finished_turn["previous_reply"] = {
+            "text": final_answer,
+            "citations": state.get("citations") or [],
+            "language": state.get("requested_language", "en"),
+        }
 
     return finished_turn
 
@@ -160,7 +174,15 @@ def _is_worth_remembering(state: ConversationState, final_answer: str) -> bool:
 
 
 def _citations_for(state: ConversationState) -> list[dict]:
-    """The employee's own record first, then each policy extract that was used."""
+    """
+    The employee's own record first, then each policy extract that was used.
+
+    When nothing was retrieved this turn, whatever the state already carries is kept.
+    That is the reworked-reply path: it searches for nothing, and brings forward the
+    sources of the reply it reworked. Rebuilding from an empty search would strip them,
+    and the employee would be shown a reply with no sources where a moment ago the same
+    content had several.
+    """
     citations = []
 
     hr_data = state.get("hr_data_facts") or {}
@@ -176,13 +198,15 @@ def _citations_for(state: ConversationState) -> list[dict]:
         citation.model_dump()
         for citation in build_policy_citations(state.get("policy_passages") or [])
     )
-    return citations
+    return citations or list(state.get("citations") or [])
 
 
 def _infer_fallback_reason(state: ConversationState) -> str:
     """Work out why we are falling back, when nothing set it explicitly."""
     if state.get("question_intent") == "out_of_scope":
         return FallbackReason.OUT_OF_SCOPE.value
+    if state.get("question_intent") == QuestionIntent.ABOUT_THE_LAST_ANSWER:
+        return FallbackReason.NOTHING_TO_REPHRASE.value
     if state.get("required_evidence") == "unsupported":
         return FallbackReason.NEEDS_HUMAN.value
     if state.get("unsupported_claims"):

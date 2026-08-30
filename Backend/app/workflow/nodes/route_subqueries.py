@@ -24,6 +24,30 @@ FIRST_PERSON_PATTERN = re.compile(
     r"\b(my|mine|i|i'm|i've|me)\b|رصيدي|مديري|إجازتي|لدي|عندي", re.IGNORECASE
 )
 
+# What a question is about, and the facts needed to answer it. Used only when the model
+# named no fields at all: reading the profile and nothing else is how "compare my balance
+# with last year" came to be answered "that is not in your record".
+FIELDS_FOR_SUBJECT = (
+    (re.compile(r"balance|remaining|left|entitle|accru|carry[- ]?over|leave|رصيد|إجاز", re.I),
+     [HrDataField.ANNUAL_LEAVE_BALANCE, HrDataField.SICK_LEAVE_BALANCE,
+      HrDataField.CARRY_OVER_DAYS, HrDataField.YEARS_OF_SERVICE]),
+    (re.compile(r"sick|medical|مرض", re.I),
+     [HrDataField.SICK_LEAVE_BALANCE, HrDataField.RECENT_LEAVE_REQUESTS]),
+    (re.compile(r"manager|report|supervis|مدير", re.I),
+     [HrDataField.LINE_MANAGER, HrDataField.MANAGER_HISTORY]),
+    (re.compile(r"probation|تجربة", re.I),
+     [HrDataField.PROBATION_STATUS, HrDataField.EMPLOYEE_PROFILE]),
+    (re.compile(r"expense|claim|reimburse|نفقات|مصروف", re.I),
+     [HrDataField.RECENT_EXPENSE_CLAIMS, HrDataField.EMPLOYEE_PROFILE]),
+    (re.compile(r"request|applied|booked|طلب", re.I),
+     [HrDataField.RECENT_LEAVE_REQUESTS]),
+    (re.compile(r"approv|signed off|authoris|decided|وافق", re.I),
+     [HrDataField.RECENT_LEAVE_REQUESTS, HrDataField.RECENT_EXPENSE_CLAIMS,
+      HrDataField.LINE_MANAGER]),
+    (re.compile(r"travel|flight|class|grade|درجة|سفر", re.I),
+     [HrDataField.EMPLOYEE_PROFILE]),
+)
+
 # Words that point at something recorded about a specific employee.
 PERSONAL_SUBJECT_PATTERN = re.compile(
     r"\b(balance|remaining|left|manager|probation|entitle\w*|accrued|carry[- ]?over"
@@ -142,9 +166,25 @@ def _include_personal_record_when_asked_about_oneself(
         required_evidence = RequiredEvidence.HR_DATA
 
     if not requested_fields:
-        requested_fields = [HrDataField.EMPLOYEE_PROFILE]
+        requested_fields = _fields_the_question_points_at(question)
 
     return required_evidence, requested_fields
+
+
+def _fields_the_question_points_at(question: str) -> list[HrDataField]:
+    """
+    A reasonable guess at what to read, when the model named nothing.
+
+    It used to fall back to the profile — job title, department, grade — whatever the
+    question was about. So "how does my balance compare with last year" was answered from
+    a record that had been asked for everything except the balances, and the assistant
+    reported that the information was unavailable while it sat one field away.
+    """
+    fields: list[HrDataField] = []
+    for subject, needed in FIELDS_FOR_SUBJECT:
+        if subject.search(question):
+            fields.extend(field for field in needed if field not in fields)
+    return fields or [HrDataField.EMPLOYEE_PROFILE]
 
 
 def _do_not_refuse_a_confident_hr_question(

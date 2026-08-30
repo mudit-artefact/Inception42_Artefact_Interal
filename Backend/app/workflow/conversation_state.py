@@ -9,15 +9,15 @@ things is split in step 2B, and from there each part is routed and gathered for 
 own, so one part can be answered from the policy documents while another is declined.
 
 Almost everything here belongs to one question and is emptied before the next one. The
-exception is `remembered_turns`, which belongs to the conversation: it is written at the
-end of a turn and read at the start of the next.
+exceptions are `remembered_turns` and `previous_reply`, which belong to the conversation:
+they are written at the end of a turn and read at the start of the next.
 """
 
 from typing import Annotated, TypedDict
 
 # Raise this when the fields below change. It is part of the saved-state key, so old
 # saved conversations start fresh instead of resuming into steps that expect new fields.
-CONVERSATION_STATE_VERSION = 3
+CONVERSATION_STATE_VERSION = 4
 
 
 def thread_name_for(conversation_id: str) -> str:
@@ -67,9 +67,15 @@ class SubqueryTask(TypedDict):
 
 
 class ConversationState(TypedDict, total=False):
-    # What the conversation has already said. The one field that outlives the question
-    # it was written by — see WORKED_OUT_FRESH_EACH_QUESTION in nodes/load_employee_facts.
+    # What the conversation has already said. These outlive the question that wrote
+    # them — see WORKED_OUT_FRESH_EACH_QUESTION in nodes/load_employee_facts.
     remembered_turns: list[dict]
+    # The most recent reply, kept whole: {"text", "citations", "language"}. Remembered
+    # turns are clipped short and flattened onto one line, which is right for working out
+    # what a follow-up refers to and useless for rewriting a reply — you cannot shorten
+    # what you can only see 300 characters of, or re-bullet a list whose line breaks are
+    # gone. One reply, in full, is what "make that shorter" needs.
+    previous_reply: dict
 
     # What the employee asked
     conversation_id: str
@@ -113,6 +119,9 @@ class ConversationState(TypedDict, total=False):
     policy_passages: list[dict]
     hr_data_facts: dict
     evidence_summary: str
+    # What the answer's figures are held against. The evidence alone, with none of the
+    # question text that `evidence_summary` carries for the model's benefit.
+    checkable_evidence: str
 
     # Step 5 — the drafted answer
     draft_answer: str

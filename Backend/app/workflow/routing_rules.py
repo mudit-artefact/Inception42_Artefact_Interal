@@ -40,6 +40,15 @@ def decide_after_understanding(state: ConversationState) -> str:
     if intent == QuestionIntent.OUT_OF_SCOPE:
         return "build_safe_fallback"
 
+    # A request to rework the last reply is answered from that reply, not by searching
+    # the policy documents for the words "make that shorter". Asked before there is a
+    # reply to rework, it gets a plain explanation rather than a pointless search.
+    if intent == QuestionIntent.ABOUT_THE_LAST_ANSWER:
+        if (state.get("previous_reply") or {}).get("text"):
+            return "rephrase_previous_answer"
+        logger.info("Asked to rework a reply, but nothing has been said yet")
+        return "build_safe_fallback"
+
     already_asked = state.get("clarification_round", 0)
     if state.get("needs_clarification") and already_asked < MAXIMUM_CLARIFICATION_ROUNDS:
         return "compose_clarification_question"

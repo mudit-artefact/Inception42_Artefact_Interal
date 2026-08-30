@@ -189,3 +189,57 @@ def test_only_the_last_few_turns_are_carried_forward(
     assert result["remembered_turns"][-1]["question"] == (
         f"What is rule {TURNS_WORTH_REMEMBERING + 1}?"
     )
+
+
+def test_the_writer_is_told_the_question_that_was_worked_out(
+    ask, script_understanding, script_routing, script_decomposition, fake_language_model
+):
+    """
+    The reported failure. "okay, do the calculation" was resolved correctly, the right
+    policy section was retrieved — and then the step that writes the reply was handed the
+    evidence and those four words, with the resolved question nowhere in the prompt. It
+    asked, reasonably, which calculation.
+    """
+    script_understanding()
+    script_routing(required_evidence="policy")
+    fake_language_model.reply_to_plain_call("Fifteen days at full pay, then half pay.")
+    ask("If I am off sick for 50 days, how much is paid?")
+
+    script_understanding(needs_rewrite=True)
+    script_decomposition("calculate sick leave pay for 50 days of absence")
+    ask("okay, do the calculation")
+
+    written_from = [
+        call["messages"][1]["content"]
+        for call in fake_language_model.recorded_calls
+        if call["response_format"] is None
+    ][-1]
+    assert "okay, do the calculation" in written_from, "the employee's own words are kept"
+    assert "calculate sick leave pay for 50 days of absence" in written_from
+
+
+def test_the_writer_is_given_the_question_but_still_not_the_conversation(
+    ask, script_understanding, script_routing, script_decomposition, fake_language_model
+):
+    """
+    The line this change walks. This turn's resolved question goes to the writer; the
+    earlier turns do not. Figures may only come from evidence retrieved now, which is
+    what the check at the end depends on.
+    """
+    script_understanding()
+    script_routing(required_evidence="policy")
+    fake_language_model.reply_to_plain_call("Carry-over is capped at 10 working days.")
+    ask("What is the carry over limit?")
+
+    script_understanding(needs_rewrite=True)
+    script_decomposition("sick leave entitlement")
+    ask("and sick leave?")
+
+    for message in [
+        content
+        for call in fake_language_model.recorded_calls
+        if call["response_format"] is None
+        for content in (call["messages"][0]["content"], call["messages"][1]["content"])
+    ]:
+        assert TRANSCRIPT_OPENING not in message
+        assert "Turn 1 — you answered" not in message

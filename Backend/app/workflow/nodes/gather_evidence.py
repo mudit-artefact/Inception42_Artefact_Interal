@@ -15,7 +15,11 @@ from app.domain.employee_facts import EmployeeFacts
 from app.domain.enums import RequiredEvidence
 from app.services.policy_search_service import search_policies
 from app.workflow.conversation_state import ConversationState, SubqueryTask
-from app.workflow.evidence_formatting import build_evidence_block, format_employee_facts
+from app.workflow.evidence_formatting import (
+    build_checkable_evidence,
+    build_evidence_block,
+    format_employee_facts,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -192,4 +196,7 @@ def assemble_evidence(state: ConversationState) -> dict:
         "policy_passages": merged_passages,
         "hr_data_facts": {"fields": authorised_fields, "formatted": merged_facts_text},
         "evidence_summary": build_evidence_block(parts),
+        # The same evidence without the questions, because the questions are not
+        # evidence — see build_checkable_evidence.
+        "checkable_evidence": build_checkable_evidence(parts),
     }

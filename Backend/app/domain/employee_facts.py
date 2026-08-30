@@ -24,6 +24,9 @@ class LeaveBalance:
     year: int = 0
     # 100, 50 or 0 for the sick leave tranches; None where pay rate does not apply.
     pay_rate_pct: int | None = None
+    # Earned so far this year, which is less than entitled for anyone part-way through
+    # their first year (HC-PC-001 §1.3.1).
+    accrued_days: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -52,6 +55,12 @@ class ExpenseClaim:
     claim_date: str
     status: str
     approver: str
+    # What was bought — the city, the nights, the head count. Without it the hotel caps
+    # and per-head limits cannot be checked against the claim.
+    description: str = ""
+    # The clause the claim was assessed under, so "why was this rejected?" is answered
+    # from the record rather than inferred.
+    policy_reference: str = ""
 
 
 @dataclass(frozen=True)
@@ -74,6 +83,8 @@ class EmployeeFacts:
     manager_name: str
     manager_email: str
     manager_role: str
+    # 1.0 is full time. Annual leave is pro-rated against it (HC-PC-001 §1.2.3).
+    employment_fraction: float
     annual_leave_balance: int
     sick_leave_balance: int
     carry_over_days: int
@@ -102,6 +113,7 @@ class EmployeeFacts:
             manager_name=stored["manager_name"],
             manager_email=stored["manager_email"],
             manager_role=stored["manager_role"],
+            employment_fraction=stored.get("employment_fraction", 1.0),
             annual_leave_balance=stored["annual_leave_balance"],
             sick_leave_balance=stored["sick_leave_balance"],
             carry_over_days=stored["carry_over_days"],
@@ -113,6 +125,9 @@ class EmployeeFacts:
                     remaining_days=balance["remaining"],
                     carry_over_days=balance["carry_over"],
                     unit=balance["unit"],
+                    year=balance.get("year", 0),
+                    pay_rate_pct=balance.get("pay_rate_pct"),
+                    accrued_days=balance.get("accrued", 0.0),
                 )
                 for balance in stored.get("balances", [])
             ],
@@ -129,6 +144,8 @@ class EmployeeFacts:
                     claim_date=claim["date"],
                     status=claim["status"],
                     approver=claim["approver"],
+                    description=claim.get("description", ""),
+                    policy_reference=claim.get("policy_reference", ""),
                 )
                 for claim in stored.get("recent_expense_claims", [])
             ],
@@ -153,6 +170,7 @@ class EmployeeFacts:
             "manager_name": self.manager_name,
             "manager_email": self.manager_email,
             "manager_role": self.manager_role,
+            "employment_fraction": self.employment_fraction,
             "annual_leave_balance": self.annual_leave_balance,
             "sick_leave_balance": self.sick_leave_balance,
             "carry_over_days": self.carry_over_days,
@@ -164,6 +182,9 @@ class EmployeeFacts:
                     "remaining": balance.remaining_days,
                     "carry_over": balance.carry_over_days,
                     "unit": balance.unit,
+                    "year": balance.year,
+                    "pay_rate_pct": balance.pay_rate_pct,
+                    "accrued": balance.accrued_days,
                 }
                 for balance in self.leave_balances
             ],
@@ -195,6 +216,8 @@ class EmployeeFacts:
                     "date": claim.claim_date,
                     "status": claim.status,
                     "approver": claim.approver,
+                    "description": claim.description,
+                    "policy_reference": claim.policy_reference,
                 }
                 for claim in self.recent_expense_claims
             ],

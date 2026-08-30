@@ -19,6 +19,12 @@ Choose one intent:
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
   balances, sick leave, remote work, expenses, probation, their line manager, benefits.
 - "out_of_scope": anything else — weather, general knowledge, coding, other companies.
+- "about_the_last_answer": a request to change the *form* of the reply you just gave,
+  asking nothing new — "make that shorter", "in Arabic please", "as bullet points",
+  "explain that more simply", "say that again". Choose this only when the message asks
+  for the same content presented differently. "Why?", "are you sure?", "which policy says
+  that?" and "what about sick leave?" are NOT this: they ask for something you have not
+  said yet, and are "hr_question".
 
 Then judge two things:
 - needs_clarification: true only when the question could mean materially different things
@@ -84,11 +90,61 @@ You decide what an HR question has to be answered from.
 - "unsupported": HC Services HR cannot answer it from policy documents or the employee's
   record — for example payroll disputes, or another person's private data.
 
-When you need the employee's own facts, name them using only these labels:
-{", ".join(field.value for field in HrDataField)}
+When you need the employee's own facts, name every label whose contents the answer will
+draw on. Naming too few is the common mistake: a label that is not asked for is not read,
+and the answer then says the information is not in the record when it is.
+
+- annual_leave_balance: entitlement, days used and days remaining, for this year and the
+  one before it. Ask for this for anything about how much leave they have or have taken,
+  including comparisons between years.
+- sick_leave_balance: the 90-day entitlement and how much of it is left, broken into the
+  full-pay, half-pay and unpaid tranches.
+- carry_over_days: days carried over from last year.
+- line_manager: who they report to now.
+- manager_history: who they reported to before, and when each change took effect.
+- probation_status: whether probation is active, passed or extended.
+- years_of_service: length of continuous service, which sets leave entitlement.
+- recent_leave_requests: each request with its dates, days, status and who approved it.
+- recent_expense_claims: each claim with its amount, date, status, who decided it, what
+  it was for, and the clause it was assessed under.
+- employee_profile: job title, department, grade, start date and working pattern. Grade
+  is here, so ask for it for anything about travel class, probation length or expense
+  authority.
 
 Nothing outside that list can be read, so do not invent labels.\
 """
+
+# ── Reworking the previous reply ─────────────────────────────────────────────
+
+REPHRASE_INSTRUCTIONS = """\
+You are the HC Services Policy & Leave Concierge. The employee is asking you to present
+the reply you just gave them differently — shorter, simpler, translated, as a list.
+
+Rework the previous reply exactly as asked, and keep to these rules:
+
+1. Add nothing. Every fact, figure, date and policy reference in your new version must
+   already appear in the previous reply. You are changing how it reads, not what it says.
+2. Drop nothing that the request did not ask you to drop. Shortening means fewer words,
+   not fewer facts — if a figure has to go for the reply to be genuinely shorter, keep
+   the figure and cut the explanation around it.
+3. If the employee asks for something the previous reply does not contain, say plainly
+   that you can only rework what you already told them, and invite them to ask the
+   question directly so you can look it up. Do not answer it from your own knowledge.
+4. Translate faithfully when asked. Numbers, dates and policy references stay exactly as
+   they are; only the words around them change language.
+5. Report the language you wrote in as "en" or "ar".\
+"""
+
+NOTHING_TO_REPHRASE_MESSAGES = {
+    "en": (
+        "I have not told you anything yet in this conversation, so there is nothing for "
+        "me to rework. Ask me your question and I will look it up."
+    ),
+    "ar": (
+        "لم أقدم لك أي إجابة بعد في هذه المحادثة، لذا لا يوجد ما يمكنني إعادة صياغته. "
+        "اطرح سؤالك وسأبحث عنه."
+    ),
+}
 
 # ── Step 5: writing the answer ───────────────────────────────────────────────
 
@@ -121,7 +177,11 @@ HOW TO ANSWER
 8. Where a part is marked as having nothing behind it, answer the parts that do and say
    plainly which part you cannot answer, pointing the employee to People & Culture at
    people@hcservices.ae for that part alone. Never fill a missing part from general
-   knowledge, and never let a missing part stop you answering the others.\
+   knowledge, and never let a missing part stop you answering the others.
+9. The employee's message may be followed by "(Understood as: ...)". That is the same
+   question written out in full, because what they typed leaned on what was said earlier
+   in the conversation. Answer the full question, in language that fits the way they
+   actually asked it. Do not quote the reworded version back at them.\
 """
 
 # ── Fixed messages ───────────────────────────────────────────────────────────

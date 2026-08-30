@@ -116,3 +116,15 @@ def script_routing(fake_language_model):
         )
 
     return script
+
+
+@pytest.fixture
+def script_rephrase(fake_language_model):
+    """Script the reworking of the previous reply."""
+
+    def script(answer: str, answer_language: str = "en"):
+        fake_language_model.reply_to_structured_call(
+            "RephrasedAnswer", {"answer": answer, "answer_language": answer_language}
+        )
+
+    return script

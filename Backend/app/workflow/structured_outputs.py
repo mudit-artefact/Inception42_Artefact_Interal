@@ -57,6 +57,15 @@ class DecomposedQuery(BaseModel):
     reasoning: str = Field(default="", description="Brief explanation for this split")
 
 
+class RephrasedAnswer(BaseModel):
+    """The last reply, written again as the employee asked for it."""
+
+    answer: str = Field(description="The previous reply, reworked as requested")
+    answer_language: str = Field(
+        description="The language the reply above is written in: 'en' or 'ar'"
+    )
+
+
 class SourceRoutingDecision(BaseModel):
     """Step 3: what this part of the question has to be answered from."""
 

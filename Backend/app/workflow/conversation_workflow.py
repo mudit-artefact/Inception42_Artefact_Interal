@@ -7,6 +7,7 @@ One graph, matching the designed flow end to end:
       ├─ greeting                    -> greet
       ├─ out of scope                -> decline
       ├─ too vague                   -> ask back, PAUSE, then read it again
+      ├─ about the last reply        -> rework that reply, no searching
       ├─ needs rewording or splitting-> reword and split, then route
       └─ clear enough                -> route
 
@@ -53,6 +54,7 @@ from app.workflow.nodes.finish_turn import (
 from app.workflow.nodes.gather_evidence import assemble_evidence, gather_subquery_evidence
 from app.workflow.nodes.generate_answer import generate_answer
 from app.workflow.nodes.load_employee_facts import load_employee_facts
+from app.workflow.nodes.rephrase_previous_answer import rephrase_previous_answer
 from app.workflow.nodes.rewrite_and_decompose import rewrite_and_decompose_query
 from app.workflow.nodes.route_subqueries import route_each_subquery
 from app.workflow.nodes.understand_query import understand_query
@@ -77,6 +79,7 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_node("compose_clarification_question", compose_clarification_question)
     workflow.add_node("wait_for_clarification", wait_for_clarification)
     workflow.add_node("merge_clarification_into_question", merge_clarification_into_question)
+    workflow.add_node("rephrase_previous_answer", rephrase_previous_answer)
     workflow.add_node("rewrite_and_decompose_query", rewrite_and_decompose_query)
     workflow.add_node("route_each_subquery", route_each_subquery)
     workflow.add_node(GATHER_EVIDENCE_FOR_ONE_PART, gather_subquery_evidence)
@@ -97,6 +100,7 @@ def build_conversation_workflow() -> StateGraph:
             "generate_greeting": "generate_greeting",
             "build_safe_fallback": "build_safe_fallback",
             "compose_clarification_question": "compose_clarification_question",
+            "rephrase_previous_answer": "rephrase_previous_answer",
             "rewrite_and_decompose_query": "rewrite_and_decompose_query",
             "route_each_subquery": "route_each_subquery",
         },
@@ -121,6 +125,12 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_edge(GATHER_EVIDENCE_FOR_ONE_PART, "assemble_evidence")
     workflow.add_edge("assemble_evidence", "generate_answer")
     workflow.add_edge("generate_answer", "validate_answer")
+
+    # A reworked reply is checked like any other answer. It retrieves nothing, so it
+    # supplies the reply it reworked as the evidence its figures are held against —
+    # which is why it joins the graph here rather than going straight to the end the way
+    # a greeting does. A greeting has nothing to check; this does.
+    workflow.add_edge("rephrase_previous_answer", "validate_answer")
 
     workflow.add_conditional_edges(
         "validate_answer",
