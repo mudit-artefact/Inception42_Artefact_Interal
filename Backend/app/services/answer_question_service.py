@@ -20,6 +20,7 @@ from app.core.conversation_identifier import (
 from app.core.language_detection import detect_language
 from app.schemas.answer import AnswerResponse, SourceCitation
 from app.workflow.conversation_state import thread_name_for
+from app.workflow.stage_names import describe_stage, opening_stage
 
 logger = logging.getLogger(__name__)
 
@@ -48,27 +49,126 @@ def answer_question(
         saved_conversation = {"configurable": {"thread_id": thread_name_for(conversation_id)}}
         saved_state = None
 
-    if _is_waiting_for_an_answer(saved_state) and not _reads_as_a_new_question(employee_question):
-        logger.info(f"Resuming conversation {conversation_id} with the employee's reply")
-        result = workflow.invoke(Command(resume=employee_question), saved_conversation)
-    else:
-        if _is_waiting_for_an_answer(saved_state):
-            logger.info(
-                f"Conversation {conversation_id} was waiting for an answer and got a new "
-                f"question instead; abandoning the pause"
-            )
-        result = workflow.invoke(
-            _new_turn(
-                conversation_id=conversation_id,
-                employee_question=employee_question,
-                employee_id=employee_id,
-                requested_language=requested_language,
-                started_at=started_at,
-            ),
-            saved_conversation,
-        )
+    result = workflow.invoke(
+        _what_to_feed_the_graph(
+            saved_state=saved_state,
+            conversation_id=conversation_id,
+            employee_question=employee_question,
+            employee_id=employee_id,
+            requested_language=requested_language,
+            started_at=started_at,
+        ),
+        saved_conversation,
+    )
 
     return _present(result, conversation_id, requested_language, started_at)
+
+
+def stream_answer(
+    workflow,
+    employee_question: str,
+    employee_id: str,
+    conversation_id: Optional[str] = None,
+    requested_language: Optional[str] = None,
+):
+    """
+    The same turn, reported stage by stage as it happens.
+
+    Yields `("stage", {...})` for each step of the workflow that is worth telling the
+    employee about, and finally `("done", AnswerResponse)`. It never yields any of the
+    answer: the answer is checked after it is drafted and thrown away when a figure in it
+    cannot be traced to the evidence, so anything shown before that check could have to be
+    taken back. The caller reveals the finished text once this yields it.
+
+    Everything before the streaming itself — which conversation this is, whose it is,
+    whether it resumes a pause — is decided by the same helpers `answer_question` uses, so
+    the two cannot answer the same question differently.
+    """
+    started_at = time.time()
+    conversation_id = use_or_create_conversation_identifier(conversation_id)
+    requested_language = requested_language or detect_language(employee_question)
+
+    saved_conversation = {"configurable": {"thread_id": thread_name_for(conversation_id)}}
+    saved_state = _saved_state_of(workflow, saved_conversation)
+
+    if _belongs_to_somebody_else(saved_state, employee_id):
+        logger.warning(
+            f"Conversation {conversation_id} belongs to another employee; "
+            f"starting a new one for {employee_id}"
+        )
+        conversation_id = create_conversation_identifier()
+        saved_conversation = {"configurable": {"thread_id": thread_name_for(conversation_id)}}
+        saved_state = None
+
+    graph_input = _what_to_feed_the_graph(
+        saved_state=saved_state,
+        conversation_id=conversation_id,
+        employee_question=employee_question,
+        employee_id=employee_id,
+        requested_language=requested_language,
+        started_at=started_at,
+    )
+
+    # "updates" carries one node's work at a time, which is what a stage is. "values"
+    # carries the whole state after each step, and the last one is what `_present` needs —
+    # streaming gives back no final result of its own.
+    # Said before anything has finished, because the first model call takes half a minute
+    # and an empty screen for that long is the problem this endpoint exists to solve.
+    yield "stage", opening_stage(requested_language)
+
+    latest_state: dict = {}
+    for mode, chunk in workflow.stream(
+        graph_input, saved_conversation, stream_mode=["updates", "values"]
+    ):
+        if mode == "values":
+            latest_state = chunk
+            continue
+
+        for node_name, update in (chunk or {}).items():
+            if node_name == "__interrupt__":
+                # The graph stopped to ask the employee something. Carried through so
+                # `_present` builds the same paused response the plain endpoint builds.
+                latest_state = {**latest_state, "__interrupt__": update}
+                continue
+            stage = describe_stage(node_name, update, requested_language)
+            if stage:
+                yield "stage", stage
+
+    yield "done", _present(latest_state, conversation_id, requested_language, started_at)
+
+
+def _what_to_feed_the_graph(
+    saved_state,
+    conversation_id: str,
+    employee_question: str,
+    employee_id: str,
+    requested_language: str,
+    started_at: float,
+):
+    """
+    Either the employee's reply to a question we asked, or a fresh turn.
+
+    Shared by both endpoints on purpose. This is the decision that used to swallow a new
+    question as though it answered the paused one, and having it in two places is how the
+    streaming endpoint would quietly start behaving differently from the one every test
+    measures.
+    """
+    if _is_waiting_for_an_answer(saved_state) and not _reads_as_a_new_question(employee_question):
+        logger.info(f"Resuming conversation {conversation_id} with the employee's reply")
+        return Command(resume=employee_question)
+
+    if _is_waiting_for_an_answer(saved_state):
+        logger.info(
+            f"Conversation {conversation_id} was waiting for an answer and got a new "
+            f"question instead; abandoning the pause"
+        )
+    return _new_turn(
+        conversation_id=conversation_id,
+        employee_question=employee_question,
+        employee_id=employee_id,
+        requested_language=requested_language,
+        started_at=started_at,
+    )
 
 
 def _saved_state_of(workflow, saved_conversation: dict):

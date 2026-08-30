@@ -19,10 +19,12 @@ import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
 import { SUGGESTED_QUESTIONS } from "@/lib/api/mock";
 import type { ChatStatus } from "@/hooks/useConcierge";
+import type { ChatStage } from "@/lib/api/chat";
 import type { ChatMessage } from "@/lib/api/types";
 import { InceptionLogo } from "@/components/common/InceptionLogo";
 
 interface ChatPanelProps {
+  stage?: ChatStage | null;
   messages: ChatMessage[];
   status: ChatStatus;
   error: string | null;
@@ -36,6 +38,7 @@ interface ChatPanelProps {
 export function ChatPanel({
   messages,
   status,
+  stage,
   error,
   onSend,
   onRetry,
@@ -43,7 +46,7 @@ export function ChatPanel({
   onFeedback,
   isAwaitingClarification = false,
 }: ChatPanelProps) {
-  const busy = status === "submitted";
+  const busy = status === "submitted" && stage !== null;
   const isEmpty = messages.length === 0;
 
   const handleSubmit = (
@@ -163,14 +166,28 @@ export function ChatPanel({
                 Concierge
               </p>
               <MessageContent>
-                <Shimmer className="text-sm">Analyzing policy library with hybrid retrieval…</Shimmer>
+                {/* The live step, replaced as the workflow advances. It used to be one
+                    fixed sentence for the whole wait, which said the same thing whether
+                    the answer took four seconds or sixty. */}
+                <Shimmer className="text-sm">
+                  {stage?.text ?? "Working on it…"}
+                </Shimmer>
+                {stage?.found?.length ? (
+                  <ul className="mt-1.5 space-y-0.5">
+                    {stage.found.map((clause) => (
+                      <li key={clause} className="text-xs text-muted-foreground">
+                        <span className="text-primary">✦</span> {clause}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <span className="flex gap-1 pt-1" aria-hidden="true">
                   <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-200ms]" />
                   <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60 [animation-delay:-100ms]" />
                   <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/60" />
                 </span>
                 <span className="sr-only" role="status">
-                  The concierge is preparing an answer
+                  {stage?.text ?? "The concierge is preparing an answer"}
                 </span>
               </MessageContent>
             </Message>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { sendChatMessage } from "@/lib/api/chat";
+import { sendChatMessage, streamChatMessage, type ChatStage } from "@/lib/api/chat";
 import type { ChatMessage, Conversation } from "@/lib/api/types";
 
 // Chat history lives in the browser, one entry per employee. Nothing on the server can
@@ -55,6 +55,9 @@ export function useConcierge(employeeId: string) {
   const [conversations, setConversations] = useState<Conversation[]>([newConversation()]);
   const [activeId, setActiveId] = useState<string>(() => "");
   const [status, setStatus] = useState<ChatStatus>("ready");
+  // What the assistant is doing right now, shown while the answer is worked out. Null
+  // whenever nothing is in flight.
+  const [stage, setStage] = useState<ChatStage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const lastMessage = useRef<string | null>(null);
   // Track pending clarification state
@@ -124,21 +127,52 @@ export function useConcierge(employeeId: string) {
         // Check if this is a clarification response
         const clarificationData = pendingClarification.current;
 
-        const res = await sendChatMessage(message, active?.remoteId ?? null, {
-          employeeId,
-          // Pass clarification context if pending
-          originalQuestion: clarificationData?.originalQuestion ?? null,
-          userClarification: clarificationData ? message : null,
-        });
+        // The answer streams in: stages while it works, then the text a few words at a
+        // time. The message appears with the first words rather than as an empty bubble
+        // sitting under the stage line.
+        const assistantId = uid();
+        const startedAt = new Date().toISOString();
+        const growing = { text: "", started: false };
+        setStage(null);
 
+        const res = await streamChatMessage(
+          message,
+          active?.remoteId ?? null,
+          {
+            onStage: setStage,
+            onDelta: (delta) => {
+              growing.text += delta;
+              const first = !growing.started;
+              growing.started = true;
+              setStage(null);
+              patchActive((c) => ({
+                ...c,
+                messages: first
+                  ? [...c.messages, {
+                      id: assistantId,
+                      role: "assistant",
+                      content: growing.text,
+                      createdAt: startedAt,
+                      feedback: null,
+                    } as ChatMessage]
+                  : c.messages.map((m) =>
+                      m.id === assistantId ? { ...m, content: growing.text } : m,
+                    ),
+              }));
+            },
+          },
+          { employeeId },
+        );
+
+        setStage(null);
         // Clear pending clarification after sending
         pendingClarification.current = null;
 
         const assistant: ChatMessage = {
-          id: uid(),
+          id: assistantId,
           role: "assistant",
           content: res.answer,
-          createdAt: new Date().toISOString(),
+          createdAt: startedAt,
           sources: res.sources,
           feedback: null,
           intent: res.intent,
@@ -148,11 +182,15 @@ export function useConcierge(employeeId: string) {
           original_question: res.original_question,
         };
 
+        // Replaces the placeholder rather than appending: the text is already on screen,
+        // and this is what attaches the sources and the intent to it.
         patchActive((c) => ({
           ...c,
           remoteId: res.conversation_id || c.remoteId,
-          updatedAt: assistant.createdAt,
-          messages: [...c.messages, assistant],
+          updatedAt: new Date().toISOString(),
+          messages: c.messages.some((m) => m.id === assistantId)
+            ? c.messages.map((m) => (m.id === assistantId ? assistant : m))
+            : [...c.messages, assistant],
         }));
 
         // Check if awaiting clarification
@@ -163,6 +201,7 @@ export function useConcierge(employeeId: string) {
           setStatus("ready");
         }
       } catch (e) {
+        setStage(null);
         setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
         setStatus("error");
       }
@@ -234,6 +273,7 @@ export function useConcierge(employeeId: string) {
     active,
     activeId: active?.id,
     status,
+    stage,
     error,
     send,
     retry,

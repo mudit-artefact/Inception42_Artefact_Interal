@@ -105,6 +105,7 @@ function ConciergePage() {
           <ChatPanel
             messages={concierge.active?.messages ?? []}
             status={concierge.status}
+            stage={concierge.stage}
             error={concierge.error}
             onSend={concierge.send}
             onRetry={concierge.retry}
