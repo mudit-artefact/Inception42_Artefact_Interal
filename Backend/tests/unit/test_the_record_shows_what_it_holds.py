@@ -73,12 +73,46 @@ def test_a_part_time_pattern_is_shown(temporary_database):
     assert "0.6 of full time" in rendered
 
 
-def test_a_single_balance_is_not_padded_with_a_pointless_breakdown(temporary_database):
-    """An employee with one year on file gets the plain line, not a one-row table."""
+def test_a_single_balance_is_broken_down_too(temporary_database):
+    """
+    One year on file is still broken down. This test used to assert the opposite.
+
+    Suppressing the breakdown for a lone row looked like tidiness and was the single
+    largest source of wrong answers. What remains does not imply what was granted: an
+    employee described to the model by their remaining days alone has no entitlement in
+    their record at all, so "what am I entitled to?" was answered from the policy ladder
+    instead — which is the wrong figure for anyone whose contract or working pattern puts
+    them off it.
+
+    Aisha is the plainest case. Her accrued figure is the answer to "how much have I
+    built up since I joined", and it appeared nowhere until this changed.
+    """
     rendered = shown(get_employee_facts_for("EMP003"), [HrDataField.ANNUAL_LEAVE_BALANCE.value])
 
-    assert "Annual leave remaining: 21 days" in rendered
-    assert "Broken down:" not in rendered
+    assert "21 entitled" in rendered
+    assert "14.0 accrued" in rendered
+
+
+def test_an_entitlement_that_disagrees_with_the_policy_ladder_is_shown(temporary_database):
+    """
+    Sara's two years put her on 21 days by the service ladder; her contract grants 24.
+
+    With only "19 remaining" in front of it the model had nothing of hers to answer from
+    and fell back to the ladder, so it told her 21 — confidently, and wrongly. The 24 has
+    to be in the text for the answer to have any chance of being right.
+    """
+    rendered = shown(get_employee_facts_for("EMP008"), [HrDataField.ANNUAL_LEAVE_BALANCE.value])
+
+    assert "24 entitled" in rendered
+    assert "5 used" in rendered
+
+
+def test_a_part_time_entitlement_is_shown_as_the_record_holds_it(temporary_database):
+    """Omar's 14 days, not the 24 his years of service would otherwise suggest."""
+    rendered = shown(get_employee_facts_for("EMP007"), [HrDataField.ANNUAL_LEAVE_BALANCE.value])
+
+    assert "14 entitled" in rendered
+    assert "4 used" in rendered
 
 
 def test_none_of_it_is_lost_on_the_way_through_a_saved_conversation(ahmed):

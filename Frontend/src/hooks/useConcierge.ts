@@ -2,7 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sendChatMessage } from "@/lib/api/chat";
 import type { ChatMessage, Conversation } from "@/lib/api/types";
 
-const storageKey = (employeeId: string) => `hcs01.conversations.${employeeId}`;
+// Chat history lives in the browser, one entry per employee. Nothing on the server can
+// reach it, so resetting the backend leaves every old conversation on screen — which is
+// exactly as confusing as it sounds.
+//
+// The version in the key is how that gets fixed without asking anyone to open a console.
+// Raising it orphans every conversation stored under the previous version, and the sweep
+// below deletes them on the next load. Raise it only for a deliberate clean slate.
+const STORAGE_VERSION = "v2";
+const KEY_PREFIX = "hcs01.conversations";
+const storageKey = (employeeId: string) => `${KEY_PREFIX}.${STORAGE_VERSION}.${employeeId}`;
+
+function forgetEarlierVersions() {
+  if (typeof window === "undefined") return;
+  try {
+    const current = `${KEY_PREFIX}.${STORAGE_VERSION}.`;
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith(KEY_PREFIX) && !key.startsWith(current))
+      .forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    /* private mode, or storage disabled — nothing stored means nothing to sweep */
+  }
+}
 
 export type ChatStatus = "ready" | "submitted" | "error" | "awaiting_clarification";
 
@@ -40,6 +61,7 @@ export function useConcierge(employeeId: string) {
   const pendingClarification = useRef<{ originalQuestion: string } | null>(null);
 
   useEffect(() => {
+    forgetEarlierVersions();
     const stored = load(key);
     setStatus("ready");
     setError(null);
@@ -183,6 +205,17 @@ export function useConcierge(employeeId: string) {
     setError(null);
   }, []);
 
+  // "New conversation" adds one above the others, which is right for starting a thread
+  // and no use at all for clearing the list. This is the other thing people mean when
+  // they say they want to start fresh.
+  const clearAll = useCallback(() => {
+    const conversation = newConversation();
+    setConversations([conversation]);
+    setActiveId(conversation.id);
+    setStatus("ready");
+    setError(null);
+  }, []);
+
   const deleteConversation = useCallback(
     (id: string) => {
       setConversations((prev) => {
@@ -208,6 +241,7 @@ export function useConcierge(employeeId: string) {
     startNew,
     selectConversation: setActiveId,
     deleteConversation,
+    clearAll,
     dismissError: () => {
       setError(null);
       setStatus("ready");

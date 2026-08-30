@@ -66,6 +66,10 @@ function ConciergePage() {
                     setMobileNavOpen(false);
                   }}
                   onDelete={concierge.deleteConversation}
+                  onClearAll={() => {
+                    concierge.clearAll();
+                    setMobileNavOpen(false);
+                  }}
                 />
               </div>
               <div className="max-h-[55%] overflow-y-auto p-3">
@@ -93,6 +97,7 @@ function ConciergePage() {
             onSelect={concierge.selectConversation}
             onNew={concierge.startNew}
             onDelete={concierge.deleteConversation}
+            onClearAll={concierge.clearAll}
           />
         </aside>
 

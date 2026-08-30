@@ -12,6 +12,7 @@ resumed conversation never pays for it twice.
 """
 
 import logging
+import re
 
 from langgraph.types import interrupt
 
@@ -70,6 +71,38 @@ def wait_for_clarification(state: ConversationState) -> dict:
     }
 
 
+# Words a question starts with, in both languages. An employee answering "which leave
+# type?" says "annual leave"; one who has moved on says "can I work from home?".
+OPENS_A_QUESTION = re.compile(
+    r"^\s*(what|how|when|where|why|who|which|can|could|do|does|did|is|are|am|should"
+    r"|would|will|may|tell|show|give|explain|summarise|summarize)\b"
+    r"|^\s*(ما|ماذا|كيف|متى|أين|لماذا|من|هل|كم|أقدر|هل\s+يمكن)",
+    re.IGNORECASE,
+)
+
+
+def _is_a_new_question_rather_than_an_answer(reply: str) -> bool:
+    """
+    Whether the employee has moved on instead of answering what was asked.
+
+    A conversation that pauses to ask something treats the next message as the answer,
+    whatever it is. So an employee who ignored the question and asked a different one had
+    the two glued together: Omar was asked which leave type he meant, asked instead
+    whether he could work from home, and was answered on both — in the wrong language.
+
+    A reply is a reply when it is short and does not open like a question. "Annual leave"
+    and "the three days from last year" answer something; "Can I work from home one day a
+    week?" does not. Both halves are required, so a two-word reply that happens to start
+    with "which" is still read as an answer.
+    """
+    reply = (reply or "").strip()
+    if not reply:
+        return False
+
+    looks_like_a_question = bool(OPENS_A_QUESTION.match(reply)) or reply.endswith(("?", "؟"))
+    return looks_like_a_question and len(reply.split()) >= 4
+
+
 def merge_clarification_into_question(state: ConversationState) -> dict:
     """
     Fold the employee's reply back into the question and read it again.
@@ -79,6 +112,20 @@ def merge_clarification_into_question(state: ConversationState) -> dict:
     """
     original_question = state.get("original_question") or state["employee_question"]
     employee_reply = state.get("employee_clarification_reply") or ""
+
+    if _is_a_new_question_rather_than_an_answer(employee_reply):
+        # The employee moved on. Answer what they actually asked and let the abandoned
+        # question go — pairing it with a question it does not answer produces a reply to
+        # neither.
+        logger.info(f"Reply reads as a new question; dropping the paused one: {employee_reply[:60]}")
+        return {
+            "employee_question": employee_reply.strip(),
+            "clarification_round": state.get("clarification_round", 0) + 1,
+            "is_awaiting_clarification": False,
+            "clarification_question": None,
+            "original_question": None,
+        }
+
     merged_question = f"{original_question} ({employee_reply})".strip()
 
     logger.info(f"Merged clarification into: {merged_question[:80]}")

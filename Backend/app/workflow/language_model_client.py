@@ -72,11 +72,18 @@ def generate_text(messages: list[dict], maximum_tokens: int | None = None) -> tu
 def generate_structured_output(
     messages: list[dict],
     output_model: Type[StructuredOutput],
-) -> StructuredOutput:
+    report_usage: bool = False,
+) -> StructuredOutput | tuple[StructuredOutput, int]:
     """
     Ask the model for an answer shaped like `output_model`.
 
     A reply that does not fit the shape is a failure, not something to paper over.
+
+    `report_usage` adds the token count to the return, matching what `generate_text`
+    gives back. It is opt-in so that the steps which only ever needed the shape — reading
+    a question, splitting it, routing it — keep the single return value they were written
+    against. Only the step that drafts the answer reports usage, because that is the
+    figure the web interface shows.
     """
     try:
         response = _request_completion(
@@ -90,7 +97,11 @@ def generate_structured_output(
 
     raw_reply = response.choices[0].message.content or ""
     try:
-        return output_model.model_validate_json(raw_reply)
+        structured_reply = output_model.model_validate_json(raw_reply)
     except Exception as error:
         logger.error(f"The model's reply did not fit {output_model.__name__}: {raw_reply[:200]}")
         raise LanguageModelUnavailableError(error) from error
+
+    if report_usage:
+        return structured_reply, (response.usage.total_tokens if response.usage else 0)
+    return structured_reply

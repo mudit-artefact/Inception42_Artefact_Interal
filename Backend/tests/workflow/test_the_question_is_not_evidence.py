@@ -72,6 +72,6 @@ def test_the_model_is_still_told_which_question_each_extract_answers(
     instructions = [
         call["messages"][0]["content"]
         for call in fake_language_model.recorded_calls
-        if call["response_format"] is None
+        if call["response_format"] == "AnswerWithWorking"
     ][0]
     assert "What is the carry over limit?" in instructions

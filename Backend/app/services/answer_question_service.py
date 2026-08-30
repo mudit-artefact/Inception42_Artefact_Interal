@@ -6,6 +6,7 @@ starts a fresh one, then presents the result as the API's answer.
 """
 
 import logging
+import re
 import time
 from typing import Optional
 
@@ -47,10 +48,15 @@ def answer_question(
         saved_conversation = {"configurable": {"thread_id": thread_name_for(conversation_id)}}
         saved_state = None
 
-    if _is_waiting_for_an_answer(saved_state):
+    if _is_waiting_for_an_answer(saved_state) and not _reads_as_a_new_question(employee_question):
         logger.info(f"Resuming conversation {conversation_id} with the employee's reply")
         result = workflow.invoke(Command(resume=employee_question), saved_conversation)
     else:
+        if _is_waiting_for_an_answer(saved_state):
+            logger.info(
+                f"Conversation {conversation_id} was waiting for an answer and got a new "
+                f"question instead; abandoning the pause"
+            )
         result = workflow.invoke(
             _new_turn(
                 conversation_id=conversation_id,
@@ -96,6 +102,39 @@ def _belongs_to_somebody_else(saved_state, employee_id: str) -> bool:
         return False
     started_by = (saved_state.values or {}).get("employee_id")
     return bool(started_by) and started_by != employee_id
+
+
+# A message that asks something, rather than answering what was asked. Short replies are
+# excluded deliberately: "annual leave?" is somebody answering with a shrug, not opening a
+# new subject, and the question mark alone should not throw away the pause.
+SHORTEST_NEW_QUESTION = 4
+ASKS_SOMETHING = re.compile(
+    r"\?\s*$"
+    r"|^\s*(what|when|who|whom|whose|how|why|which|where|can|could|do|does|did|is|are|am"
+    r"|was|were|will|would|should|shall|may|might|tell me|show me|give me|explain)\b"
+    r"|^\s*(هل|ما|ماذا|متى|من|كيف|لماذا|أي|كم|أين|اشرح|أعطني)\b",
+    re.IGNORECASE,
+)
+
+
+def _reads_as_a_new_question(message: str) -> bool:
+    """
+    Whether this message opens a new subject rather than answering the pending question.
+
+    A paused conversation used to take whatever arrived next as the answer it was waiting
+    for. So an employee asked about their leave, was asked which type, and then asked
+    something else entirely — and the two were glued together and answered as one, in the
+    language of the abandoned question. The new subject was never answered at all.
+
+    Judged on the message alone, without a model call: this runs before the graph starts
+    and a wrong guess here is cheap in one direction only. Treating a genuine reply as a
+    new question loses the pause and asks again; treating a new question as a reply loses
+    the question itself.
+    """
+    words = (message or "").split()
+    if len(words) < SHORTEST_NEW_QUESTION:
+        return False
+    return ASKS_SOMETHING.search(message.strip()) is not None
 
 
 def _is_waiting_for_an_answer(saved_state) -> bool:

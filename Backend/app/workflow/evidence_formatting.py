@@ -173,16 +173,25 @@ def _balance_rows(facts: EmployeeFacts, leave_type: str) -> list[str]:
     Every year and every pay rate held for one kind of leave.
 
     The single "remaining" figure above answers "how many days do I have left" and
-    nothing else. It cannot answer how this year compares with last, or how much of a
-    long sick absence is paid in full — both of which the record knows and used to keep
-    to itself, so the assistant said the information was not available while it sat one
-    field away.
+    nothing else. It cannot answer how this year compares with last, how much of a long
+    sick absence is paid in full, or — most importantly — what the employee is entitled
+    to. All of that the record knows and used to keep to itself, so the assistant said
+    the information was not available while it sat one field away.
+
+    This used to be suppressed unless a leave type held two rows or more, on the grounds
+    that a lone row said nothing the line above had not. That was wrong, and it was the
+    single largest source of wrong answers: an employee with one year of history was
+    described to the model by their remaining days alone, so "what am I entitled to?" had
+    no answer in the record and was answered from the policy ladder instead. For the two
+    employees whose contract or working pattern makes the ladder wrong for them, that
+    produced a confidently incorrect figure. One row is printed for the same reason two
+    are — entitled, used and carried over are not derivable from what remains.
     """
     matching = [
         balance for balance in facts.leave_balances
         if leave_type in balance.leave_type.lower()
     ]
-    if len(matching) < 2:
+    if not matching:
         return []
 
     rows = ["  Broken down:"]

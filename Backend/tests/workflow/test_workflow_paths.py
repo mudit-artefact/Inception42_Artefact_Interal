@@ -74,7 +74,11 @@ def test_a_personal_question_reads_the_employee_record_only(
     )
 
     assert result["required_evidence"] == "hr_data"
-    assert result["requested_hr_data_fields"] == ["line_manager"]
+    # What the model named, plus what the words of the question point at. Routing adds
+    # rather than replaces: a model that names one field short of what the answer needs
+    # is the common failure, and it produced confidently wrong entitlements.
+    assert "line_manager" in result["requested_hr_data_fields"]
+    assert "manager_history" in result["requested_hr_data_fields"]
     assert result["answer_status"] == AnswerStatus.VERIFIED
     assert any(citation["source_type"] == "database" for citation in result["citations"])
 
@@ -213,7 +217,7 @@ def test_every_part_of_a_split_question_is_put_in_front_of_the_model(
     instructions = [
         call["messages"][0]["content"]
         for call in fake_language_model.recorded_calls
-        if call["response_format"] is None
+        if call["response_format"] == "AnswerWithWorking"
     ][0]
     assert 'PART 1 — "annual leave entitlement"' in instructions
     assert 'PART 2 — "annual leave carry over limit"' in instructions

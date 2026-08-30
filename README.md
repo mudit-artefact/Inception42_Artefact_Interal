@@ -62,6 +62,26 @@ npm run dev
 
 ---
 
+## 🧪 Evaluation
+
+Two levels of testing:
+
+| | What it measures | Cost |
+|---|---|---|
+| `Backend/app/evaluation/benchmark_cases.py` | 36 single questions, asked one at a time. Shown at `GET /api/v1/hcs01/eval` | free, no AI calls |
+| [`CONVERSATION_SCENARIOS.md`](CONVERSATION_SCENARIOS.md) | Seven real conversations, 58 questions, every answer scored. Finds what only breaks mid-chat | 58 AI calls |
+
+```powershell
+cd Backend
+python scripts/run_taxonomy_scenarios.py        # the 36 single questions
+python scripts/run_conversation_scenarios.py    # the seven conversations
+```
+
+`CONVERSATION_SCENARIOS.md` is also the client demo script. It includes a twelve-minute
+walkthrough and a list of what not to show.
+
+---
+
 ## 📁 Repository Structure
 
 ```

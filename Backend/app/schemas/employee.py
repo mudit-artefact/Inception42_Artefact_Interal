@@ -6,9 +6,22 @@ from pydantic import BaseModel, Field
 
 
 class LeaveBalanceItem(BaseModel):
+    """
+    One leave balance, as the sidebar shows it.
+
+    `remaining` is sent rather than left to the caller to work out. It used to carry only
+    `used` and `entitled`, so the web interface derived the figure itself as
+    entitled - used — which ignores carried-over days and quietly disagreed with the
+    assistant's answer on screen. The database holds the figure and asserts the identity
+    behind it, so sending it is both shorter and the only version that can be right.
+    """
+
     type: str
     used: int
     entitled: int
+    remaining: int
+    carry_over: int = 0
+    year: int
     unit: str = "days"
 
 

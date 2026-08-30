@@ -33,9 +33,9 @@ export const MOCK_EMPLOYEES: MockPersona[] = [
     email: "ahmed.mansoori@hcservices.ae",
     start_date: "2022-03-15",
     balances: [
-      { type: "Annual leave", used: 12, entitled: 30, unit: "days" },
-      { type: "Sick leave", used: 10, entitled: 15, unit: "days" },
-      { type: "Carry-over", used: 0, entitled: 3, unit: "days" },
+      { type: "Annual leave", used: 12, entitled: 30, remaining: 18, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Sick leave", used: 10, entitled: 15, remaining: 5, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Carry-over", used: 0, entitled: 3, remaining: 3, carry_over: 0, year: 2026, unit: "days" },
     ],
     policyLinks: [POL_ANNUAL, POL_SICK, POL_REMOTE, POL_TRAVEL],
   },
@@ -56,9 +56,9 @@ export const MOCK_EMPLOYEES: MockPersona[] = [
     email: "fatima.qubaisi@hcservices.ae",
     start_date: "2018-01-20",
     balances: [
-      { type: "Annual leave", used: 23, entitled: 30, unit: "days" },
-      { type: "Sick leave", used: 3, entitled: 15, unit: "days" },
-      { type: "Carry-over", used: 0, entitled: 0, unit: "days" },
+      { type: "Annual leave", used: 23, entitled: 30, remaining: 7, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Sick leave", used: 3, entitled: 15, remaining: 12, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Carry-over", used: 0, entitled: 0, remaining: 0, carry_over: 0, year: 2026, unit: "days" },
     ],
     policyLinks: [POL_APPROVALS, POL_DELEGATION, POL_ANNUAL, POL_TRAVEL],
   },
@@ -79,9 +79,9 @@ export const MOCK_EMPLOYEES: MockPersona[] = [
     email: "aisha.mazrouei@hcservices.ae",
     start_date: "2026-05-01",
     balances: [
-      { type: "Annual leave", used: 9, entitled: 30, unit: "days" },
-      { type: "Sick leave", used: 0, entitled: 15, unit: "days" },
-      { type: "Carry-over", used: 0, entitled: 0, unit: "days" },
+      { type: "Annual leave", used: 9, entitled: 30, remaining: 21, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Sick leave", used: 0, entitled: 15, remaining: 15, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Carry-over", used: 0, entitled: 0, remaining: 0, carry_over: 0, year: 2026, unit: "days" },
     ],
     policyLinks: [POL_PROBATION, POL_ACCRUAL, POL_ANNUAL, POL_SICK],
   },
@@ -102,9 +102,9 @@ export const MOCK_EMPLOYEES: MockPersona[] = [
     email: "khalifa.nahyan@hcservices.ae",
     start_date: "2014-09-01",
     balances: [
-      { type: "Annual leave", used: 6, entitled: 30, unit: "days" },
-      { type: "Sick leave", used: 0, entitled: 15, unit: "days" },
-      { type: "Carry-over", used: 0, entitled: 5, unit: "days" },
+      { type: "Annual leave", used: 6, entitled: 30, remaining: 24, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Sick leave", used: 0, entitled: 15, remaining: 15, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Carry-over", used: 0, entitled: 5, remaining: 5, carry_over: 0, year: 2026, unit: "days" },
     ],
     policyLinks: [POL_TRAVEL, POL_ANNUAL, POL_REMOTE, POL_APPROVALS],
   },
@@ -125,9 +125,9 @@ export const MOCK_EMPLOYEES: MockPersona[] = [
     email: "mohammed.maktoum@hcservices.ae",
     start_date: "2020-02-12",
     balances: [
-      { type: "Annual leave", used: 15, entitled: 30, unit: "days" },
-      { type: "Sick leave", used: 0, entitled: 15, unit: "days" },
-      { type: "Carry-over", used: 0, entitled: 0, unit: "days" },
+      { type: "Annual leave", used: 15, entitled: 30, remaining: 15, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Sick leave", used: 0, entitled: 15, remaining: 15, carry_over: 0, year: 2026, unit: "days" },
+      { type: "Carry-over", used: 0, entitled: 0, remaining: 0, carry_over: 0, year: 2026, unit: "days" },
     ],
     policyLinks: [POL_APPROVALS, POL_DELEGATION, POL_ANNUAL, POL_REMOTE],
   },
@@ -190,7 +190,7 @@ const BALANCE_MATCH = /balance|days left|remaining|how many/i;
 
 function balanceAnswer(employee: MockPersona): { answer: string; sources: PolicySource[] } {
   const lines = employee.balances
-    .map((b) => `- **${b.type}:** ${b.entitled - b.used} of ${b.entitled} ${b.unit} remaining`)
+    .map((b) => `- **${b.type}:** ${b.remaining} of ${b.entitled + b.carry_over} ${b.unit} remaining`)
     .join("\n");
 
   return {

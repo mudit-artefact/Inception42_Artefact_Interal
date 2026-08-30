@@ -56,22 +56,30 @@ export function EmployeeCard({ employee, policyLinks = [] }: EmployeeCardProps) 
           <p className="text-xs text-muted-foreground">No balance data available.</p>
         ) : (
           balances.map((b) => {
-            const remaining = b.entitled - b.used;
-            const pct = b.entitled > 0 ? (remaining / b.entitled) * 100 : 0;
+            // Sent by the API, never derived here. entitled - used ignores carried-over
+            // days, so this panel used to show 12 where the assistant correctly said 15
+            // — a contradiction between two halves of the same screen.
+            const available = b.entitled + b.carry_over;
+            const pct = available > 0 ? Math.min(100, (b.remaining / available) * 100) : 0;
             return (
-              <div key={b.type}>
+              <div key={`${b.type}-${b.year}`}>
                 <div className="flex items-baseline justify-between gap-2 text-xs">
                   <span className="font-medium text-foreground">{b.type}</span>
                   <span className="tabular-nums text-muted-foreground">
-                    <span className="font-display text-sm font-semibold text-foreground">{remaining}</span> / {b.entitled}{" "}
-                    {b.unit} left
+                    <span className="font-display text-sm font-semibold text-foreground">{b.remaining}</span> /{" "}
+                    {available} {b.unit} left
                   </span>
                 </div>
                 <Progress
                   value={pct}
-                  aria-label={`${b.type}: ${remaining} of ${b.entitled} ${b.unit} remaining`}
+                  aria-label={`${b.type}: ${b.remaining} of ${available} ${b.unit} remaining`}
                   className="mt-2 h-1.5"
                 />
+                {b.carry_over > 0 ? (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Includes {b.carry_over} {b.unit} carried over
+                  </p>
+                ) : null}
               </div>
             );
           })

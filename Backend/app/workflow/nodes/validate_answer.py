@@ -26,6 +26,10 @@ def validate_answer(state: ConversationState) -> dict:
         employee_id=state["employee_id"],
         requested_language=state.get("requested_language", "en"),
         has_any_evidence=has_any_evidence,
+        declared_calculations=state.get("declared_calculations") or [],
+        # The employee's own words, so a figure they supposed can be quoted back to them
+        # once a sum anchored in real evidence has used it.
+        employee_question=state.get("employee_question", ""),
     )
 
     return {

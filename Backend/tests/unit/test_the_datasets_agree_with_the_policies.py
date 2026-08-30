@@ -137,13 +137,97 @@ def test_every_cross_reference_resolves():
     assert not broken, f"references pointing nowhere: {broken}"
 
 
-def test_the_arabic_editions_state_the_same_numbers():
+ARABIC_CORPUS = CORPUS.parent / "policies_ar"
+
+# Arabic prose states quantities as words where the English uses a digit. Each entry is
+# the same fact written the other way, not a discrepancy. Longest key first: "يوم واحد"
+# has to be folded before any shorter key can match part of it.
+#
+# That this map needs eleven entries is itself worth knowing. A reader — or the BM25 half
+# of the ranking in app/indexing/ranking.py — searching Arabic for "90" will not match
+# "التسعين" either, so the corpus's preference for number words costs real retrieval
+# recall on Arabic queries typed with digits. Folding them here keeps this test honest
+# about content; it does not fix that, and the two should not be confused.
+ARABIC_NUMBER_WORDS = {
+    "يوم أو يومين": "1 2",
+    "يوم واحد": "1",
+    "اثني عشر": "12",
+    "التسعين": "90",
+    "الثلاثة": "3",
+    "الستة": "6",
+    "يومين": "2",
+    "يومان": "2",
+    "سنتين": "2",
+    "تسعة": "9",
+    "لا يوجد": "0",
+}
+
+# "HC-PC-007 §7.5" in English is often a bare "7.5" in Arabic. Both are pointers to
+# another clause, not figures this policy states, and comparing them produces noise that
+# buries the real differences.
+_CROSS_REFERENCE = re.compile(r"HC-PC-\d+\s*§?\s*[\d.]*|§\s*[\d.]+|\b\d+\.\d+(?:\.\d+)+\b")
+_SECTION_HEADING = re.compile(r"^###\s+(\d+\.\d+)\s+(.*)$", re.MULTILINE)
+_FIGURE = re.compile(r"\d[\d,]*(?:\.\d+)?%?")
+
+
+def sections_of(path):
+    """A policy's numbered sections, keyed by number."""
+    text = path.read_text(encoding="utf-8")
+    found, bodies = list(_SECTION_HEADING.finditer(text)), {}
+    for position, heading in enumerate(found):
+        ends = found[position + 1].start() if position + 1 < len(found) else len(text)
+        bodies[heading.group(1)] = text[heading.end():ends]
+    return bodies
+
+
+def figures_stated_in(body: str) -> set[str]:
+    """
+    Every quantity a section states, however it is written.
+
+    Cross-references are stripped first: they look exactly like figures and are not one.
+    Arabic number words are folded to the digit they mean, so a section saying
+    "التسعين يوماً" counts as stating 90 just as the English "90 days" does.
+    """
+    without_references = _CROSS_REFERENCE.sub(" ", body)
+    for word, digit in ARABIC_NUMBER_WORDS.items():
+        without_references = without_references.replace(word, f" {digit} ")
+    return {figure.replace(",", "") for figure in _FIGURE.findall(without_references)}
+
+
+@pytest.mark.parametrize("policy", sorted(path.name for path in ARABIC_CORPUS.glob("*.md")))
+def test_the_arabic_edition_states_the_same_numbers(policy):
     """
     A bilingual policy that disagrees with itself is worse than one that is untranslated.
     The Arabic stub used to say 30 days where the English said 21, and 2.5 days a month
     where the English said 1.75.
-    """
-    arabic = (CORPUS.parent / "policies_ar" / "01_annual_leave.md").read_text(encoding="utf-8")
 
-    for figure in ["21", "24", "26", "30", "1.75", "2.50", "10", "30 أبريل"]:
-        assert figure in arabic, f"the Arabic annual leave policy is missing {figure!r}"
+    This replaced a check that eight hard-coded strings appeared somewhere in one Arabic
+    file. It could not see either of the two gaps that were actually there: the Arabic
+    annual leave policy had lost the 3.1 row from its revision table, so no version window
+    existed for a question about 2024, and the Arabic expense worked example had dropped
+    the two thresholds it was worked against. Both are the kind of thing a translator
+    trims and nobody notices, which is the argument for comparing section by section
+    rather than spot-checking a list someone has to remember to update.
+    """
+    english, arabic = sections_of(CORPUS / policy), sections_of(ARABIC_CORPUS / policy)
+
+    assert set(english) == set(arabic), (
+        f"{policy}: the editions do not have the same sections — "
+        f"only in English {sorted(set(english) - set(arabic))}, "
+        f"only in Arabic {sorted(set(arabic) - set(english))}"
+    )
+
+    disagreements = []
+    for number in sorted(english, key=lambda section: [int(part) for part in section.split(".")]):
+        missing = figures_stated_in(english[number]) - figures_stated_in(arabic[number])
+        if missing:
+            disagreements.append(f"§{number} is missing {sorted(missing)} in Arabic")
+
+    assert not disagreements, f"{policy}: " + "; ".join(disagreements)
+
+
+# Not extended to cross-references on purpose. The Arabic corpus refers to HC-PC-006,
+# 007, 008 and 009 thirty-three times and none of them has an Arabic edition, so a
+# reference there is either a defect or expected depending on what Arabic coverage is
+# meant to be — a product decision that has not been taken. test_every_cross_reference_resolves
+# above therefore still scans English only.

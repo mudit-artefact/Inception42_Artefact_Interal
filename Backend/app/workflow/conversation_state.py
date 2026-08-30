@@ -125,6 +125,9 @@ class ConversationState(TypedDict, total=False):
 
     # Step 5 — the drafted answer
     draft_answer: str
+    # Each figure the answer worked out rather than quoted, and what it worked it out
+    # from. Read only by the check that follows, to tell arithmetic from invention.
+    declared_calculations: list[dict]
     tokens_used: int
 
     # The check before the answer is allowed out

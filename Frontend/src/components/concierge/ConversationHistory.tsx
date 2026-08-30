@@ -8,6 +8,7 @@ interface ConversationHistoryProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onClearAll?: () => void;
 }
 
 const formatDate = (iso: string) => {
@@ -25,7 +26,10 @@ export function ConversationHistory({
   onSelect,
   onNew,
   onDelete,
+  onClearAll,
 }: ConversationHistoryProps) {
+  // One empty, unused conversation is the cleared state, not something worth clearing.
+  const hasAnythingToClear = conversations.some((c) => c.messages.length > 0);
   return (
     <nav aria-label="Conversation history" className="flex h-full min-h-0 flex-col">
       <div className="p-3">
@@ -34,9 +38,20 @@ export function ConversationHistory({
           New conversation
         </Button>
       </div>
-      <p className="px-4 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        History
-      </p>
+      <div className="flex items-baseline justify-between px-4 pb-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          History
+        </p>
+        {onClearAll && hasAnythingToClear ? (
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="rounded text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Clear all
+          </button>
+        ) : null}
+      </div>
       <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
         {conversations.map((c) => {
           const isActive = c.id === activeId;

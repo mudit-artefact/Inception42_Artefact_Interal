@@ -91,6 +91,10 @@ export interface LeaveBalance {
   type: string;
   used: number;
   entitled: number;
+  /** Sent by the API. Never derive it — entitled - used ignores carried-over days. */
+  remaining: number;
+  carry_over: number;
+  year: number;
   unit: string;
 }
 

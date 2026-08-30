@@ -3,8 +3,9 @@
 import logging
 
 from app.workflow.conversation_state import ConversationState
-from app.workflow.language_model_client import generate_text
+from app.workflow.language_model_client import generate_structured_output
 from app.workflow.prompts import ANSWER_INSTRUCTIONS_TEMPLATE, language_name_for
+from app.workflow.structured_outputs import AnswerWithWorking
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +25,28 @@ def generate_answer(state: ConversationState) -> dict:
         evidence=state.get("evidence_summary", ""),
     )
 
-    draft_answer, tokens_used = generate_text(
+    drafted, tokens_used = generate_structured_output(
         messages=[
             {"role": "system", "content": instructions},
             {"role": "user", "content": _what_is_being_asked(state)},
-        ]
+        ],
+        output_model=AnswerWithWorking,
+        report_usage=True,
     )
 
-    logger.info(f"Drafted an answer of {len(draft_answer)} characters ({tokens_used} tokens)")
-    return {"draft_answer": draft_answer, "tokens_used": tokens_used}
+    logger.info(
+        f"Drafted an answer of {len(drafted.answer)} characters "
+        f"({tokens_used} tokens, {len(drafted.calculations)} figures worked out)"
+    )
+    return {
+        "draft_answer": drafted.answer,
+        # Read by the check that follows, which uses them to tell a figure the assistant
+        # worked out from one it invented. Nothing else reads them.
+        "declared_calculations": [
+            calculation.model_dump() for calculation in drafted.calculations
+        ],
+        "tokens_used": tokens_used,
+    }
 
 
 def _what_is_being_asked(state: ConversationState) -> str:

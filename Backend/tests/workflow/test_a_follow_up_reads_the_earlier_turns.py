@@ -13,7 +13,7 @@ that needs it — and, just as much, that it never reaches the step that must no
 import pytest
 
 from app.domain.enums import AnswerStatus
-from app.workflow.conversation_memory import TRANSCRIPT_OPENING, TURNS_WORTH_REMEMBERING
+from app.workflow.conversation_memory import TRANSCRIPT_OPENING
 
 
 @pytest.fixture(autouse=True)
@@ -35,7 +35,7 @@ def system_prompts_for_the_answer(fake_language_model) -> list[str]:
     return [
         call["messages"][0]["content"]
         for call in fake_language_model.recorded_calls
-        if call["response_format"] is None
+        if call["response_format"] == "AnswerWithWorking"
     ]
 
 
@@ -175,20 +175,20 @@ def test_a_clarified_question_is_remembered_with_the_reply_folded_in(
     assert resumed["remembered_turns"][0]["question"] == "How many leaves can I take? (annual)"
 
 
-def test_only_the_last_few_turns_are_carried_forward(
+def test_every_turn_of_an_ordinary_conversation_is_carried_forward(
     ask, script_understanding, script_routing, fake_language_model
 ):
+    """A follow-up may reach back to anything said in the conversation, not just recently."""
     script_understanding()
     script_routing(required_evidence="policy")
     fake_language_model.reply_to_plain_call("Carry-over is capped at 10 working days.")
 
-    for question_number in range(TURNS_WORTH_REMEMBERING + 2):
+    for question_number in range(8):
         result = ask(f"What is rule {question_number}?")
 
-    assert len(result["remembered_turns"]) == TURNS_WORTH_REMEMBERING
-    assert result["remembered_turns"][-1]["question"] == (
-        f"What is rule {TURNS_WORTH_REMEMBERING + 1}?"
-    )
+    assert len(result["remembered_turns"]) == 8
+    assert result["remembered_turns"][0]["question"] == "What is rule 0?"
+    assert result["remembered_turns"][-1]["question"] == "What is rule 7?"
 
 
 def test_the_writer_is_told_the_question_that_was_worked_out(
@@ -212,7 +212,7 @@ def test_the_writer_is_told_the_question_that_was_worked_out(
     written_from = [
         call["messages"][1]["content"]
         for call in fake_language_model.recorded_calls
-        if call["response_format"] is None
+        if call["response_format"] == "AnswerWithWorking"
     ][-1]
     assert "okay, do the calculation" in written_from, "the employee's own words are kept"
     assert "calculate sick leave pay for 50 days of absence" in written_from
@@ -238,7 +238,7 @@ def test_the_writer_is_given_the_question_but_still_not_the_conversation(
     for message in [
         content
         for call in fake_language_model.recorded_calls
-        if call["response_format"] is None
+        if call["response_format"] == "AnswerWithWorking"
         for content in (call["messages"][0]["content"], call["messages"][1]["content"])
     ]:
         assert TRANSCRIPT_OPENING not in message

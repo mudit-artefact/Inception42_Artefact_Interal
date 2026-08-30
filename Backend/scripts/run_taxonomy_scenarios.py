@@ -18,15 +18,17 @@ plain text comparison, so nothing here needs a model to judge a model.
 
 import argparse
 import logging
-import re
 import sys
 import time
-import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+# Imported after the path insert above, and shared with the conversation runner so the
+# two cannot drift apart on what counts as stating a fact.
+from app.evaluation.grading import contains_fact, looks_like_a_refusal  # noqa: E402
 
 PASS, FAIL, GAP = "PASS", "FAIL", "GAP"
 
@@ -44,59 +46,6 @@ class Outcome:
     intent: str = ""
     seconds: float = 0.0
     awaiting_clarification: bool = False
-
-
-def _flatten(text: str) -> str:
-    """Comparable text: one line, normalised Arabic, lowercase."""
-    return " ".join(unicodedata.normalize("NFKC", text or "").split()).lower()
-
-
-def _as_a_number(text: str) -> str:
-    """450, 450.0 and 450 are one figure. Matches how the answer check compares them."""
-    try:
-        return f"{float(text.replace(',', '')):g}"
-    except ValueError:
-        return text
-
-
-def contains_fact(answer: str, fact: str) -> bool:
-    """
-    Whether the answer states a fact the case requires.
-
-    A bare number is compared as a number, not as text. "450" is stated by an answer
-    saying "AED 450.0", and is not stated by one that only mentions 2450 — matching on
-    the characters gets both of those wrong, in opposite directions.
-    """
-    haystack, needle = _flatten(answer), _flatten(fact)
-    if not needle:
-        return True
-
-    if re.fullmatch(r"[\d,.]+", needle):
-        wanted = _as_a_number(needle)
-        return any(
-            _as_a_number(found) == wanted
-            for found in re.findall(r"\d[\d,]*(?:\.\d+)?", haystack)
-        )
-    return needle in haystack
-
-
-def looks_like_a_refusal(answer: str, intent: str) -> bool:
-    """
-    Whether the assistant declined rather than answered.
-
-    The wire response carries `intent` but not the internal answer status, so an
-    out-of-scope refusal is visible directly and every other kind is recognised by what
-    the fixed messages actually say.
-    """
-    if intent == "not_in_scope":
-        return True
-    declining = [
-        "cannot assist", "outside", "not able to", "contact people & culture",
-        "people@hcservices.ae", "not yet published", "in drafting", "cannot provide",
-        "i do not have", "unable to",
-    ]
-    flattened = _flatten(answer)
-    return any(phrase in flattened for phrase in declining)
 
 
 def ask(client, question: str, employee_id: str, conversation_id: str) -> dict:

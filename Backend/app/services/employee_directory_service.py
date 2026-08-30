@@ -48,15 +48,7 @@ def build_profile(facts: EmployeeFacts) -> EmployeeProfile:
         manager=facts.manager_name,
         email=facts.email,
         start_date=facts.start_date,
-        balances=[
-            LeaveBalanceItem(
-                type=balance.leave_type,
-                used=balance.used_days,
-                entitled=balance.entitled_days,
-                unit=balance.unit,
-            )
-            for balance in facts.leave_balances
-        ],
+        balances=_balances_for_the_current_leave_year(facts),
         policyLinks=choose_quick_links_for(facts.probation_status),
     )
 
@@ -83,4 +75,33 @@ def choose_quick_links_for(probation_status: str) -> list[PolicyLink]:
         )
         for topic in shown_topics
         if topic in documents_by_topic
+    ]
+
+
+def _balances_for_the_current_leave_year(facts: EmployeeFacts) -> list[LeaveBalanceItem]:
+    """
+    This year's balances only, newest year wins.
+
+    The record keeps last year's rows so the assistant can answer "how does this compare
+    with last year". The sidebar is a statement of where somebody stands today, and
+    sending both years put two rows labelled "Annual leave" side by side with no year
+    against either — one of them last year's, and neither of them explained. The
+    assistant reads `facts.leave_balances` directly and is unaffected by this.
+    """
+    if not facts.leave_balances:
+        return []
+
+    current_year = max(balance.year for balance in facts.leave_balances)
+    return [
+        LeaveBalanceItem(
+            type=balance.leave_type,
+            used=balance.used_days,
+            entitled=balance.entitled_days,
+            remaining=balance.remaining_days,
+            carry_over=balance.carry_over_days,
+            year=balance.year,
+            unit=balance.unit,
+        )
+        for balance in facts.leave_balances
+        if balance.year == current_year
     ]

@@ -57,6 +57,37 @@ class DecomposedQuery(BaseModel):
     reasoning: str = Field(default="", description="Brief explanation for this split")
 
 
+class Calculation(BaseModel):
+    """
+    One figure the answer worked out, and what it worked it out from.
+
+    This is what lets an answer say "19 days at half pay" when 19 is printed nowhere. The
+    check that follows accepts a figure it can see was built out of figures that ARE
+    printed, so the assistant can subtract and cannot invent: a fabricated number has no
+    inputs to point at.
+    """
+
+    result: float = Field(description="The figure this produced")
+    from_numbers: list[float] = Field(
+        default_factory=list,
+        description="Every figure from the evidence that went into it",
+    )
+    how: str = Field(default="", description="The sum in words, e.g. '34 - 15'")
+
+
+class AnswerWithWorking(BaseModel):
+    """Step 5: the reply, and any figures it had to work out to write it."""
+
+    answer: str = Field(description="The reply the employee will read")
+    calculations: list[Calculation] = Field(
+        default_factory=list,
+        description=(
+            "One entry per figure worked out rather than copied from the evidence. "
+            "Empty when every figure in the answer was quoted directly."
+        ),
+    )
+
+
 class RephrasedAnswer(BaseModel):
     """The last reply, written again as the employee asked for it."""
 

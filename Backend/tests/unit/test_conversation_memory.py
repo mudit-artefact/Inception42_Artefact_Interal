@@ -11,7 +11,7 @@ from app.workflow.conversation_memory import (
     LONGEST_REMEMBERED_ANSWER,
     TRANSCRIPT_CLOSING,
     TRANSCRIPT_OPENING,
-    TURNS_WORTH_REMEMBERING,
+    WHOLE_CONVERSATION_BUDGET,
     describe_the_conversation_so_far,
     remember_turn,
 )
@@ -45,18 +45,49 @@ def test_turns_are_described_oldest_first_and_numbered():
     assert 'Turn 2 — you answered: "Ninety days."' in described
 
 
-def test_only_the_last_few_turns_are_kept():
+def test_a_conversation_of_ordinary_length_is_kept_whole():
     """
-    The whole state is written to the saved conversation once per step, so an unbounded
-    transcript is rewritten a dozen times a turn and grows the store without limit.
+    Nothing is forgotten while the transcript stays a reasonable size.
+
+    A window of the last few turns is what made the assistant ask "which trip?" straight
+    after discussing the trip: the step that decides whether to ask back reads this and
+    nothing else, so a turn dropped here is a turn that never happened.
     """
     remembered: list[dict] = []
-    for turn_number in range(TURNS_WORTH_REMEMBERING + 3):
-        remembered = remember_turn(remembered, f"question {turn_number}", "answer")
+    for turn_number in range(15):
+        remembered = remember_turn(
+            remembered, f"question {turn_number}", "A reply of ordinary length." * 8
+        )
 
-    assert len(remembered) == TURNS_WORTH_REMEMBERING
-    assert remembered[0]["question"] == "question 3"
-    assert remembered[-1]["question"] == f"question {TURNS_WORTH_REMEMBERING + 2}"
+    assert len(remembered) == 15
+    assert remembered[0]["question"] == "question 0"
+    assert remembered[-1]["question"] == "question 14"
+
+
+def test_a_very_long_conversation_drops_its_oldest_turns():
+    """
+    The whole state is written to the saved conversation once per step, so an unbounded
+    transcript is rewritten a dozen times a turn and grows the store without limit. The
+    budget is what stops that, and it spends itself on the newest turns.
+    """
+    remembered: list[dict] = []
+    for turn_number in range(200):
+        remembered = remember_turn(remembered, f"question {turn_number}", "answer " * 150)
+
+    spent = sum(len(turn["question"]) + len(turn["answer"]) for turn in remembered)
+
+    assert spent <= WHOLE_CONVERSATION_BUDGET
+    assert remembered[-1]["question"] == "question 199"
+    assert remembered[0]["question"] != "question 0"
+
+
+def test_the_newest_turn_survives_even_when_it_alone_fills_the_budget():
+    """Half a conversation beats none: an enormous last turn is still worth keeping."""
+    enormous = "x" * (WHOLE_CONVERSATION_BUDGET * 2)
+
+    remembered = remember_turn([], "a question", enormous)
+
+    assert len(remembered) == 1
 
 
 def test_the_same_turn_is_not_remembered_twice():
@@ -68,7 +99,8 @@ def test_the_same_turn_is_not_remembered_twice():
 
 
 def test_a_long_answer_is_remembered_cut_short():
-    remembered = remember_turn([], "How much leave?", "x" * 900)
+    """Written against the cap rather than a fixed length, so raising it cannot pass by default."""
+    remembered = remember_turn([], "How much leave?", "x" * (LONGEST_REMEMBERED_ANSWER + 200))
 
     assert len(remembered[0]["answer"]) <= LONGEST_REMEMBERED_ANSWER
     assert remembered[0]["answer"].endswith("…")

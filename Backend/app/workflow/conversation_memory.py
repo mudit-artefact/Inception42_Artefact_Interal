@@ -21,9 +21,19 @@ fields, and the answer never sees any of this. The worst a planted line can do i
 misread a question or search for the wrong thing.
 """
 
-TURNS_WORTH_REMEMBERING = 3
-LONGEST_REMEMBERED_QUESTION = 200
-LONGEST_REMEMBERED_ANSWER = 300
+# The whole conversation is remembered, not a window of it. What is capped is the total
+# size, so a very long chat cannot grow the prompt without limit — and when the cap is
+# reached the oldest turns go first.
+#
+# It used to keep three turns with each answer cut to 300 characters, which is about two
+# sentences of a reply that usually runs to six. The step that decides whether to ask the
+# employee to clarify reads only this, so it was making that decision from an abridged
+# transcript: it asked "which trip?" immediately after discussing the trip, and asked
+# where an employee had seen a figure that sits in their own record. Nine of the failures
+# in the scenario suite were that.
+WHOLE_CONVERSATION_BUDGET = 12_000
+LONGEST_REMEMBERED_QUESTION = 400
+LONGEST_REMEMBERED_ANSWER = 1_200
 
 # The transcript's own punctuation, which nothing quoted inside it may contain.
 RULE_CHARACTER = "━"
@@ -56,7 +66,26 @@ def remember_turn(
     if remembered and remembered[-1] == this_turn:
         return remembered
 
-    return (remembered + [this_turn])[-TURNS_WORTH_REMEMBERING:]
+    return _within_the_budget(remembered + [this_turn])
+
+
+def _within_the_budget(turns: list[dict]) -> list[dict]:
+    """
+    As much of the conversation as the budget allows, oldest dropped first.
+
+    The newest turn is always kept, however long it is. A conversation whose most recent
+    exchange alone exceeds the budget is better represented by that one exchange than by
+    nothing at all, and the per-turn caps already bound how large it can be.
+    """
+    kept: list[dict] = []
+    spent = 0
+    for turn in reversed(turns):
+        cost = len(turn["question"]) + len(turn["answer"])
+        if kept and spent + cost > WHOLE_CONVERSATION_BUDGET:
+            break
+        kept.append(turn)
+        spent += cost
+    return list(reversed(kept))
 
 
 def describe_the_conversation_so_far(earlier_turns: list[dict] | None) -> str:

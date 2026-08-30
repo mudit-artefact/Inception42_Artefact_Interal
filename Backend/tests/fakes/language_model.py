@@ -57,6 +57,15 @@ class FakeLanguageModel:
         self.structured_replies[output_model_name] = next_payload
 
     def reply_to_plain_call(self, answer_text: str) -> None:
+        """
+        The text the assistant will answer with.
+
+        Named for the call it used to be. Drafting an answer now asks for a shape —
+        `AnswerWithWorking`, the reply plus any figures it worked out — but from a test's
+        point of view the interesting part is still the words, so this keeps serving that
+        call and every test that scripts it reads the same as before. A test that cares
+        about the working scripts `AnswerWithWorking` directly.
+        """
         self.plain_reply = answer_text
 
     def fail_every_call_with(self, error: Exception) -> None:
@@ -79,6 +88,17 @@ class FakeLanguageModel:
 
         if requested_output_model_name is None:
             return FakeLanguageModelResponse(self.plain_reply)
+
+        # The answer step asks for a shape, and almost every test only cares about the
+        # words in it. Without this, adding the working to the answer would have meant
+        # rewriting fifteen tests that have nothing to do with arithmetic.
+        if (
+            requested_output_model_name == "AnswerWithWorking"
+            and requested_output_model_name not in self.structured_replies
+        ):
+            return FakeLanguageModelResponse(
+                json.dumps({"answer": self.plain_reply, "calculations": []})
+            )
 
         if requested_output_model_name not in self.structured_replies:
             raise AssertionError(

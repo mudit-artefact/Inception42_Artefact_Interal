@@ -47,6 +47,7 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "evidence_summary": "",
     # Step 5 and the check that follows it
     "draft_answer": "",
+    "declared_calculations": [],
     "tokens_used": 0,
     "answer_verdict": "",
     "unsupported_claims": [],
