@@ -42,6 +42,25 @@ def generate_greeting(state: ConversationState) -> dict:
     }
 
 
+def _clean_and_format_markdown(text: str) -> str:
+    """Format and normalize markdown to ensure clean lists, spacing, and headings."""
+    if not text:
+        return ""
+
+    import re
+    # Convert inline bullet points into clean multi-line markdown bullets
+    # E.g. "Breakdown: • 2026 Annual: ... • 2025 Annual: ..." -> "\n* 2026 Annual: ...\n* 2025 Annual: ..."
+    formatted = re.sub(r'([:\.]\s*)[•●]\s*', r'\1\n\n* ', text)
+    formatted = re.sub(r'(?<!\n)\s*[•●]\s*', r'\n* ', formatted)
+    
+    # Ensure headings (### Heading) have clean line breaks before and after
+    formatted = re.sub(r'([^\n])\n(#{1,4}\s+)', r'\1\n\n\2', formatted)
+    
+    # Normalize excess blank lines
+    formatted = re.sub(r'\n{3,}', r'\n\n', formatted)
+    return formatted.strip()
+
+
 def finalize_verified_answer(state: ConversationState) -> dict:
     """
     The answer passed every check, so it is shown with its sources.
@@ -59,8 +78,10 @@ def finalize_verified_answer(state: ConversationState) -> dict:
             f"nothing was found for: {unanswered}"
         )
 
+    clean_answer = _clean_and_format_markdown(state.get("draft_answer", ""))
+
     return {
-        "final_answer": state.get("draft_answer", ""),
+        "final_answer": clean_answer,
         "citations": _citations_for(state),
         "answer_status": (
             AnswerStatus.PARTIAL if unanswered else AnswerStatus.VERIFIED

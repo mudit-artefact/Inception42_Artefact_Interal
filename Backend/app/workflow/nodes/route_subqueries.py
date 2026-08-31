@@ -36,7 +36,7 @@ FIRST_PERSON_PATTERN = re.compile(
 # named no fields at all: reading the profile and nothing else is how "compare my balance
 # with last year" came to be answered "that is not in your record".
 FIELDS_FOR_SUBJECT = (
-    (re.compile(r"balance|remaining|left|entitle|accru|carry[- ]?over|leave|رصيد|إجاز", re.I),
+    (re.compile(r"balance|remaining|left|entitle|accru|carry[- ]?over|leaves?|رصيد|إجاز", re.I),
      [HrDataField.ANNUAL_LEAVE_BALANCE, HrDataField.SICK_LEAVE_BALANCE,
       HrDataField.CARRY_OVER_DAYS, HrDataField.YEARS_OF_SERVICE]),
     (re.compile(r"sick|medical|مرض", re.I),
@@ -81,7 +81,7 @@ PERSONAL_SUBJECT_PATTERN = re.compile(
     r"\b(balance|remaining|left|manager|probation|entitle\w*|accrued|carry[- ]?over"
     r"|days?\s+off|service|report(?:s|ing|ed)?|reporting\s+line|line\s+manager"
     r"|record|grade|claim\w*|expense\w*|request\w*|used|taken|absence|sick"
-    r"|leave|paid|pay|approv\w*|class|flight|fly|travel|trip|per\s+diem"
+    r"|leaves?|paid|pay|approv\w*|class|flight|fly|travel|trip|per\s+diem"
     r"|remote|wfh|work\s+from\s+home|working\s+from\s+home|eligib\w*|entitle\w*"
     r"|start(?:ed|ing)?\s+date|job\s+title|department)\b"
     r"|رصيد|مدير|إجاز|تجربة|سجل|مطالب|درجت|خدمت|عن\s*بُ?عد|البيت|المنزل|بدل",
@@ -235,6 +235,15 @@ def _include_personal_record_when_asked_about_oneself(
     for field in _fields_the_question_points_at(question):
         if field not in requested_fields:
             requested_fields.append(field)
+
+    # If asking generally about leaves/balances without specifying "annual" or "sick", fetch both:
+    is_specific_annual = bool(re.search(r"\bannual\b|السنوي", question, re.I))
+    is_specific_sick = bool(re.search(r"\bsick\b|medical\b|مرض", question, re.I))
+    if not is_specific_annual and not is_specific_sick:
+        if HrDataField.ANNUAL_LEAVE_BALANCE in requested_fields and HrDataField.SICK_LEAVE_BALANCE not in requested_fields:
+            requested_fields.append(HrDataField.SICK_LEAVE_BALANCE)
+        if HrDataField.SICK_LEAVE_BALANCE in requested_fields and HrDataField.ANNUAL_LEAVE_BALANCE not in requested_fields:
+            requested_fields.append(HrDataField.ANNUAL_LEAVE_BALANCE)
 
     return required_evidence, requested_fields
 

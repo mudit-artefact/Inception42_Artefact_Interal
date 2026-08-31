@@ -1,0 +1,104 @@
+Row 1 [TAX-01] -> 4 queries:
+   (1) How many days of maternity leave are allowed?
+   (2) I am pregnant, what are my leave entitlements?
+   (3) Is paternity leave paid?
+   (4) Can I carry forward my annual leave to next year?
+Row 2 [TAX-02] -> 1 queries:
+   (1) How many annual-leave days do I have remaining?
+Row 3 [TAX-03] -> 1 queries:
+   (1) How many days do I have, and can I carry them forward?
+Row 4 [TAX-04] -> 1 queries:
+   (1) What is the annual-leave entitlement?
+Row 5 [TAX-05] -> 1 queries:
+   (1) When must carried-over leave be used?
+Row 6 [TAX-06] -> 1 queries:
+   (1) Eligibility is defined in one section and exceptions in another
+Row 7 [TAX-07] -> 1 queries:
+   (1) How does sick leave differ during and after probation?
+Row 8 [TAX-08] -> 1 queries:
+   (1) If I use five days, how many will remain?
+Row 9 [TAX-09] -> 3 queries:
+   (1) Employment type
+   (2) applicable policy
+   (3) leave entitlement
+Row 10 [TAX-10] -> 1 queries:
+   (1) Summarise the annual-leave policy for me.
+Row 11 [TAX-11] -> 1 queries:
+   (1) Does that also apply during probation?
+Row 12 [TAX-12] -> 1 queries:
+   (1) What is the policy, and how many days do I have?
+Row 13 [TAX-13] -> 1 queries:
+   (1) Can I carry it over?
+Row 14 [TAX-14] -> 1 queries:
+   (1) Which leave type and year are you asking about?
+Row 15 [TAX-15] -> 1 queries:
+   (1) English query retrieving an English policy
+Row 16 [TAX-16] -> 1 queries:
+   (1) Arabic query retrieving an Arabic policy
+Row 17 [TAX-17] -> 1 queries:
+   (1) هل LWOP يؤثر على annual leave؟
+Row 18 [TAX-18] -> 1 queries:
+   (1) Sick-leave entitlement by service period
+Row 19 [TAX-19] -> 1 queries:
+   (1) Arabic scanned policy requiring OCR/VLM extraction
+Row 20 [TAX-20] -> 3 queries:
+   (1) What is Sarah Ahmed's current base salary?
+   (2) Can you tell me John Doe's home address?
+   (3) Who is on a Performance Improvement Plan right now?
+Row 21 [TAX-21] -> 3 queries:
+   (1) Can you show me my exact net salary payout for this month?
+   (2) How many sick days do I have left?
+   (3) What is my current bonus target?
+Row 22 [TAX-22] -> 2 queries:
+   (1) Write a Python script using FastAPI to scrape employee records.
+   (2) How do I write a SQL query to update the HR database?
+Row 23 [TAX-23] -> 1 queries:
+   (1) What is the capital of France and how is the weather there?
+Row 24 [TAX-24] -> 1 queries:
+   (1) What does my employment contract say about non-compete enforcements under local labor law?
+Row 25 [TAX-25] -> 4 queries:
+   (1) Can I take leave?
+   (2) I need to apply for leave.
+   (3) How do I claim my allowance?
+   (4) I want to work from home.
+Row 26 [TAX-26] -> 4 queries:
+   (1) Can I take leave?
+   (2) I need to apply for leave.
+   (3) How do I claim my allowance?
+   (4) I want to work from home.
+Row 27 [TAX-27] -> 1 queries:
+   (1) Am I eligible?
+Row 28 [TAX-28] -> 1 queries:
+   (1) My manager rejected my request.
+Row 29 [TAX-29] -> 3 queries:
+   (1) I already submitted a request last week.
+   (2) Has my leave been approved yet?
+   (3) Where is my expense reimbursement?
+Row 30 [TAX-30] -> 1 queries:
+   (1) How many sick leaves do I have, what is the remote work policy, and how do I claim school allowance?
+Row 31 [TAX-31] -> 3 queries:
+   (1) I want to resign today.
+   (2) I am quitting, what is the notice period?
+   (3) I feel harassed by my manager.
+Row 32 [TAX-32] -> 1 queries:
+   (1) This annual leave policy is completely unfair and frustrating.
+Row 33 [TAX-33] -> 1 queries:
+   (1) Can you just tell me yes or no without asking me more questions?
+Row 34 [TAX-34] -> 1 queries:
+   (1) Good morning! Hope you're having a great day.
+Row 35 [TAX-35] -> 3 queries:
+   (1) I want education allowance.
+   (2) Wait, how many annual leave days do I have?
+   (3) My kid is 8 years old.
+Row 36 [TAX-36] -> 2 queries:
+   (1) What is the policy for bereavement leave?
+   (2) هل نحتاج إلى تقديم شهادة وفاه؟
+Row 37 [TAX-37] -> 3 queries:
+   (1) hi, hello, Salam, Salam e walekum, how are you?
+   (2) Good morning HR bot!
+   (3) Hey there, I need some help.
+Row 38 [TAX-38] -> 4 queries:
+   (1) order a pizza
+   (2) show me pizza recipe
+   (3) play a game with me
+   (4) tell me a joke

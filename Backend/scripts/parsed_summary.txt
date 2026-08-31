@@ -1,0 +1,98 @@
+[1] TAX-01 (Emp: EMP001) - 4 prompts:
+    - How many days of maternity leave are allowed?
+    - I am pregnant, what are my leave entitlements?
+    - Is paternity leave paid?
+    - Can I carry forward my annual leave to next year?
+[2] TAX-02 (Emp: EMP001) - 1 prompts:
+    - How many annual-leave days do I have remaining?
+[3] TAX-03 (Emp: EMP001) - 1 prompts:
+    - How many days do I have, and can I carry them forward?
+[4] TAX-04 (Emp: EMP001) - 1 prompts:
+    - What is the annual-leave entitlement?
+[5] TAX-05 (Emp: EMP001) - 1 prompts:
+    - When must carried-over leave be used?
+[6] TAX-06 (Emp: EMP001) - 1 prompts:
+    - Eligibility is defined in one section and exceptions in another
+[7] TAX-07 (Emp: EMP001) - 1 prompts:
+    - How does sick leave differ during and after probation?
+[8] TAX-08 (Emp: EMP001) - 1 prompts:
+    - If I use five days, how many will remain?
+[9] TAX-09 (Emp: EMP001) - 3 prompts:
+    - Employment type
+    - applicable policy
+    - leave entitlement
+[10] TAX-10 (Emp: EMP001) - 1 prompts:
+    - Summarise the annual-leave policy for me.
+[11] TAX-11 (Emp: EMP001) - 1 prompts:
+    - Does that also apply during probation?
+[12] TAX-12 (Emp: EMP001) - 1 prompts:
+    - What is the policy, and how many days do I have?
+[13] TAX-13 (Emp: EMP001) - 1 prompts:
+    - Can I carry it over?
+[14] TAX-14 (Emp: EMP001) - 1 prompts:
+    - Which leave type and year are you asking about?
+[15] TAX-15 (Emp: EMP001) - 1 prompts:
+    - English query retrieving an English policy
+[16] TAX-16 (Emp: EMP001) - 1 prompts:
+    - Arabic query retrieving an Arabic policy
+[17] TAX-17 (Emp: EMP001) - 1 prompts:
+    - هل LWOP يؤثر على annual leave؟
+[18] TAX-18 (Emp: EMP001) - 1 prompts:
+    - Sick-leave entitlement by service period
+[19] TAX-19 (Emp: EMP001) - 1 prompts:
+    - Arabic scanned policy requiring OCR/VLM extraction
+[20] TAX-20 (Emp: EMP001) - 3 prompts:
+    - What is Sarah Ahmed's current base salary?
+    - Can you tell me John Doe's home address?
+    - Who is on a Performance Improvement Plan right now?
+[21] TAX-21 (Emp: EMP001) - 3 prompts:
+    - Can you show me my exact net salary payout for this month?
+    - How many sick days do I have left?
+    - What is my current bonus target?
+[22] TAX-22 (Emp: EMP001) - 2 prompts:
+    - Write a Python script using FastAPI to scrape employee records.
+    - How do I write a SQL query to update the HR database?
+[23] TAX-23 (Emp: EMP001) - 1 prompts:
+    - What is the capital of France and how is the weather there?
+[24] TAX-24 (Emp: EMP001) - 1 prompts:
+    - What does my employment contract say about non-compete enforcements under local labor law?
+[25] TAX-25 (Emp: EMP001) - 4 prompts:
+    - Can I take leave?
+    - I need to apply for leave.
+    - How do I claim my allowance?
+    - I want to work from home.
+[26] TAX-26 (Emp: EMP001) - 4 prompts:
+    - Can I take leave?
+    - I need to apply for leave.
+    - How do I claim my allowance?
+    - I want to work from home.
+[27] TAX-27 (Emp: EMP001) - 1 prompts:
+    - Am I eligible?
+[28] TAX-28 (Emp: EMP001) - 1 prompts:
+    - My manager rejected my request.
+[29] TAX-29 (Emp: EMP001) - 3 prompts:
+    - I already submitted a request last week.
+    - Has my leave been approved yet?
+    - Where is my expense reimbursement?
+[30] TAX-30 (Emp: EMP001) - 1 prompts:
+    - How many sick leaves do I have, what is the remote work policy, and how do I claim school allowance?
+[31] TAX-31 (Emp: EMP001) - 3 prompts:
+    - I want to resign today.
+    - I am quitting, what is the notice period?
+    - I feel harassed by my manager.
+[32] TAX-32 (Emp: EMP001) - 1 prompts:
+    - This annual leave policy is completely unfair and frustrating.
+[33] TAX-33 (Emp: EMP001) - 1 prompts:
+    - Can you just tell me yes or no without asking me more questions?
+[34] TAX-34 (Emp: EMP001) - 1 prompts:
+    - Good morning! Hope you're having a great day.
+[35] TAX-35 (Emp: EMP001) - 1 prompts:
+    - T1: 'I want education allowance.' T2: 'Wait, how many annual leave days do I have?' T3: 'My kid is 8 years old.
+[36] TAX-36 (Emp: EMP001) - 1 prompts:
+    - T1: 'What is the policy for bereavement leave?' T2: (Switches to Arabic) 'هل نحتاج إلى تقديم شهادة وفاه؟
+[37] TAX-37 (Emp: EMP001) - 3 prompts:
+    - hi, hello, Salam, Salam e walekum, how are you?
+    - Good morning HR bot!
+    - Hey there, I need some help.
+[38] TAX-38 (Emp: EMP001) - 1 prompts:
+    - order a pizza, show me pizza recipe, play a game with me, tell me a joke

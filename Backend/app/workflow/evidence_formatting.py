@@ -141,7 +141,7 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
     if HrDataField.SICK_LEAVE_BALANCE in requested:
         lines.append(f"Sick leave remaining: {facts.sick_leave_balance} days in total")
         lines.extend(_balance_rows(facts, "sick"))
-    if HrDataField.CARRY_OVER_DAYS in requested:
+    if HrDataField.CARRY_OVER_DAYS in requested and facts.carry_over_days > 0:
         lines.append(f"Carried over from last year: {facts.carry_over_days} days")
 
     if HrDataField.MANAGER_HISTORY in requested and facts.manager_history:
@@ -196,11 +196,12 @@ def _balance_rows(facts: EmployeeFacts, leave_type: str) -> list[str]:
 
     rows = ["  Broken down:"]
     for balance in sorted(matching, key=lambda b: (-b.year, b.leave_type)):
+        year_tag = " (Current Active Leave Year 2026)" if balance.year == 2026 else f" ({balance.year} Historical record - only reference if employee specifically asks about past years)"
         detail = (
-            f"    - {balance.year} {balance.leave_type}: {balance.entitled_days} entitled, "
+            f"    - {balance.year} {balance.leave_type}{year_tag}: {balance.entitled_days} entitled, "
             f"{balance.used_days} used, {balance.remaining_days} remaining"
         )
-        if balance.carry_over_days:
+        if balance.carry_over_days and balance.carry_over_days > 0:
             detail += f", {balance.carry_over_days} carried over"
         if balance.pay_rate_pct is not None:
             detail += f", paid at {balance.pay_rate_pct}%"

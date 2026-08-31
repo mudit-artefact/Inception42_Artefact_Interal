@@ -39,6 +39,8 @@ build/
 *.swo
 .DS_Store
 Thumbs.db
+~$*
+*.tmp
 
 # Qdrant local storage (if any)
 qdrant_storage/
