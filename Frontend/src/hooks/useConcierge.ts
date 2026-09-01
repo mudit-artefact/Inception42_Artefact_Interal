@@ -202,7 +202,11 @@ export function useConcierge(employeeId: string) {
         }
       } catch (e) {
         setStage(null);
-        setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+        let msg = e instanceof Error ? e.message : "Something went wrong. Please try again.";
+        if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("networkerror")) {
+          msg = "Unable to connect to the HR Concierge server. Please check if the backend service is running on port 8000.";
+        }
+        setError(msg);
         setStatus("error");
       }
     },

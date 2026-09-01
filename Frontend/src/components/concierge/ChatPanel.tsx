@@ -35,6 +35,27 @@ interface ChatPanelProps {
   isAwaitingClarification?: boolean;
 }
 
+function formatMessageContent(content: string): string {
+  if (!content) return "";
+  let formatted = content;
+
+  // 1. Convert inline or unicode bullet symbols (•, ●, ▪) into proper multi-line Markdown lists (* )
+  formatted = formatted.replace(/([:\.]\s*)[•●▪]\s*/g, "$1\n\n* ");
+  formatted = formatted.replace(/(?<!\n)\s*[•●▪]\s*/g, "\n* ");
+  formatted = formatted.replace(/^[•●▪]\s*/gm, "* ");
+
+  // 2. Convert inline numbered lists (e.g. "... text: 1. Item 2. Item 3. Item") into multi-line numbered lists
+  formatted = formatted.replace(/([:\.]\s*)(1[\.\)]\s+)/g, "$1\n\n$2");
+  formatted = formatted.replace(/(?<!\n)\s*(\d+[\.\)]\s+)/g, "\n$1");
+
+  // 3. Ensure a blank line before any list that starts right after a paragraph
+  formatted = formatted.replace(/([^\n])\n(\d+[\.\)]\s+|\*\s+|-\s+)/g, "$1\n\n$2");
+
+  // 4. Normalize excess blank lines
+  formatted = formatted.replace(/\n{3,}/g, "\n\n");
+  return formatted.trim();
+}
+
 export function ChatPanel({
   messages,
   status,
@@ -85,7 +106,7 @@ export function ChatPanel({
                 </p>
               ) : null}
               <MessageContent>
-                <MessageResponse>{m.content}</MessageResponse>
+                <MessageResponse>{formatMessageContent(m.content)}</MessageResponse>
 
                 {/* Clarification Indicator for Ambiguous Queries */}
                 {m.role === "assistant" && m.is_awaiting_clarification ? (
@@ -128,23 +149,7 @@ export function ChatPanel({
                   </div>
                 ) : null}
 
-                {/* Query Intelligence Indicator */}
-                {m.role === "assistant" && m.rewritten_query && m.intent !== "greeting" && m.intent !== "greeting_onboarding" && m.intent !== "not_in_scope" && m.intent !== "out_of_domain" && m.intent !== "ambiguous" ? (
-                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted-foreground pt-1 border-t border-border/30">
-                    <Badge variant="outline" className="gap-1 border-pink/20 bg-pink/5 text-[10px] text-pink">
-                      <Sparkles className="size-2.5" />
-                      <span>Query Intelligence</span>
-                    </Badge>
-                    <span className="font-mono bg-muted/60 px-1.5 py-0.5 rounded text-foreground/80">
-                      Rewritten: "{m.rewritten_query.length > 55 ? `${m.rewritten_query.slice(0, 52)}…` : m.rewritten_query}"
-                    </span>
-                    {m.confidence_score ? (
-                      <Badge variant="secondary" className="text-[10px] text-muted-foreground">
-                        {Math.round(m.confidence_score * 100)}% Intent Match
-                      </Badge>
-                    ) : null}
-                  </div>
-                ) : null}
+
               </MessageContent>
 
               {m.role === "assistant" ? (
@@ -176,7 +181,7 @@ export function ChatPanel({
                   <ul className="mt-1.5 space-y-0.5">
                     {stage.found.map((clause) => (
                       <li key={clause} className="text-xs text-muted-foreground">
-                        <span className="text-primary">✦</span> {clause}
+                        <span className="text-primary">✦</span> {clause.replace(/§\s*/g, "Section ").replace(/§/g, "Section ")}
                       </li>
                     ))}
                   </ul>

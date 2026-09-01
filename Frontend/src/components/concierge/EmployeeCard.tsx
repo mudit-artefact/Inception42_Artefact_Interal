@@ -102,7 +102,7 @@ export function EmployeeCard({ employee, policyLinks = [] }: EmployeeCardProps) 
                   <span className="block font-medium text-foreground">{link.title}</span>
                   {link.section ? (
                     <Badge variant="secondary" className="mt-1 font-normal">
-                      {link.section}
+                      {link.section.replace(/§\s*/g, "Section ").replace(/§/g, "Section ")}
                     </Badge>
                   ) : null}
                 </span>

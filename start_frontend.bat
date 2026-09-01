@@ -1,7 +1,7 @@
 @echo off
-title HCS-01 React Frontend (Port 5173)
+title HCS-01 React Frontend (Port 8080)
 echo ========================================================
-echo Starting HCS-01 Policy Concierge React Frontend (Port 5173)
+echo Starting HCS-01 Policy Concierge React Frontend (Port 8080)
 echo ========================================================
 cd /d "%~dp0Frontend"
 

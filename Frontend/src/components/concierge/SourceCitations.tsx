@@ -112,7 +112,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
 
                         {source.section ? (
                           <Badge variant="outline" className="font-normal text-[11px]">
-                            {source.section}
+                            {source.section.replace(/§\s*/g, "Section ").replace(/§/g, "Section ")}
                           </Badge>
                         ) : null}
 

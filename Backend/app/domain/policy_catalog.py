@@ -59,7 +59,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="01_annual_leave.md",
         topics=["Entitlement", "Notice periods", "Carry-over rules", "Public holidays"],
         topic_key="annual",
-        quick_link_section="HC-PC-001 §1.2",
+        quick_link_section="HC-PC-001 Section 1.2",
     ),
     "HC-PC-002": PolicyDocument(
         code="HC-PC-002",
@@ -69,7 +69,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="02_sick_leave.md",
         topics=["Entitlement", "Pay tranches", "Medical certificates", "Bradford Factor"],
         topic_key="sick",
-        quick_link_section="HC-PC-002 §2.2",
+        quick_link_section="HC-PC-002 Section 2.2",
     ),
     "HC-PC-003": PolicyDocument(
         code="HC-PC-003",
@@ -79,7 +79,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="03_probation.md",
         topics=["Duration", "Review milestones", "Extension", "Benefits"],
         topic_key="probation",
-        quick_link_section="HC-PC-003 §3.3",
+        quick_link_section="HC-PC-003 Section 3.3",
     ),
     "HC-PC-004": PolicyDocument(
         code="HC-PC-004",
@@ -89,7 +89,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="04_remote_work.md",
         topics=["Eligibility", "Role classes", "Core hours", "Internet allowance"],
         topic_key="remote",
-        quick_link_section="HC-PC-004 §4.2",
+        quick_link_section="HC-PC-004 Section 4.2",
     ),
     "HC-PC-005": PolicyDocument(
         code="HC-PC-005",
@@ -100,7 +100,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         owner=FINANCE_AND_PEOPLE,
         topics=["Travel", "Per diem", "Hotel caps", "Approval thresholds"],
         topic_key="expenses",
-        quick_link_section="HC-PC-005 §5.7",
+        quick_link_section="HC-PC-005 Section 5.7",
     ),
     "HC-PC-006": PolicyDocument(
         code="HC-PC-006",
@@ -110,7 +110,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="06_disciplinary.md",
         topics=["Unauthorised absence", "Gross misconduct", "Suspension", "Appeals"],
         topic_key="disciplinary",
-        quick_link_section="HC-PC-006 §6.4",
+        quick_link_section="HC-PC-006 Section 6.4",
     ),
     "HC-PC-007": PolicyDocument(
         code="HC-PC-007",
@@ -120,7 +120,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="07_definitions.md",
         topics=["Grade bands", "Day definitions", "Continuous service", "Forms register"],
         topic_key="definitions",
-        quick_link_section="HC-PC-007 §7.6",
+        quick_link_section="HC-PC-007 Section 7.6",
     ),
     "HC-PC-008": PolicyDocument(
         code="HC-PC-008",
@@ -130,7 +130,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="08_capability.md",
         topics=["Medical capability", "Performance improvement", "Appeals"],
         topic_key="capability",
-        quick_link_section="HC-PC-008 §8.2",
+        quick_link_section="HC-PC-008 Section 8.2",
     ),
     "HC-PC-009": PolicyDocument(
         code="HC-PC-009",
@@ -140,7 +140,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="09_grievance.md",
         topics=["Raising a grievance", "Appeals", "Protection from detriment"],
         topic_key="grievance",
-        quick_link_section="HC-PC-009 §9.2",
+        quick_link_section="HC-PC-009 Section 9.2",
     ),
     # ── Arabic editions ──────────────────────────────────────────────────────
     # These now have a Markdown source of their own, so they are indexed from real
@@ -155,7 +155,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="01_annual_leave.md",
         topics=["الاستحقاق", "مهلة الإشعار", "ترحيل الإجازات", "العطل الرسمية"],
         topic_key="annual",
-        quick_link_section="HC-PC-001 §1.2",
+        quick_link_section="HC-PC-001 Section 1.2",
     ),
     "HC-PC-002-AR": PolicyDocument(
         code="HC-PC-002-AR",
@@ -165,7 +165,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="02_sick_leave.md",
         topics=["الاستحقاق", "شرائح الأجر", "الشهادات الطبية", "معامل برادفورد"],
         topic_key="sick",
-        quick_link_section="HC-PC-002 §2.2",
+        quick_link_section="HC-PC-002 Section 2.2",
     ),
     "HC-PC-003-AR": PolicyDocument(
         code="HC-PC-003-AR",
@@ -175,7 +175,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="03_probation.md",
         topics=["المدة", "مراحل المراجعة", "التمديد", "المزايا"],
         topic_key="probation",
-        quick_link_section="HC-PC-003 §3.3",
+        quick_link_section="HC-PC-003 Section 3.3",
     ),
     "HC-PC-004-AR": PolicyDocument(
         code="HC-PC-004-AR",
@@ -185,7 +185,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         markdown_filename="04_remote_work.md",
         topics=["الاستحقاق", "فئات الوظائف", "ساعات العمل", "بدل الإنترنت"],
         topic_key="remote",
-        quick_link_section="HC-PC-004 §4.2",
+        quick_link_section="HC-PC-004 Section 4.2",
     ),
     "HC-PC-005-AR": PolicyDocument(
         code="HC-PC-005-AR",
@@ -196,7 +196,7 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         owner=FINANCE_AND_PEOPLE,
         topics=["السفر", "البدل اليومي", "حدود الإقامة", "حدود الاعتماد"],
         topic_key="expenses",
-        quick_link_section="HC-PC-005 §5.7",
+        quick_link_section="HC-PC-005 Section 5.7",
     ),
 }
 

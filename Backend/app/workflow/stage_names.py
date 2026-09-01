@@ -138,7 +138,7 @@ def _clauses_in(update: dict) -> list[str]:
     found: list[str] = []
     for piece in update.get("subquery_evidence") or []:
         for passage in piece.get("policy_passages") or []:
-            clause = (passage.get("clause_id") or "").replace("§", " §")
+            clause = (passage.get("clause_id") or "").replace("§", " Section ")
             if clause and clause not in found:
                 found.append(clause)
     return found

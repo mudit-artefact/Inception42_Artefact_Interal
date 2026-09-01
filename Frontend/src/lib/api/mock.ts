@@ -4,16 +4,16 @@ export interface MockPersona extends EmployeeProfile {
   policyLinks: PolicySource[];
 }
 
-const POL_ANNUAL: PolicySource = { id: "pol-annual", title: "Annual Leave Policy", section: "HR-POL-014 §3", url: "#" };
-const POL_SICK: PolicySource = { id: "pol-sick", title: "Sick Leave & Medical Certificates", section: "HR-POL-021 §2.4", url: "#" };
-const POL_REMOTE: PolicySource = { id: "pol-remote", title: "Flexible & Remote Working", section: "HR-POL-036 §1", url: "#" };
-const POL_TRAVEL: PolicySource = { id: "pol-travel", title: "Travel & Per Diem Guidelines", section: "FIN-POL-009 §5", url: "#" };
-const POL_PROBATION: PolicySource = { id: "pol-probation", title: "Probation & Onboarding Guide", section: "HR-POL-002 §4", url: "#" };
-const POL_ACCRUAL: PolicySource = { id: "pol-accrual", title: "Leave Accrual During Probation", section: "HR-POL-014 §3.5", url: "#" };
-const POL_APPROVALS: PolicySource = { id: "pol-approvals", title: "Manager Leave Approval Duties", section: "HR-PRO-011 §2", url: "#" };
-const POL_DELEGATION: PolicySource = { id: "pol-delegation", title: "Delegation of Authority", section: "GOV-POL-003 §1.2", url: "#" };
-const POL_SHIFT: PolicySource = { id: "pol-shift", title: "Clinical Shift & Rota Policy", section: "CLIN-POL-018 §2", url: "#" };
-const POL_PARTTIME: PolicySource = { id: "pol-parttime", title: "Part-Time & Pro-Rata Entitlements", section: "HR-POL-014 §8", url: "#" };
+const POL_ANNUAL: PolicySource = { id: "pol-annual", title: "Annual Leave Policy", section: "HR-POL-014 Section 3", url: "#" };
+const POL_SICK: PolicySource = { id: "pol-sick", title: "Sick Leave & Medical Certificates", section: "HR-POL-021 Section 2.4", url: "#" };
+const POL_REMOTE: PolicySource = { id: "pol-remote", title: "Flexible & Remote Working", section: "HR-POL-036 Section 1", url: "#" };
+const POL_TRAVEL: PolicySource = { id: "pol-travel", title: "Travel & Per Diem Guidelines", section: "FIN-POL-009 Section 5", url: "#" };
+const POL_PROBATION: PolicySource = { id: "pol-probation", title: "Probation & Onboarding Guide", section: "HR-POL-002 Section 4", url: "#" };
+const POL_ACCRUAL: PolicySource = { id: "pol-accrual", title: "Leave Accrual During Probation", section: "HR-POL-014 Section 3.5", url: "#" };
+const POL_APPROVALS: PolicySource = { id: "pol-approvals", title: "Manager Leave Approval Duties", section: "HR-PRO-011 Section 2", url: "#" };
+const POL_DELEGATION: PolicySource = { id: "pol-delegation", title: "Delegation of Authority", section: "GOV-POL-003 Section 1.2", url: "#" };
+const POL_SHIFT: PolicySource = { id: "pol-shift", title: "Clinical Shift & Rota Policy", section: "CLIN-POL-018 Section 2", url: "#" };
+const POL_PARTTIME: PolicySource = { id: "pol-parttime", title: "Part-Time & Pro-Rata Entitlements", section: "HR-POL-014 Section 8", url: "#" };
 
 export const MOCK_EMPLOYEES: MockPersona[] = [
   {
@@ -158,7 +158,7 @@ const MOCK_ANSWERS: { match: RegExp; answer: string; sources: PolicySource[] }[]
       "- Carried days expire on **31 March** of the following year.\n" +
       "- Balances above 10 days are forfeited unless a business-critical deferral is approved by HR.",
     sources: [
-      { title: "Annual Leave Policy", section: "HR-POL-014 §6.2 Carry-over", url: "#", snippet: "Employees may carry forward a maximum of ten (10) working days…", score: 0.94 },
+      { title: "Annual Leave Policy", section: "HR-POL-014 Section 6.2 Carry-over", url: "#", snippet: "Employees may carry forward a maximum of ten (10) working days…", score: 0.94 },
       { title: "Year-End HR Operations Circular", section: "CIRC-2026-04", url: "#", snippet: "Carry-over requests close on 31 December…", score: 0.81 },
     ],
   },
@@ -170,8 +170,8 @@ const MOCK_ANSWERS: { match: RegExp; answer: string; sources: PolicySource[] }[]
       "2. A completed **Absence Notification Form** acknowledged by your line manager.\n\n" +
       "Absences of 1–3 days are self-certified but still require same-day notification before 09:00.",
     sources: [
-      { title: "Sick Leave & Medical Certificates", section: "HR-POL-021 §2.4", url: "#", snippet: "Certification is mandatory for absences exceeding three consecutive days…", score: 0.96 },
-      { title: "Absence Notification Procedure", section: "HR-PRO-007 §1.1", url: "#", snippet: "Notification must be made to the direct supervisor before 09:00…", score: 0.78 },
+      { title: "Sick Leave & Medical Certificates", section: "HR-POL-021 Section 2.4", url: "#", snippet: "Certification is mandatory for absences exceeding three consecutive days…", score: 0.96 },
+      { title: "Absence Notification Procedure", section: "HR-PRO-007 Section 1.1", url: "#", snippet: "Notification must be made to the direct supervisor before 09:00…", score: 0.78 },
     ],
   },
   {
@@ -181,7 +181,7 @@ const MOCK_ANSWERS: { match: RegExp; answer: string; sources: PolicySource[] }[]
       "| Duration | Minimum notice |\n| --- | --- |\n| 1–2 days | 3 working days |\n| 3–9 days | 10 working days |\n| 10+ days | 30 calendar days |\n\n" +
       "Requests are approved by your line manager within 5 working days; unanswered requests escalate automatically to the department head.",
     sources: [
-      { title: "Annual Leave Policy", section: "HR-POL-014 §4 Request & Approval", url: "#", snippet: "Notice requirements scale with the duration of leave requested…", score: 0.93 },
+      { title: "Annual Leave Policy", section: "HR-POL-014 Section 4 Request & Approval", url: "#", snippet: "Notice requirements scale with the duration of leave requested…", score: 0.93 },
     ],
   },
 ];
@@ -201,7 +201,7 @@ function balanceAnswer(employee: MockPersona): { answer: string; sources: Policy
     sources: [
       {
         title: "Annual Leave Policy",
-        section: "HR-POL-014 §3 Entitlement",
+        section: "HR-POL-014 Section 3 Entitlement",
         url: "#",
         snippet: `${employee.grade} employees accrue entitlement pro-rata for each completed month of service…`,
         score: 0.91,

@@ -13,8 +13,10 @@ from app.domain.enums import AnswerStatus, FallbackReason, QuestionIntent
 from app.services.citation_builder import build_employee_record_citation, build_policy_citations
 from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
+import re
 from app.workflow.prompts import (
     ESCALATION_MESSAGES,
+    GREETING_BODY,
     GREETING_MESSAGES,
     NO_EVIDENCE_MESSAGES,
     NOTHING_TO_REPHRASE_MESSAGES,
@@ -24,39 +26,74 @@ from app.workflow.prompts import (
 
 logger = logging.getLogger(__name__)
 
+# Match Arabic script greetings or transliterated Islamic greetings (salam, salam e walekum, etc.)
+ISLAMIC_GREETING_PATTERN = re.compile(
+    r"\b(salam|salaam|salambay|assalam|assalamu|alaykum|alaikum|walekum|walaykum)\b"
+    r"|[\u0600-\u06FF]*سلام[\u0600-\u06FF]*|السلام\s+عليكم",
+    re.IGNORECASE,
+)
+
 
 def generate_greeting(state: ConversationState) -> dict:
-    """Greet the employee by name. No evidence is needed, so none is gathered."""
+    """Greet the employee by name with appropriate English/Arabic/Islamic response."""
     requested_language = state.get("requested_language", "en")
     facts = state.get("employee_facts") or {}
-    employee_name = (
-        facts.get("name_ar") if requested_language == "ar" else facts.get("name")
-    ) or "there"
+    question = (state.get("employee_question") or "").strip().lower()
+
+    is_arabic_script = bool(re.search(r"[\u0600-\u06FF]", question))
+    is_islamic_greeting = bool(ISLAMIC_GREETING_PATTERN.search(question))
+
+    if is_arabic_script or is_islamic_greeting:
+        if is_arabic_script or requested_language == "ar":
+            employee_name = facts.get("name_ar") or facts.get("name") or ""
+            opening = f"وعليكم السلام {employee_name}! 👋".strip()
+            body_lang = "ar"
+        else:
+            employee_name = facts.get("name") or "there"
+            opening = f"Wa 'alaykum as-salam {employee_name}! 👋"
+            body_lang = "en"
+    else:
+        if requested_language == "ar":
+            employee_name = facts.get("name_ar") or facts.get("name") or ""
+            opening = f"مرحباً {employee_name}! 👋".strip()
+            body_lang = "ar"
+        else:
+            employee_name = facts.get("name") or "there"
+            opening = f"Hello {employee_name}! 👋"
+            body_lang = "en"
+
+    greeting_body = GREETING_BODY.get(body_lang, GREETING_BODY["en"])
+    full_greeting = f"{opening}\n\n{greeting_body}"
 
     return {
-        "final_answer": message_in_language(GREETING_MESSAGES, requested_language).format(
-            employee_name=employee_name
-        ),
+        "final_answer": _clean_and_format_markdown(full_greeting),
         "citations": [],
         "answer_status": AnswerStatus.VERIFIED.value,
     }
 
 
 def _clean_and_format_markdown(text: str) -> str:
-    """Format and normalize markdown to ensure clean lists, spacing, and headings."""
+    """Format and normalize markdown to ensure clean lists (numbered & bulleted), spacing, and headings."""
     if not text:
         return ""
 
     import re
-    # Convert inline bullet points into clean multi-line markdown bullets
-    # E.g. "Breakdown: • 2026 Annual: ... • 2025 Annual: ..." -> "\n* 2026 Annual: ...\n* 2025 Annual: ..."
-    formatted = re.sub(r'([:\.]\s*)[•●]\s*', r'\1\n\n* ', text)
-    formatted = re.sub(r'(?<!\n)\s*[•●]\s*', r'\n* ', formatted)
-    
-    # Ensure headings (### Heading) have clean line breaks before and after
+    # 1. Convert inline bullet points (• or ● or ▪) into clean multi-line markdown bullets (* )
+    formatted = re.sub(r'([:\.]\s*)[•●▪]\s*', r'\1\n\n* ', text)
+    formatted = re.sub(r'(?<!\n)\s*[•●▪]\s*', r'\n* ', formatted)
+    formatted = re.sub(r'^[•●▪]\s*', r'* ', formatted, flags=re.MULTILINE)
+
+    # 2. Convert inline numbered lists (e.g. "... reply: 1. Item 2. Item 3. Item") into multi-line numbered lists
+    formatted = re.sub(r'([:\.]\s*)(1[\.\)]\s+)', r'\1\n\n\2', formatted)
+    formatted = re.sub(r'(?<!\n)\s*(\d+[\.\)]\s+)', r'\n\1', formatted)
+
+    # 3. Ensure a blank line before any list block starting right after paragraph text
+    formatted = re.sub(r'([^\n])\n(\d+[\.\)]\s+|\*\s+|-\s+)', r'\1\n\n\2', formatted)
+
+    # 4. Ensure headings (### Heading) have clean line breaks before and after
     formatted = re.sub(r'([^\n])\n(#{1,4}\s+)', r'\1\n\n\2', formatted)
-    
-    # Normalize excess blank lines
+
+    # 5. Normalize excess blank lines (3+ consecutive newlines -> 2 newlines)
     formatted = re.sub(r'\n{3,}', r'\n\n', formatted)
     return formatted.strip()
 
