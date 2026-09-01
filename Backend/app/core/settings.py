@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     embedding_model: str = Field(default="text-embedding-3-large", alias="EMBEDDING_MODEL")
     embedding_dim: int = Field(default=3072, alias="EMBEDDING_DIM")
-    llm_model: str = Field(default="gpt-4o", alias="LLM_MODEL")
+    llm_model: str = Field(default="gpt-5.1", alias="LLM_MODEL")
     max_tokens: int = Field(default=4096, alias="MAX_TOKENS")
     # Zero, because none of the five model calls in a turn wants variety. Four of them are
     # classifications — what is being asked, how it splits, which sources it needs — and the
