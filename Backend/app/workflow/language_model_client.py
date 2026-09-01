@@ -12,6 +12,7 @@ answer: an unreachable model must not look like a confident one.
 
 import json
 import logging
+import os
 from typing import Type, TypeVar
 
 import litellm
@@ -22,6 +23,17 @@ from app.core.settings import settings
 from app.core.errors import LanguageModelUnavailableError
 
 logger = logging.getLogger(__name__)
+
+# ── LangSmith Tracing Setup ───────────────────────────────────────────────────
+if settings.langchain_tracing_v2 and settings.langchain_api_key:
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
+    os.environ["LANGCHAIN_PROJECT"] = settings.langchain_project
+    litellm.success_callback = ["langsmith"]
+    litellm.failure_callback = ["langsmith"]
+    logger.info(f"LangSmith tracing enabled for project: {settings.langchain_project}")
+else:
+    logger.info("LangSmith tracing disabled")
 
 StructuredOutput = TypeVar("StructuredOutput", bound=BaseModel)
 

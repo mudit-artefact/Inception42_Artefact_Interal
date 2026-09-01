@@ -240,7 +240,6 @@ def test_clarification_sets_the_flag_and_the_original_question_together(
             "missing_information": "leave type",
         },
     )
-
     response = api_client.post(QUERY_ENDPOINT, json={"message": "How many leaves can I take?"})
 
     assert response.status_code == 200, response.text
