@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HCS-01 Improved HR Chatbot Flow</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f172a;
+      font-family: 'Segoe UI', sans-serif;
+      color: #e2e8f0;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    p.sub {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+    .mermaid-wrapper {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px 24px;
+      overflow-x: auto;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .legend {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧠 HCS-01 — Improved HR Chatbot Architecture Flowchart</h1>
+  <p class="sub">Exhaustive edge-case coverage · Multi-turn · LLM-as-Judge · Sentiment · Guardrails · Feedback Loop</p>
+
+  <div class="mermaid-wrapper">
+    <div class="mermaid">
+flowchart TD
+    START(["👤 Employee Message Received"]) --> HISTORY
+
+    HISTORY{"📜 Conversation History\nExists?"}
+    HISTORY -- "YES (Multi-turn)" --> RESOLVE["Resolve Pronouns &\nCarryover Context\n'my request' → leave_req_id=X"]
+    HISTORY -- "NO (Fresh)" --> UNDERSTAND
+    RESOLVE --> UNDERSTAND
+
+    UNDERSTAND["🧠 Step 1: Understand Query\nLLM structured extraction\nintent · entities · missing fields\nsentiment · language"]
+
+    UNDERSTAND --> LANG{"🌐 Language\nDetected?"}
+    LANG -- "Arabic" --> LANG_AR["Route to AR embedding\n+ inject Arabic SQL fields"]
+    LANG -- "English" --> INTENT_CHECK
+    LANG_AR --> INTENT_CHECK
+
+    INTENT_CHECK{"🎯 Intent Type?"}
+
+    INTENT_CHECK -- "GREETING\nHi · Hello · صباح" --> GREETING_PATH["⚡ Fast Path < 10ms\nSkip RAG\nSQL Status Card\n+ Quick Action Pills"]
+    GREETING_PATH --> DELIVER
+
+    INTENT_CHECK -- "COMPLAINT / EMOTIONAL\nunfair · frustrated\nI want to resign" --> SENTIMENT{"😔 Sentiment\nSeverity?"}
+    SENTIMENT -- "HIGH\nanger · distress\nresignation intent" --> EMPATHY["🤝 Empathy Response\n+ Escalate to HRBP\nwith audit log"]
+    SENTIMENT -- "MEDIUM\nfrustration" --> EMPATHY_SOFT["Acknowledge concern\nThen answer policy normally"]
+    EMPATHY --> DELIVER
+    EMPATHY_SOFT --> ROUTING
+
+    INTENT_CHECK -- "FOLLOW-UP\nstatus of my request\ndid it get approved" --> DB_LOOKUP["📊 SQL Lookup\nget_leave_requests\nFilter: pending / approved"]
+    DB_LOOKUP --> DELIVER
+
+    INTENT_CHECK -- "OUT-OF-DOMAIN\ncoding · recipes\nlegal contract · politics" --> ABSTAIN["🚫 Deterministic Abstain\n0 hallucination\nPolite decline\n+ suggest HR contact"]
+    ABSTAIN --> DELIVER
+
+    INTENT_CHECK -- "AMBIGUOUS\nCan I take leave?\nAm I eligible?" --> MISSING_CHECK
+    INTENT_CHECK -- "HR POLICY or HR DATA" --> MISSING_CHECK
+
+    MISSING_CHECK{"❓ Required Entities\nMissing?"}
+
+    MISSING_CHECK -- "YES" --> CLARIFY_NEEDED{"How many fields\nmissing?"}
+
+    CLARIFY_NEEDED -- "1 field" --> ASK_ONE["💬 Ask ONE focused\nclarifying question\nWhich type of leave?\nAnnual · Sick · Emergency?"]
+    CLARIFY_NEEDED -- "2+ fields" --> PRIORITIZE["Ask MOST CRITICAL\nmissing field first\nQueue others for next turn\nNEVER ask 3 at once"]
+
+    ASK_ONE --> WAIT_REPLY["⏳ LangGraph Interrupt\nPause & Await Response\nStore partial state"]
+    PRIORITIZE --> WAIT_REPLY
+
+    WAIT_REPLY --> IMPATIENT{"Employee Impatient?\njust answer · 3rd ask"}
+    IMPATIENT -- "YES" --> BEST_GUESS["🎲 Best-Effort Answer\nwith Assumptions Stated\nAssuming annual leave\nflag low_confidence=True"]
+    IMPATIENT -- "NO" --> RESOLVE
+
+    MISSING_CHECK -- "NO all entities present" --> VALIDATE_ENTITIES
+
+    VALIDATE_ENTITIES{"🔍 Entity Validation\nLLM-as-Judge 1\nDates in past?\nImpossible duration?\nInvalid policy code?"}
+    VALIDATE_ENTITIES -- "INVALID" --> ENTITY_ERROR["⚠️ Correct the Entity\nYou mentioned Jan 2023\ndid you mean 2025?"]
+    ENTITY_ERROR --> WAIT_REPLY
+    VALIDATE_ENTITIES -- "VALID" --> REWRITE
+
+    REWRITE["✏️ Query Rewrite\nExpand acronyms AL → Annual Leave\nStandalone retrieval form\nInject employee context\ntenure · probation · dept"]
+
+    REWRITE --> ROUTING{"🔀 Route by Source"}
+
+    ROUTING -- "POLICY only\nprocedure · eligibility rules" --> RAG_ONLY
+    ROUTING -- "HR DATA only\nmy balance · my manager" --> SQL_ONLY
+    ROUTING -- "MIXED\neligible + how many days left" --> PARALLEL
+
+    RAG_ONLY["📚 4A. Policy RAG\nDense Gemini Embed\n+ BM25 Sparse\nRRF Fusion k=60\nTop-5 Chunks"]
+    SQL_ONLY["🗄️ 4B. HR SQL Tools\nget_leave_balance\nget_employee_profile\nget_leave_requests\nRead-only RBAC enforced"]
+    PARALLEL["⚡ 4C. Parallel Execution\nRAG + SQL simultaneously\nMerge results"]
+
+    RAG_ONLY --> HALLUCINATION_CHECK
+    SQL_ONLY --> HALLUCINATION_CHECK
+    PARALLEL --> HALLUCINATION_CHECK
+
+    HALLUCINATION_CHECK{"🤖 LLM-as-Judge 2\nGrounding Check\nAnswer references\nonly retrieved chunks?\nNo fabricated numbers?"}
+
+    HALLUCINATION_CHECK -- "FAIL" --> REGENERATE["🔄 Regenerate\nStronger constraint prompt\nMax 1 retry"]
+    REGENERATE --> HALLUCINATION_CHECK2{"Pass on retry?"}
+    HALLUCINATION_CHECK2 -- "FAIL again" --> SAFE_FALLBACK
+    HALLUCINATION_CHECK2 -- "PASS" --> CONFIDENCE_CHECK
+    HALLUCINATION_CHECK -- "PASS" --> CONFIDENCE_CHECK
+
+    CONFIDENCE_CHECK{"📊 Confidence Score\n≥ 0.70?"}
+    CONFIDENCE_CHECK -- "< 0.70 low confidence" --> LOW_CONF["Answer with explicit\nuncertainty statement\nBased on policy, however\nplease verify with HR\n+ cite source"]
+    CONFIDENCE_CHECK -- "≥ 0.70" --> FORMAT_ANSWER
+
+    FORMAT_ANSWER["📝 Step 5: Generate Answer\nGrounded on retrieved context\nStructured citations minimal\nLanguage-matched AR or EN\nTone-matched if empathetic\nAction items if applicable"]
+
+    FORMAT_ANSWER --> OUTPUT_GUARD{"🛡️ Output Guardrail\nLLM-as-Judge 3\nPII leak?\nOther employee data?\nSalary exposed?\nLegally risky statement?"}
+
+    OUTPUT_GUARD -- "VIOLATION Detected" --> REDACT["✂️ Redact or Block\nAudit log entry\nReturn safe version"]
+    OUTPUT_GUARD -- "CLEAN" --> DELIVER
+
+    REDACT --> DELIVER
+    LOW_CONF --> DELIVER
+    BEST_GUESS --> DELIVER
+
+    SAFE_FALLBACK["🆘 Safe Fallback\nControlled clarification\nor abstain\n+ HR contact details\n+ Ticket creation prompt"]
+    SAFE_FALLBACK --> DELIVER
+
+    DELIVER(["✅ Deliver Answer to Employee"])
+
+    DELIVER --> FEEDBACK{"👍👎 Implicit Feedback\nCaptured?\nthumbs · follow-up in 30s"}
+    FEEDBACK -- "NEGATIVE or Repeat Query" --> FLAG["🚩 Flag for Review\nLog to eval dataset\nHR team notified"]
+    FEEDBACK -- "POSITIVE or No Repeat" --> LOG_SUCCESS["📈 Log to Benchmark Dataset\nContinuous Eval"]
+
+    style START fill:#1e293b,color:#e2e8f0,stroke:#38bdf8,stroke-width:2px
+    style DELIVER fill:#166534,color:#fff,stroke:#22c55e,stroke-width:2px
+    style ABSTAIN fill:#991b1b,color:#fff,stroke:#ef4444,stroke-width:2px
+    style SAFE_FALLBACK fill:#7c3aed,color:#fff,stroke:#a78bfa,stroke-width:2px
+    style EMPATHY fill:#92400e,color:#fff,stroke:#f59e0b,stroke-width:2px
+    style HALLUCINATION_CHECK fill:#1e3a5f,color:#fff,stroke:#60a5fa,stroke-width:2px
+    style HALLUCINATION_CHECK2 fill:#1e3a5f,color:#fff,stroke:#60a5fa,stroke-width:2px
+    style OUTPUT_GUARD fill:#1e3a5f,color:#fff,stroke:#60a5fa,stroke-width:2px
+    style VALIDATE_ENTITIES fill:#1e3a5f,color:#fff,stroke:#60a5fa,stroke-width:2px
+    style GREETING_PATH fill:#065f46,color:#fff,stroke:#34d399,stroke-width:2px
+    style PARALLEL fill:#0c4a6e,color:#fff,stroke:#38bdf8,stroke-width:2px
+    style REGENERATE fill:#78350f,color:#fff,stroke:#fbbf24,stroke-width:2px
+    style REDACT fill:#881337,color:#fff,stroke:#fb7185,stroke-width:2px
+    style FLAG fill:#7f1d1d,color:#fff,stroke:#fca5a5,stroke-width:2px
+    style LOG_SUCCESS fill:#14532d,color:#fff,stroke:#86efac,stroke-width:2px
+    style EMPATHY_SOFT fill:#78350f,color:#fff,stroke:#fbbf24,stroke-width:2px
+    style DB_LOOKUP fill:#065f46,color:#fff,stroke:#34d399,stroke-width:2px
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot" style="background:#22c55e"></div> Happy Path</div>
+    <div class="legend-item"><div class="dot" style="background:#ef4444"></div> Abstain / Block</div>
+    <div class="legend-item"><div class="dot" style="background:#60a5fa"></div> LLM-as-Judge Gates</div>
+    <div class="legend-item"><div class="dot" style="background:#a78bfa"></div> Safe Fallback</div>
+    <div class="legend-item"><div class="dot" style="background:#f59e0b"></div> Emotional / Retry</div>
+    <div class="legend-item"><div class="dot" style="background:#34d399"></div> Fast Path / Direct SQL</div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1e293b',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#334155',
+        lineColor: '#64748b',
+        secondaryColor: '#0f172a',
+        tertiaryColor: '#0f172a',
+        background: '#0f172a',
+        mainBkg: '#1e293b',
+        nodeBorder: '#334155',
+        clusterBkg: '#0f172a',
+        titleColor: '#38bdf8',
+        edgeLabelBackground: '#1e293b',
+        fontSize: '14px'
+      },
+      flowchart: {
+        htmlLabels: false,
+        curve: 'basis',
+        padding: 16,
+        nodeSpacing: 40,
+        rankSpacing: 60
+      }
+    });
+  </script>
+</body>
+</html>
