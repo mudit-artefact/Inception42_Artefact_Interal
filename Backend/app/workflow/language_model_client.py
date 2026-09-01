@@ -28,7 +28,10 @@ logger = logging.getLogger(__name__)
 if settings.langchain_tracing_v2 and settings.langchain_api_key:
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
+    os.environ["LANGSMITH_TRACING"] = "true"
+    os.environ["LANGSMITH_API_KEY"] = settings.langchain_api_key
     os.environ["LANGCHAIN_PROJECT"] = settings.langchain_project
+    os.environ["LANGSMITH_PROJECT"] = settings.langchain_project
     litellm.success_callback = ["langsmith"]
     litellm.failure_callback = ["langsmith"]
     logger.info(f"LangSmith tracing enabled for project: {settings.langchain_project}")

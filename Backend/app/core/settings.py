@@ -62,7 +62,16 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """The settings, read once. Call get_settings.cache_clear() in tests."""
-    return Settings()
+    s = Settings()
+    if s.langchain_tracing_v2 and s.langchain_api_key:
+        import os
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGCHAIN_API_KEY"] = s.langchain_api_key
+        os.environ["LANGSMITH_TRACING"] = "true"
+        os.environ["LANGSMITH_API_KEY"] = s.langchain_api_key
+        os.environ["LANGCHAIN_PROJECT"] = s.langchain_project
+        os.environ["LANGSMITH_PROJECT"] = s.langchain_project
+    return s
 
 
 settings = get_settings()
