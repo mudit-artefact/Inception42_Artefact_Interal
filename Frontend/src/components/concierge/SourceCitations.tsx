@@ -16,9 +16,11 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
 
   if (!sources || sources.length === 0) return null;
 
-  const dbSources = sources.filter((s) => s.source_type === "database");
-  const policySources = sources.filter((s) => s.source_type !== "database");
-  const hasVisualDiagrams = policySources.some((s) => s.has_image);
+  // Limit verified sources in the UI to the top 5
+  const displaySources = sources.slice(0, 5);
+  const dbSources = displaySources.filter((s) => s.source_type === "database");
+  const policySources = displaySources.filter((s) => s.source_type !== "database");
+  const hasVisualDiagrams = displaySources.some((s) => s.has_image);
 
   return (
     <div className="mt-3 overflow-hidden rounded-lg border bg-muted/30 transition-all">
@@ -31,7 +33,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
         <span className="flex flex-wrap items-center gap-1.5">
           <BookOpen aria-hidden="true" className="size-3.5 text-pink" />
           <span className="font-semibold uppercase tracking-wider text-muted-foreground text-[11px]">
-            Verified Sources ({sources.length})
+            Verified Sources ({displaySources.length})
           </span>
           <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal text-muted-foreground">
             {isOpen ? "Click to hide" : "Click to view"}
@@ -65,7 +67,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
       {isOpen ? (
         <div className="border-t bg-muted/10 p-3">
           <ol className="space-y-2">
-            {sources.map((source, i) => {
+            {displaySources.map((source, i) => {
               const isDatabase = source.source_type === "database";
               const basePdfHref = resolveMediaUrl(source.pdf_url || source.url);
               const pageNum = source.page_number;
