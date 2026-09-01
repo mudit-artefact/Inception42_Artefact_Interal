@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     api_host: str = Field(default="0.0.0.0", alias="API_HOST")
     api_port: int = Field(default=8000, alias="API_PORT")
 
+    # ── LangSmith Tracing ─────────────────────────────────────────
+    langchain_tracing_v2: bool = Field(default=False, alias="LANGCHAIN_TRACING_V2")
+    langchain_api_key: str = Field(default="", alias="LANGCHAIN_API_KEY")
+    langchain_project: str = Field(default="hcs01-hr-assistant", alias="LANGCHAIN_PROJECT")
+
     # ── Employees ─────────────────────────────────────────────────
     default_employee_id: str = Field(default="EMP001", alias="DEFAULT_EMPLOYEE_ID")
 
