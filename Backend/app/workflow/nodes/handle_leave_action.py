@@ -285,25 +285,15 @@ def handle_manager_approval(state: ConversationState) -> dict:
     lang = state.get("requested_language", "en")
     intent = state.get("question_intent")
 
-    # Extract target request ID if stated, or look for direct report name
-    id_match = re.search(r"#?\b(\d+)\b", question)
     pending_approvals = get_manager_pending_approvals(manager_id)
 
-    target_id = None
-    if id_match:
-        target_id = int(id_match.group(1))
-    elif pending_approvals:
-        # Check if an employee name was mentioned in question
-        for pa in pending_approvals:
-            emp_first_name = pa["employee_name"].split()[0].lower()
-            if emp_first_name in question.lower():
-                target_id = pa["request_id"]
-                break
-        if not target_id and len(pending_approvals) == 1:
-            target_id = pending_approvals[0]["request_id"]
+    # Distinguish between inquiry ("what do I need to approve?", "show requests") vs explicit action ("approve leave #12")
+    is_inquiry = bool(re.search(r"\b(what|which|show|list|view|check|need to approve|pending)\b", question, re.I))
+    is_action_command = bool(re.search(r"^\s*(approve|reject|decline|accept)\b|\b(approve|reject|decline)\s+(leave|request|#|\d+|for)\b", question, re.I))
 
-    if not target_id:
+    if is_inquiry or not is_action_command or intent == QuestionIntent.CHECK_LEAVE_STATUS:
         if not pending_approvals:
+
             msg = (
                 "You do not have any pending leave approval requests from your team."
                 if lang == "en"
@@ -321,6 +311,38 @@ def handle_manager_approval(state: ConversationState) -> dict:
                 f"• **Request #{pa['request_id']}** by **{pa['employee_name']}** ({pa['employee_role']}): "
                 f"{pa['days_requested']} days of {pa['leave_type']} from {pa['start_date']} to {pa['end_date']}"
             )
+        lines.append("\nYou can review and click **Approve Leave** or **Reject** on the card below, or state the request ID.")
+        return {
+            "final_answer": "\n".join(lines),
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "action_payload": {
+                "action_type": "MANAGER_PENDING_APPROVALS",
+                "pending_approvals": pending_approvals,
+            },
+            "citations": [],
+        }
+
+    # Extract target request ID if stated, or look for direct report name
+    id_match = re.search(r"#?\b(\d+)\b", question)
+    target_id = None
+    if id_match:
+        target_id = int(id_match.group(1))
+    elif pending_approvals:
+        for pa in pending_approvals:
+            emp_first_name = pa["employee_name"].split()[0].lower()
+            if emp_first_name in question.lower():
+                target_id = pa["request_id"]
+                break
+        if not target_id and len(pending_approvals) == 1:
+            target_id = pending_approvals[0]["request_id"]
+
+    if not target_id:
+        lines = ["📋 **Pending Leave Requests Awaiting Your Approval:**\n"]
+        for pa in pending_approvals:
+            lines.append(
+                f"• **Request #{pa['request_id']}** by **{pa['employee_name']}** ({pa['employee_role']}): "
+                f"{pa['days_requested']} days of {pa['leave_type']} from {pa['start_date']} to {pa['end_date']}"
+            )
         lines.append("\nPlease state which request ID you want to approve or reject (e.g. 'Approve request #19').")
         return {
             "final_answer": "\n".join(lines),
@@ -331,6 +353,7 @@ def handle_manager_approval(state: ConversationState) -> dict:
             },
             "citations": [],
         }
+
 
     if intent == QuestionIntent.REJECT_LEAVE:
         res = reject_leave_request(manager_id=manager_id, request_id=target_id)

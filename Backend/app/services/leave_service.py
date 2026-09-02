@@ -135,23 +135,6 @@ def validate_leave_policy(
         start_date = draft.start_date or date.today().strftime("%Y-%m-%d")
         end_date = draft.end_date or start_date
 
-        working_days = calculate_working_days(start_date, end_date)
-        if working_days <= 0:
-            return LeaveValidationResult(
-                is_valid=False,
-                violations=["The requested date range contains 0 working days (e.g. falls entirely on weekends/holidays)."],
-                leave_type=leave_type,
-                start_date=start_date,
-                end_date=end_date,
-                working_days=0,
-                balance_before=0.0,
-                balance_after=0.0,
-                notice_days_provided=0,
-                notice_days_required=0,
-                notice_compliant=True,
-                approver_name=employee.manager_name,
-            )
-
         # Retrieve current balance
         balance_row = (
             session.query(LeaveBalance)
@@ -161,8 +144,59 @@ def validate_leave_policy(
             )
             .first()
         )
-
         balance_before = float(balance_row.remaining_days) if balance_row else 0.0
+
+        working_days = calculate_working_days(start_date, end_date)
+        if working_days <= 0:
+            d_start = parse_iso_date(start_date)
+            d_end = parse_iso_date(end_date)
+            holidays_in_range = []
+            curr = d_start
+            while curr <= d_end:
+                iso = curr.strftime("%Y-%m-%d")
+                if iso in UAE_PUBLIC_HOLIDAYS_2026:
+                    holidays_in_range.append(iso)
+                curr += timedelta(days=1)
+
+            holiday_names = {
+                "2026-01-01": "New Year's Day",
+                "2026-03-20": "Eid Al Fitr",
+                "2026-03-21": "Eid Al Fitr",
+                "2026-03-22": "Eid Al Fitr",
+                "2026-05-27": "Arafat Day",
+                "2026-05-28": "Eid Al Adha",
+                "2026-05-29": "Eid Al Adha",
+                "2026-06-17": "Islamic New Year",
+                "2026-12-01": "Commemoration Day",
+                "2026-12-02": "UAE National Day",
+                "2026-12-03": "National Day Holiday",
+            }
+
+            if holidays_in_range:
+                names = ", ".join(f"{h} ({holiday_names.get(h, 'Public Holiday')})" for h in holidays_in_range)
+                msg = (
+                    f"The requested dates fall on official UAE Public Holidays: {names}. "
+                    "Under UAE Labour Law & HC-PC-001 §1.4.3, official public holidays are paid non-working days and do not require leave deduction. "
+                    "You are already off on these dates! Please select dates that include regular working days."
+                )
+            else:
+                msg = "The requested date range contains 0 working days as it falls entirely on weekend non-working days (Saturday/Sunday)."
+
+            return LeaveValidationResult(
+                is_valid=False,
+                violations=[msg],
+                leave_type=leave_type,
+                start_date=start_date,
+                end_date=end_date,
+                working_days=0,
+                balance_before=balance_before,
+                balance_after=balance_before,
+                notice_days_provided=0,
+                notice_days_required=0,
+                notice_compliant=True,
+                approver_name=employee.manager_name,
+            )
+
         violations = []
 
         # 1. Balance sufficiency check
