@@ -53,6 +53,12 @@ from app.workflow.nodes.finish_turn import (
 )
 from app.workflow.nodes.gather_evidence import assemble_evidence, gather_subquery_evidence
 from app.workflow.nodes.generate_answer import generate_answer
+from app.workflow.nodes.handle_leave_action import (
+    handle_leave_application,
+    handle_leave_cancellation,
+    handle_leave_status,
+    handle_manager_approval,
+)
 from app.workflow.nodes.load_employee_facts import load_employee_facts
 from app.workflow.nodes.rephrase_previous_answer import rephrase_previous_answer
 from app.workflow.nodes.rewrite_and_decompose import rewrite_and_decompose_query
@@ -89,6 +95,11 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_node("finalize_verified_answer", finalize_verified_answer)
     workflow.add_node("build_safe_fallback", build_safe_fallback)
     workflow.add_node("record_conversation_turn", record_conversation_turn)
+    # Agentic Leave & Absence Action Nodes
+    workflow.add_node("handle_leave_application", handle_leave_application)
+    workflow.add_node("handle_leave_cancellation", handle_leave_cancellation)
+    workflow.add_node("handle_leave_status", handle_leave_status)
+    workflow.add_node("handle_manager_approval", handle_manager_approval)
 
     workflow.add_edge(START, "load_employee_facts")
     workflow.add_edge("load_employee_facts", "understand_query")
@@ -103,8 +114,13 @@ def build_conversation_workflow() -> StateGraph:
             "rephrase_previous_answer": "rephrase_previous_answer",
             "rewrite_and_decompose_query": "rewrite_and_decompose_query",
             "route_each_subquery": "route_each_subquery",
+            "handle_leave_application": "handle_leave_application",
+            "handle_leave_cancellation": "handle_leave_cancellation",
+            "handle_leave_status": "handle_leave_status",
+            "handle_manager_approval": "handle_manager_approval",
         },
     )
+
 
     # Ask the employee something, pause, then read their answer together with the
     # original question.
@@ -144,7 +160,13 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_edge("generate_greeting", "record_conversation_turn")
     workflow.add_edge("finalize_verified_answer", "record_conversation_turn")
     workflow.add_edge("build_safe_fallback", "record_conversation_turn")
+    workflow.add_edge("handle_leave_application", "record_conversation_turn")
+    workflow.add_edge("handle_leave_cancellation", "record_conversation_turn")
+    workflow.add_edge("handle_leave_status", "record_conversation_turn")
+    workflow.add_edge("handle_manager_approval", "record_conversation_turn")
     workflow.add_edge("record_conversation_turn", END)
+
+
 
     return workflow
 

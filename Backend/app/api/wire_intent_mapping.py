@@ -12,6 +12,8 @@ GREETING_LABEL = "greeting"
 OUT_OF_SCOPE_LABEL = "not_in_scope"
 AWAITING_CLARIFICATION_LABEL = "ambiguous"
 ANSWERED_LABEL = "in_scope"
+ACTION_CONFIRMATION_LABEL = "action_confirmation"
+ACTION_EXECUTED_LABEL = "action_executed"
 
 
 def wire_intent_for(
@@ -26,4 +28,7 @@ def wire_intent_for(
         return GREETING_LABEL
     if question_intent == QuestionIntent.OUT_OF_SCOPE or answer_status == AnswerStatus.REFUSED:
         return OUT_OF_SCOPE_LABEL
+    if answer_status == AnswerStatus.ACTION_EXECUTED:
+        return ACTION_EXECUTED_LABEL
     return ANSWERED_LABEL
+

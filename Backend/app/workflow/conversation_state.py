@@ -17,7 +17,8 @@ from typing import Annotated, TypedDict
 
 # Raise this when the fields below change. It is part of the saved-state key, so old
 # saved conversations start fresh instead of resuming into steps that expect new fields.
-CONVERSATION_STATE_VERSION = 4
+CONVERSATION_STATE_VERSION = 5
+
 
 
 def thread_name_for(conversation_id: str) -> str:
@@ -141,3 +142,11 @@ class ConversationState(TypedDict, total=False):
     answer_status: str
     fallback_reason: str | None
     latency_milliseconds: int
+
+    # Agentic Leave & Absence Action State
+    leave_draft: dict | None
+    leave_validation: dict | None
+    action_payload: dict | None
+    is_action_required: bool
+    leave_action_status: str | None
+

@@ -47,3 +47,8 @@ class AnswerResponse(BaseModel):
     original_question: Optional[str] = None
     clarifying_question: Optional[str] = None
     is_awaiting_clarification: bool = False
+
+    # Agentic Action Payload (e.g. Leave Confirmation Card, Submitted details)
+    action_payload: Optional[dict] = None
+    is_action_required: bool = False
+

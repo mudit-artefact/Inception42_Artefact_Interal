@@ -20,6 +20,13 @@ class QuestionIntent(StrEnum):
     # rather than a question about HR. The answer already exists; searching the policy
     # documents for "make that shorter" finds nothing and means nothing.
     ABOUT_THE_LAST_ANSWER = "about_the_last_answer"
+    # Actionable transactional leave requests
+    APPLY_LEAVE = "apply_leave"
+    CANCEL_LEAVE = "cancel_leave"
+    CHECK_LEAVE_STATUS = "check_leave_status"
+    APPROVE_LEAVE = "approve_leave"
+    REJECT_LEAVE = "reject_leave"
+
 
 
 class RequiredEvidence(StrEnum):
@@ -40,6 +47,10 @@ class AnswerStatus(StrEnum):
     CLARIFICATION_REQUESTED = "clarification_requested"
     REFUSED = "refused"
     SAFE_FALLBACK = "safe_fallback"
+    # Action lifecycle statuses
+    ACTION_CONFIRMATION_REQUIRED = "action_confirmation_required"
+    ACTION_EXECUTED = "action_executed"
+    ACTION_REJECTED = "action_rejected"
 
 
 class FallbackReason(StrEnum):

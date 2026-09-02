@@ -40,6 +40,19 @@ def decide_after_understanding(state: ConversationState) -> str:
     if intent == QuestionIntent.OUT_OF_SCOPE:
         return "build_safe_fallback"
 
+    if intent == QuestionIntent.APPLY_LEAVE:
+        return "handle_leave_application"
+
+    if intent == QuestionIntent.CANCEL_LEAVE:
+        return "handle_leave_cancellation"
+
+    if intent == QuestionIntent.CHECK_LEAVE_STATUS:
+        return "handle_leave_status"
+
+    if intent in (QuestionIntent.APPROVE_LEAVE, QuestionIntent.REJECT_LEAVE):
+        return "handle_manager_approval"
+
+
     # A request to rework the last reply is answered from that reply, not by searching
     # the policy documents for the words "make that shorter". Asked before there is a
     # reply to rework, it gets a plain explanation rather than a pointless search.

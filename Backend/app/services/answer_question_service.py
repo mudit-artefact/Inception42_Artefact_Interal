@@ -287,6 +287,8 @@ def _present(
             is_awaiting_clarification=True,
             original_question=pause["original_question"],
             clarifying_question=pause["clarification_question"],
+            action_payload=pause.get("action_payload"),
+            is_action_required=pause.get("is_action_required", False),
         )
 
     return AnswerResponse(
@@ -306,6 +308,8 @@ def _present(
         rewritten_query=result.get("retrieval_query"),
         confidence_score=result.get("intent_confidence", 1.0),
         is_awaiting_clarification=False,
+        action_payload=result.get("action_payload"),
+        is_action_required=bool(result.get("is_action_required", False)),
     )
 
 
@@ -324,4 +328,7 @@ def _pending_clarification(result: dict) -> Optional[dict]:
     return {
         "clarification_question": clarification_question,
         "original_question": payload.get("original_question") or "",
+        "action_payload": payload.get("action_payload"),
+        "is_action_required": bool(payload.get("is_action_required", False)),
     }
+

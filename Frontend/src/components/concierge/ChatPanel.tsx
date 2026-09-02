@@ -14,7 +14,13 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LeaveConfirmationCard } from "@/components/concierge/LeaveConfirmationCard";
+import { LeaveCalendarPicker } from "@/components/concierge/LeaveCalendarPicker";
+import { LeaveApprovedCard } from "@/components/concierge/LeaveApprovedCard";
+import { ManagerApprovalCard } from "@/components/concierge/ManagerApprovalCard";
 import { MessageFeedback } from "@/components/concierge/MessageFeedback";
+
+
 import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
 import { SUGGESTED_QUESTIONS } from "@/lib/api/mock";
@@ -98,8 +104,9 @@ export function ChatPanel({
             </div>
           ) : null}
 
-          {messages.map((m) => (
+          {messages.map((m, i) => (
             <Message key={m.id} from={m.role}>
+
               {m.role === "assistant" ? (
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Concierge
@@ -149,8 +156,69 @@ export function ChatPanel({
                   </div>
                 ) : null}
 
+                {/* Proactive Leave Application Suggestion Pill (Req #2) */}
+                {m.role === "assistant" &&
+                i === messages.length - 1 &&
+                !m.action_payload &&
+                (m.content.toLowerCase().includes("leave") ||
+                  m.content.toLowerCase().includes("balance") ||
+                  m.content.toLowerCase().includes("vacation") ||
+                  m.content.toLowerCase().includes("إجازة")) ? (
+                  <div className="mt-2.5 flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => onSend("I want to apply for leave")}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] shadow-2xs cursor-pointer"
+                    >
+                      <span>🌴</span>
+                      <span>Do you want to apply for leave?</span>
+                    </button>
+                  </div>
+                ) : null}
 
+                {/* Calendar Date-Range Picker (Req #4) */}
+                {m.action_payload?.action_type === "SHOW_LEAVE_CALENDAR_PICKER" ? (
+                  <LeaveCalendarPicker
+                    leaveType={m.action_payload.leave_type}
+                    minDate={m.action_payload.min_date}
+                    onSelectDates={(type, start, end) => {
+                      onSend(`I want to apply for ${type} from ${start} to ${end}`);
+                    }}
+                  />
+                ) : null}
+
+                {/* Manager Approvals Card (Req #3) */}
+                {m.action_payload?.action_type === "MANAGER_PENDING_APPROVALS" &&
+                m.action_payload.pending_approvals ? (
+                  <ManagerApprovalCard
+                    pendingApprovals={m.action_payload.pending_approvals}
+                    onAction={onSend}
+                  />
+                ) : null}
+
+                {/* Post-Approval Celebration & Calendar/Email Card (Req #5 & #1) */}
+                {m.action_payload?.action_type === "LEAVE_APPROVED_NOTIFICATION" &&
+                m.action_payload.approved_leave ? (
+                  <LeaveApprovedCard approvedLeave={m.action_payload.approved_leave} />
+                ) : null}
+
+                {/* Agentic Leave Confirmation & Receipt Cards (Req #1) */}
+                {m.action_payload &&
+                [
+                  "CONFIRM_LEAVE_APPLICATION",
+                  "LEAVE_SUBMITTED_PENDING_APPROVAL",
+                  "LEAVE_SUBMITTED_SUCCESS",
+                  "POLICY_VIOLATION",
+                ].includes(m.action_payload.action_type) ? (
+                  <LeaveConfirmationCard
+                    payload={m.action_payload}
+                    onConfirm={onSend}
+                    isLatestAssistantMessage={i === messages.length - 1}
+                  />
+                ) : null}
               </MessageContent>
+
+
 
               {m.role === "assistant" ? (
                 <>

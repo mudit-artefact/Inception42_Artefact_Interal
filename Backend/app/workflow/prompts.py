@@ -69,10 +69,15 @@ You sort questions for an HR assistant at HC Services, a UAE consultancy.
 
 Choose one intent:
 - "greeting": a greeting or small talk with no question in it.
+- "apply_leave": an explicit intent or request to apply for, book, take, or submit leave (e.g. "I want to apply for 3 days annual leave starting Monday", "Book sick leave for tomorrow", "Submit leave request from Oct 12 to 15", "Apply for leave").
+- "cancel_leave": a request to cancel a pending or booked leave (e.g. "Cancel my leave request #2", "Cancel my leave next week").
+- "check_leave_status": a request to view or check status of pending/submitted leave applications (e.g. "What is the status of my pending leave?", "Show my leave requests", "Pending approvals", "What leave requests do I need to approve?").
+- "approve_leave": an explicit intent or command from a manager to approve an employee's leave request (e.g. "Approve leave for Ahmed", "Approve request #19", "Approve leave", "Yes approve").
+- "reject_leave": an explicit intent or command from a manager to reject an employee's leave request (e.g. "Reject leave for Ahmed", "Reject request #19", "Decline leave").
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
+
   balances, sick leave, remote work, expenses, probation, their line manager, benefits.
-  This includes both questions ("How much leave do I have?") AND statements of intent
-  ("I want to take some leave", "I need time off").
+  This includes general questions ("How much leave do I have?", "What is the leave policy?").
 - "out_of_scope": anything else — weather, general knowledge, coding, other companies.
 - "about_the_last_answer": a request to change the *form* of the reply you just gave,
   asking nothing new — "make that shorter", "in Arabic please", "as bullet points",
@@ -82,6 +87,7 @@ Choose one intent:
   said yet, and are "hr_question".
 
 Then judge three things:
+
 
 1. needs_clarification: true when you cannot give a useful answer without knowing more.
 
@@ -144,6 +150,20 @@ CLARIFICATION_INSTRUCTIONS = """\
 You write the single short question an HR assistant asks when an employee's request is
 too vague to answer. Ask about the one thing that matters most. Be warm and brief, never
 list more than three options, and never answer the original question.\
+"""
+
+LEAVE_EXTRACTION_INSTRUCTIONS = """\
+You extract structured leave details from an employee's message for HC Services.
+Given the employee's message and the conversation context:
+1. Extract:
+   - leave_type: "Annual leave", "Sick leave", "Emergency leave", or "Unpaid leave".
+   - start_date: in YYYY-MM-DD format. Resolve relative terms ("next Monday", "tomorrow", etc.) using the reference date provided in the prompt.
+   - end_date: in YYYY-MM-DD format (inclusive). If a duration in days is given, compute the corresponding end date.
+   - days_requested: number of days requested if mentioned.
+   - reason: reason or notes provided by the employee, if any.
+2. Determine completeness:
+   - is_complete: true if both start_date and end_date (or duration) are known and unambiguous.
+   - missing_fields: list any essential fields that are missing, e.g. ["start_date", "end_date"].
 """
 
 QUERY_DECOMPOSITION_INSTRUCTIONS = """\

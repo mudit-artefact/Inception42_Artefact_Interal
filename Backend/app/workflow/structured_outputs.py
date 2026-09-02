@@ -106,3 +106,66 @@ class SourceRoutingDecision(BaseModel):
         description="Which of the employee's own facts are needed, from the allowed list only",
     )
     reason: str = Field(default="", description="Brief explanation for this routing")
+
+
+class LeaveApplicationDraft(BaseModel):
+    """Extracted parameters for an actionable leave application."""
+
+    leave_type: str = Field(
+        default="Annual leave",
+        description="Leave type, e.g. 'Annual leave', 'Sick leave', 'Emergency leave', 'Unpaid leave'",
+    )
+    start_date: str | None = Field(default=None, description="Start date in YYYY-MM-DD format")
+    end_date: str | None = Field(default=None, description="End date in YYYY-MM-DD format (inclusive)")
+    days_requested: float | None = Field(
+        default=None, description="Number of days requested if specified by user"
+    )
+    reason: str | None = Field(default=None, description="Reason or notes provided by the employee")
+    is_complete: bool = Field(
+        default=False, description="True if both start_date and end_date/days are known"
+    )
+    missing_fields: list[str] = Field(
+        default_factory=list,
+        description="List of missing required fields e.g. ['start_date', 'end_date']",
+    )
+
+
+class LeaveValidationResult(BaseModel):
+    """Deterministic validation of a leave application against balances and policies."""
+
+    is_valid: bool = Field(description="True if the request passes all policy and balance checks")
+    violations: list[str] = Field(
+        default_factory=list, description="Reasons for rejection if invalid"
+    )
+    leave_type: str = Field(description="The leave type validated")
+    start_date: str = Field(description="Start date YYYY-MM-DD")
+    end_date: str = Field(description="End date YYYY-MM-DD")
+    working_days: int = Field(
+        description="Actual working days calculated (excluding weekends and public holidays)"
+    )
+    balance_before: float = Field(description="Remaining balance before this request")
+    balance_after: float = Field(description="Projected remaining balance if approved")
+    notice_days_provided: int = Field(
+        description="Working days between request date and leave start date"
+    )
+    notice_days_required: int = Field(
+        description="Notice days required by policy clause HC-PC-001 §1.4"
+    )
+    notice_compliant: bool = Field(
+        default=True, description="Whether notice requirement is satisfied"
+    )
+    requires_medical_certificate: bool = Field(
+        default=False, description="Whether medical cert is required per HC-PC-002 §2.4"
+    )
+    approver_name: str = Field(description="Name of the manager who will approve this")
+
+
+class LeaveCancellationDraft(BaseModel):
+    """Parameters for cancelling a pending or future leave request."""
+
+    request_id: int | None = Field(default=None, description="Specific leave request ID to cancel")
+    leave_type: str | None = Field(
+        default=None, description="Leave type to cancel if ID is not stated"
+    )
+    date_hint: str | None = Field(default=None, description="Date or month hint mentioned by user")
+

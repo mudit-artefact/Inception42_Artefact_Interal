@@ -142,12 +142,14 @@ export function getMockEmployee(id: string | null | undefined): MockPersona {
 export const POLICY_LINKS: PolicySource[] = MOCK_EMPLOYEE.policyLinks;
 
 export const SUGGESTED_QUESTIONS: string[] = [
+  "I want to apply for leave",
   "How many annual leave days do I have left this year?",
   "What is the notice period for requesting annual leave?",
+  "What leave requests do I need to approve?",
+  "What documents do I need for sick leave over 2 days?",
   "Can I carry over unused leave into next year?",
-  "What documents do I need for sick leave over 3 days?",
-  "How does leave accrue during probation?",
 ];
+
 
 const MOCK_ANSWERS: { match: RegExp; answer: string; sources: PolicySource[] }[] = [
   {

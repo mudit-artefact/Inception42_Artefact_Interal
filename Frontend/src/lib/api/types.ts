@@ -42,6 +42,9 @@ export interface ChatResponse {
   is_awaiting_clarification?: boolean;
   original_question?: string | null;
   clarifying_question?: string | null;
+  // Agentic Action handling
+  action_payload?: Record<string, any> | null;
+  is_action_required?: boolean;
 }
 
 export interface ChatMessage {
@@ -58,7 +61,11 @@ export interface ChatMessage {
   // Clarification handling
   is_awaiting_clarification?: boolean;
   original_question?: string | null;
+  // Agentic Action handling
+  action_payload?: Record<string, any> | null;
+  is_action_required?: boolean;
 }
+
 
 export interface Conversation {
   /** Local, stable identifier used for UI routing/history. */

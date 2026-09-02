@@ -180,7 +180,10 @@ export function useConcierge(employeeId: string) {
           confidence_score: res.confidence_score,
           is_awaiting_clarification: res.is_awaiting_clarification,
           original_question: res.original_question,
+          action_payload: res.action_payload,
+          is_action_required: res.is_action_required,
         };
+
 
         // Replaces the placeholder rather than appending: the text is already on screen,
         // and this is what attaches the sources and the intent to it.
