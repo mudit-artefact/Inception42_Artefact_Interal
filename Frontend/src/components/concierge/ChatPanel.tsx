@@ -116,7 +116,7 @@ export function ChatPanel({
                 <MessageResponse>{formatMessageContent(m.content)}</MessageResponse>
 
                 {/* Clarification Indicator for Ambiguous Queries */}
-                {m.role === "assistant" && m.is_awaiting_clarification ? (
+                {m.role === "assistant" && m.is_awaiting_clarification && !m.action_payload ? (
                   <div className="mt-3 flex items-center gap-2 pt-2 border-t border-amber-500/30">
                     <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-600 text-[10px]">
                       <AlertTriangle className="size-2.5" />
@@ -127,6 +127,7 @@ export function ChatPanel({
                     </span>
                   </div>
                 ) : null}
+
 
                 {/* Proactive Greeting Action Pills */}
                 {m.role === "assistant" && m.intent === "greeting" ? (

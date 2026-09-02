@@ -63,11 +63,13 @@ export async function sendChatMessage(
       intent: data.intent,
       rewritten_query: data.rewritten_query,
       confidence_score: data.confidence_score,
-      // Clarification handling
       is_awaiting_clarification: data.is_awaiting_clarification ?? false,
       original_question: data.original_question,
       clarifying_question: data.clarifying_question,
+      action_payload: data.action_payload,
+      is_action_required: data.is_action_required ?? false,
     };
+
   } catch (err) {
     console.warn("Backend chat request error:", err);
     throw err;
@@ -188,5 +190,8 @@ function normaliseChatResponse(data: any, conversationId: string | null): ChatRe
     is_awaiting_clarification: data.is_awaiting_clarification ?? false,
     original_question: data.original_question,
     clarifying_question: data.clarifying_question,
+    action_payload: data.action_payload,
+    is_action_required: data.is_action_required ?? false,
   };
 }
+
