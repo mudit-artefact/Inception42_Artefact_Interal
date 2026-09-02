@@ -375,43 +375,63 @@ def handle_manager_approval(state: ConversationState) -> dict:
             "citations": [],
         }
 
-    # Default to APPROVE_LEAVE
-    res = approve_leave_request(manager_id=manager_id, request_id=target_id)
-    if not res.get("success"):
+    # Only approve if explicit approve intent or approve keyword is present!
+    if intent == QuestionIntent.APPROVE_LEAVE or re.search(r"\b(approve|accept)\b", question, re.I):
+        res = approve_leave_request(manager_id=manager_id, request_id=target_id)
+        if not res.get("success"):
+            return {
+                "final_answer": res.get("message", "Unable to approve request."),
+                "answer_status": AnswerStatus.SAFE_FALLBACK.value,
+                "citations": [],
+            }
+
+        ans = (
+            f"✅ **Leave Request #{target_id} has been Approved!**\n\n"
+            f"• **Employee:** {res['employee_name']}\n"
+            f"• **Leave Type:** {res['leave_type']}\n"
+            f"• **Dates:** {res['start_date']} to {res['end_date']} ({res['days_requested']} working days)\n"
+            f"• **Status:** Approved\n"
+            f"• **Updated Balance:** {res['new_balance']} days remaining\n\n"
+            f"{res['employee_name']} has been notified that their leave is approved."
+        )
+
         return {
-            "final_answer": res.get("message", "Unable to approve request."),
-            "answer_status": AnswerStatus.SAFE_FALLBACK.value,
-            "citations": [],
+            "final_answer": ans,
+            "answer_status": AnswerStatus.ACTION_EXECUTED.value,
+            "action_payload": {
+                "action_type": "MANAGER_APPROVED_SUCCESS",
+                "result": res,
+            },
+            "citations": [
+                {
+                    "source": "omni_hr.db / leave_requests",
+                    "table_name": "leave_requests",
+                    "section": f"Approved Request #{target_id}",
+                    "score": 1.0,
+                    "language": lang,
+                    "snippet": f"Officially debited balance to {res['new_balance']} days.",
+                }
+            ],
         }
 
-    ans = (
-        f"✅ **Leave Request #{target_id} has been Approved!**\n\n"
-        f"• **Employee:** {res['employee_name']}\n"
-        f"• **Leave Type:** {res['leave_type']}\n"
-        f"• **Dates:** {res['start_date']} to {res['end_date']} ({res['days_requested']} working days)\n"
-        f"• **Status:** Approved\n"
-        f"• **Updated Balance:** {res['new_balance']} days remaining\n\n"
-        f"{res['employee_name']} has been notified that their leave is approved."
-    )
-
+    # Otherwise, NEVER auto-approve; display the pending approvals card!
+    lines = ["📋 **Pending Leave Requests Awaiting Your Approval:**\n"]
+    for pa in pending_approvals:
+        lines.append(
+            f"• **Request #{pa['request_id']}** by **{pa['employee_name']}** ({pa['employee_role']}): "
+            f"{pa['days_requested']} days of {pa['leave_type']} from {pa['start_date']} to {pa['end_date']}"
+        )
+    lines.append("\nYou can review and click **Approve Leave** or **Reject** on the card below, or state the request ID.")
     return {
-        "final_answer": ans,
-        "answer_status": AnswerStatus.ACTION_EXECUTED.value,
+        "final_answer": "\n".join(lines),
+        "answer_status": AnswerStatus.VERIFIED.value,
         "action_payload": {
-            "action_type": "MANAGER_APPROVED_SUCCESS",
-            "result": res,
+            "action_type": "MANAGER_PENDING_APPROVALS",
+            "pending_approvals": pending_approvals,
         },
-        "citations": [
-            {
-                "source": "omni_hr.db / leave_requests",
-                "table_name": "leave_requests",
-                "section": f"Approved Request #{target_id}",
-                "score": 1.0,
-                "language": lang,
-                "snippet": f"Officially debited balance to {res['new_balance']} days.",
-            }
-        ],
+        "citations": [],
     }
+
 
 
 def handle_leave_status(state: ConversationState) -> dict:
@@ -422,8 +442,12 @@ def handle_leave_status(state: ConversationState) -> dict:
 
     # If the user is asking about manager approvals or has pending approvals as manager:
     manager_pending = get_manager_pending_approvals(employee_id)
-    if manager_pending and any(w in question.lower() for w in ("approve", "review", "my team", "direct report", "pending approval")):
-        return handle_manager_approval(state)
+    is_manager_query = any(w in question.lower() for w in ("approve", "review", "my team", "direct report", "need to approve"))
+    if manager_pending or is_manager_query:
+        # If they specifically ask as a manager or have pending approvals from their team
+        if is_manager_query or manager_pending:
+            return handle_manager_approval(state)
+
 
     session = SessionLocal()
     try:
