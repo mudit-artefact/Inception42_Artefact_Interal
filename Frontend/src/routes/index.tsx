@@ -81,7 +81,7 @@ function ConciergePage() {
         <InceptionLogo className="h-7 w-auto shrink-0" />
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-sm font-semibold tracking-tight">{TITLE}</h1>
-          <p className="text-xs text-muted-foreground">Health Corporate Services · Employee Self-Service</p>
+          <p className="text-xs text-muted-foreground">Employee Self-Service</p>
         </div>
 
         <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
