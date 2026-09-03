@@ -9,17 +9,17 @@ interface SuggestedQuestionsProps {
 export function SuggestedQuestions({ questions, onSelect, disabled }: SuggestedQuestionsProps) {
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Suggested questions & actions
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        FAQs
       </p>
-      <ul className="flex flex-wrap gap-2">
+      <ul className="flex flex-wrap gap-1.5">
         {questions.map((q) => (
           <li key={q}>
             <button
               type="button"
               disabled={disabled}
               onClick={() => onSelect(q)}
-              className="group inline-flex max-w-full items-center gap-1.5 rounded-full border bg-card px-3.5 py-1.5 text-left text-xs text-foreground transition-all hover:border-pink/50 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer shadow-2xs"
+              className="group inline-flex max-w-full items-center gap-1 rounded-full border bg-card px-3 py-1 text-left text-xs text-foreground transition-all hover:border-pink/50 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer shadow-2xs"
             >
               <span className="font-normal text-foreground group-hover:text-foreground">
                 {q}

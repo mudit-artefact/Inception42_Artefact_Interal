@@ -31,13 +31,14 @@ function ConciergePage() {
   const { employee, employees, employeeId, selectEmployee } = useActiveEmployee();
   const concierge = useConcierge(employeeId);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="flex shrink-0 items-center gap-3 border-b bg-card px-3 py-2.5 sm:px-4">
         <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="lg:hidden" aria-label="Open menu">
+            <Button variant="ghost" size="icon-sm" className="lg:hidden cursor-pointer" aria-label="Open menu">
               <PanelLeft aria-hidden="true" className="size-4" />
             </Button>
           </SheetTrigger>
@@ -78,26 +79,40 @@ function ConciergePage() {
           </SheetContent>
         </Sheet>
 
+        {/* Desktop Sidebar Toggle Button */}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="hidden lg:inline-flex text-muted-foreground hover:text-foreground cursor-pointer"
+          onClick={() => setSidebarOpen((prev) => !prev)}
+          title={sidebarOpen ? "Close history sidebar" : "Open history sidebar"}
+          aria-label={sidebarOpen ? "Close history sidebar" : "Open history sidebar"}
+        >
+          <PanelLeft aria-hidden="true" className="size-4" />
+        </Button>
+
         <InceptionLogo className="h-7 w-auto shrink-0" />
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-sm font-semibold tracking-tight">{TITLE}</h1>
-          <p className="text-xs text-muted-foreground">Employee Self-Service</p>
         </div>
 
         <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[260px] shrink-0 border-r bg-sidebar lg:block">
-          <ConversationHistory
-            conversations={concierge.conversations}
-            activeId={concierge.activeId}
-            onSelect={concierge.selectConversation}
-            onNew={concierge.startNew}
-            onDelete={concierge.deleteConversation}
-            onClearAll={concierge.clearAll}
-          />
-        </aside>
+        {sidebarOpen && (
+          <aside className="hidden w-[260px] shrink-0 border-r bg-sidebar lg:block">
+            <ConversationHistory
+              conversations={concierge.conversations}
+              activeId={concierge.activeId}
+              onSelect={concierge.selectConversation}
+              onNew={concierge.startNew}
+              onDelete={concierge.deleteConversation}
+              onClearAll={concierge.clearAll}
+              onToggleCollapse={() => setSidebarOpen(false)}
+            />
+          </aside>
+        )}
 
         <main className="flex min-w-0 flex-1 flex-col bg-card">
           <ChatPanel

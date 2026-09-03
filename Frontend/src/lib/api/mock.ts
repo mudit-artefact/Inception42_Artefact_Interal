@@ -145,9 +145,7 @@ export const SUGGESTED_QUESTIONS: string[] = [
   "Has my leave request been approved?",
   "What leave requests do I need to approve?",
   "How do I apply for annual leave?",
-  "How many annual leave days do I have left this year?",
-  "What is the notice period for requesting annual leave?",
-  "Can I carry over unused leave into next year?",
+  "How many annual leave days do I have left?",
 ];
 
 
