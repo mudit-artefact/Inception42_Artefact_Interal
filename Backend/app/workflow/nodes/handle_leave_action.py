@@ -288,39 +288,72 @@ def handle_manager_approval(state: ConversationState) -> dict:
     pending_approvals = get_manager_pending_approvals(manager_id)
 
     # Distinguish between inquiry ("what do I need to approve?", "show requests") vs explicit action ("approve leave #12")
-    is_inquiry = bool(re.search(r"\b(what|which|show|list|view|check|need to approve|pending)\b", question, re.I))
-    is_action_command = bool(re.search(r"^\s*(approve|reject|decline|accept)\b|\b(approve|reject|decline)\s+(leave|request|#|\d+|for)\b", question, re.I))
+    is_inquiry = bool(
+        re.search(
+            r"\b(what|which|show|list|view|check|need to approve|to approve|pending|requests? to approve|do i|leaves? awaiting)\b",
+            question,
+            re.I,
+        )
+    )
+    # An action command must be an imperative instruction to approve or reject
+    is_action_command = (
+        bool(re.search(r"^\s*(please\s+)?(approve|reject|decline|accept)\b", question, re.I))
+        or bool(re.search(r"\b(please\s+)?(approve|reject|decline|accept)\s+(leave|request|#|\d+|for\s+[a-zA-Z]+)\b", question, re.I))
+    ) and not is_inquiry
+
+    manager = None
+    session = SessionLocal()
+    try:
+        manager = session.query(Employee).filter(Employee.user_id == manager_id).first()
+    finally:
+        session.close()
+
+    b_name = manager.name.split()[0] if manager and manager.name else "there"
 
     if is_inquiry or not is_action_command or intent == QuestionIntent.CHECK_LEAVE_STATUS:
-        if not pending_approvals:
+            if not pending_approvals:
+                msg = (
+                    f"No {b_name}, you don't have any leave request pending of your juniors."
+                    if lang == "en"
+                    else f"لا {b_name}، لا توجد لديك أي طلبات إجازة معلقة من موظفيك."
+                )
+                return {
+                    "final_answer": msg,
+                    "answer_status": AnswerStatus.VERIFIED.value,
+                    "citations": [],
+                }
 
-            msg = (
-                "You do not have any pending leave approval requests from your team."
-                if lang == "en"
-                else "لا توجد لديك أي طلبات إجازة معلقة للموافقة عليها من فريقك."
-            )
+            if len(pending_approvals) == 1:
+                c_name = pending_approvals[0]["employee_name"]
+                header = (
+                    f"Yes, **{c_name}** asked for a leave request:\n"
+                    if lang == "en"
+                    else f"نعم، طلب **{c_name}** إجازة بانتظار اعتمادك:\n"
+                )
+            else:
+                c_names = ", ".join(list(dict.fromkeys(pa["employee_name"] for pa in pending_approvals)))
+                header = (
+                    f"Yes, your juniors ({c_names}) asked for leave requests:\n"
+                    if lang == "en"
+                    else f"نعم، طلب موظفوك ({c_names}) إجازة بانتظار اعتمادك:\n"
+                )
+
+            lines = [header]
+            for pa in pending_approvals:
+                lines.append(
+                    f"• **Request #{pa['request_id']}** by **{pa['employee_name']}** ({pa['employee_role']}): "
+                    f"{pa['days_requested']} days of {pa['leave_type']} from {pa['start_date']} to {pa['end_date']}"
+                )
+            lines.append("\nYou can review and click **Approve Leave** or **Reject** on the card below, or state the request ID.")
             return {
-                "final_answer": msg,
+                "final_answer": "\n".join(lines),
                 "answer_status": AnswerStatus.VERIFIED.value,
+                "action_payload": {
+                    "action_type": "MANAGER_PENDING_APPROVALS",
+                    "pending_approvals": pending_approvals,
+                },
                 "citations": [],
             }
-
-        lines = ["📋 **Pending Leave Requests Awaiting Your Approval:**\n"]
-        for pa in pending_approvals:
-            lines.append(
-                f"• **Request #{pa['request_id']}** by **{pa['employee_name']}** ({pa['employee_role']}): "
-                f"{pa['days_requested']} days of {pa['leave_type']} from {pa['start_date']} to {pa['end_date']}"
-            )
-        lines.append("\nYou can review and click **Approve Leave** or **Reject** on the card below, or state the request ID.")
-        return {
-            "final_answer": "\n".join(lines),
-            "answer_status": AnswerStatus.VERIFIED.value,
-            "action_payload": {
-                "action_type": "MANAGER_PENDING_APPROVALS",
-                "pending_approvals": pending_approvals,
-            },
-            "citations": [],
-        }
 
     # Extract target request ID if stated, or look for direct report name
     id_match = re.search(r"#?\b(\d+)\b", question)
@@ -354,8 +387,7 @@ def handle_manager_approval(state: ConversationState) -> dict:
             "citations": [],
         }
 
-
-    if intent == QuestionIntent.REJECT_LEAVE:
+    if intent == QuestionIntent.REJECT_LEAVE or re.search(r"\b(reject|decline)\b", question, re.I):
         res = reject_leave_request(manager_id=manager_id, request_id=target_id)
         if not res.get("success"):
             return {
@@ -375,8 +407,8 @@ def handle_manager_approval(state: ConversationState) -> dict:
             "citations": [],
         }
 
-    # Only approve if explicit approve intent or approve keyword is present!
-    if intent == QuestionIntent.APPROVE_LEAVE or re.search(r"\b(approve|accept)\b", question, re.I):
+    # Only approve if explicit approve command is present and NOT an inquiry!
+    if is_action_command and (intent == QuestionIntent.APPROVE_LEAVE or re.search(r"\b(approve|accept)\b", question, re.I)):
         res = approve_leave_request(manager_id=manager_id, request_id=target_id)
         if not res.get("success"):
             return {
@@ -386,13 +418,9 @@ def handle_manager_approval(state: ConversationState) -> dict:
             }
 
         ans = (
-            f"✅ **Leave Request #{target_id} has been Approved!**\n\n"
-            f"• **Employee:** {res['employee_name']}\n"
-            f"• **Leave Type:** {res['leave_type']}\n"
-            f"• **Dates:** {res['start_date']} to {res['end_date']} ({res['days_requested']} working days)\n"
-            f"• **Status:** Approved\n"
-            f"• **Updated Balance:** {res['new_balance']} days remaining\n\n"
-            f"{res['employee_name']} has been notified that their leave is approved."
+            "Thanks for approving leave!"
+            if lang == "en"
+            else "شكراً لموافقتك على الإجازة!"
         )
 
         return {
@@ -402,16 +430,7 @@ def handle_manager_approval(state: ConversationState) -> dict:
                 "action_type": "MANAGER_APPROVED_SUCCESS",
                 "result": res,
             },
-            "citations": [
-                {
-                    "source": "omni_hr.db / leave_requests",
-                    "table_name": "leave_requests",
-                    "section": f"Approved Request #{target_id}",
-                    "score": 1.0,
-                    "language": lang,
-                    "snippet": f"Officially debited balance to {res['new_balance']} days.",
-                }
-            ],
+            "citations": [],
         }
 
     # Otherwise, NEVER auto-approve; display the pending approvals card!
@@ -433,48 +452,57 @@ def handle_manager_approval(state: ConversationState) -> dict:
     }
 
 
-
 def handle_leave_status(state: ConversationState) -> dict:
     """Handle check_leave_status intent: list pending / recent leave applications."""
     employee_id = state["employee_id"]
     question = state["employee_question"]
     lang = state.get("requested_language", "en")
+    q_lower = question.lower()
 
-    # If the user is asking about manager approvals or has pending approvals as manager:
-    manager_pending = get_manager_pending_approvals(employee_id)
-    is_manager_query = any(w in question.lower() for w in ("approve", "review", "my team", "direct report", "need to approve"))
-    if manager_pending or is_manager_query:
-        # If they specifically ask as a manager or have pending approvals from their team
-        if is_manager_query or manager_pending:
-            return handle_manager_approval(state)
+    # Guard delegation to manager approvals:
+    # Only delegate if the question is specifically inquiring about approvals they need to perform for their team,
+    # and NEVER when they are asking about their own leave status!
+    is_manager_approval_inquiry = bool(
+        re.search(
+            r"\b(what leave requests? do i need to approve|need to approve|requests? to approve|pending approvals?( from my team)?|leave requests? awaiting (my )?approval|my team('s)? leave requests?|who (in my team )?requested leave|is there any leave pending for me to approve|any pending leave(s)?|pending leave(s)? to approve|do i have (any )?(leave|approvals?) pending|junior(s)?('s)? leave|did (my |any )?junior(s)? (ask|request))\b",
+            q_lower,
+        )
+    )
+    is_self_status_inquiry = bool(
+        re.search(
+            r"\b(my leave|my leaves|my request|my pending leave|requested leaves?|does my|did my|is my|has my|status of my|leaves? i requested|leave i applied)\b",
+            q_lower,
+        )
+    )
 
+    if is_manager_approval_inquiry and not is_self_status_inquiry:
+        return handle_manager_approval(state)
 
     session = SessionLocal()
     try:
         pending = get_pending_leave_requests(employee_id, session=session)
-        # Check if employee has an approved request
-        approved_request = (
+
+        # Retrieve the latest leave request overall for this employee
+        latest_request = (
             session.query(LeaveRequest)
-            .filter(
-                LeaveRequest.employee_id == employee_id,
-                LeaveRequest.status == "Approved",
-            )
+            .filter(LeaveRequest.employee_id == employee_id)
             .order_by(LeaveRequest.id.desc())
             .first()
         )
+
         emp = session.query(Employee).filter(Employee.user_id == employee_id).first()
 
         lines = []
         approved_payload = None
 
-        if approved_request:
+        if latest_request and latest_request.status == "Approved":
             approved_payload = {
-                "request_id": approved_request.id,
-                "leave_type": approved_request.leave_type,
-                "start_date": approved_request.start_date,
-                "end_date": approved_request.end_date,
-                "days_requested": approved_request.days_requested,
-                "approver_name": approved_request.approver_name,
+                "request_id": latest_request.id,
+                "leave_type": latest_request.leave_type,
+                "start_date": latest_request.start_date,
+                "end_date": latest_request.end_date,
+                "days_requested": latest_request.days_requested,
+                "approver_name": latest_request.approver_name,
                 "employee_name": emp.name if emp else employee_id,
                 "manager_email": emp.manager_email if emp else "manager@hcservices.ae",
                 "status": "Approved",
@@ -482,30 +510,61 @@ def handle_leave_status(state: ConversationState) -> dict:
 
             if lang == "ar":
                 lines.append(
-                    f"🎉 **طلب إجازتك الاعتيادية #{approved_request.id} معتمد!**\n\n"
-                    f"تم اعتماد إجازتك من **{approved_request.start_date}** إلى **{approved_request.end_date}** "
-                    f"({approved_request.days_requested} أيام عمل) بواسطة **{approved_request.approver_name}**.\n"
-                    f"يمكنك تسجيلها بالتقويم أو إرسال بريد إلكتروني للمدير والموارد البشرية عبر الأزرار أدناه.\n"
+                    f"🎉 **نعم! تم اعتماد طلب إجازتك!**\n\n"
+                    f"تم اعتماد إجازتك ({latest_request.leave_type}) من **{latest_request.start_date}** إلى **{latest_request.end_date}** "
+                    f"({latest_request.days_requested} أيام عمل) بواسطة مديرك المباشر **{latest_request.approver_name}**.\n\n"
+                    f"هل ترغب في إضافتها إلى تقويمك أو إرسال بريد إلكتروني للمدير والموارد البشرية عبر الأزرار أدناه؟\n"
                 )
             else:
                 lines.append(
-                    f"🎉 **Your Leave Request #{approved_request.id} has been Approved!**\n\n"
-                    f"Your leave from **{approved_request.start_date}** to **{approved_request.end_date}** "
-                    f"({approved_request.days_requested} working days) was approved by **{approved_request.approver_name}**.\n"
-                    f"Would you like to mark this on your calendar (.ics) or email your manager & HR in CC?\n"
+                    f"🎉 **Yes! Your Leave Request has been Approved!**\n\n"
+                    f"Your {latest_request.leave_type} from **{latest_request.start_date}** to **{latest_request.end_date}** "
+                    f"({latest_request.days_requested} working days) was approved by your manager, **{latest_request.approver_name}**.\n\n"
+                    f"Would you like to mark this on your calendar or email your manager & HR in CC?\n"
                 )
 
-        if pending:
+        elif latest_request and latest_request.status == "Pending":
             if lang == "ar":
-                lines.append("📋 **طلبات الإجازة المعلقة:**\n")
-                for req in pending:
+                lines.append(
+                    f"📋 **طلب إجازتك قيد المراجعة حالياً:**\n\n"
+                    f"طلبك لـ {latest_request.days_requested} أيام عمل من {latest_request.start_date} إلى {latest_request.end_date} "
+                    f"({latest_request.leave_type}) قيد المراجعة والاعتماد بواسطة مديرك المباشر **{latest_request.approver_name}**."
+                )
+            else:
+                lines.append(
+                    f"📋 **Your Leave Request is Currently Pending:**\n\n"
+                    f"Your request for {latest_request.days_requested} working days from **{latest_request.start_date}** to **{latest_request.end_date}** "
+                    f"({latest_request.leave_type}) is currently pending review and approval by your manager, **{latest_request.approver_name}**."
+                )
+
+        elif latest_request and latest_request.status == "Rejected":
+            if lang == "ar":
+                lines.append(
+                    f"❌ **طلب إجازتك #{latest_request.id} تم رفضه:**\n\n"
+                    f"طلبك لـ {latest_request.leave_type} تم رفضه من قبل **{latest_request.approver_name}**."
+                )
+            else:
+                lines.append(
+                    f"❌ **Your Leave Request #{latest_request.id} was Rejected:**\n\n"
+                    f"Your request for {latest_request.leave_type} was rejected by **{latest_request.approver_name}**."
+                )
+
+        # If there are other pending requests distinct from the latest shown above
+        other_pending = [
+            p for p in pending
+            if not latest_request or p["id"] != latest_request.id
+        ]
+        if other_pending:
+            if lang == "ar":
+                lines.append("\n📋 **طلبات إجازة أخرى معلقة:**\n")
+                for req in other_pending:
                     lines.append(
                         f"• **طلب #{req['id']} ({req['leave_type']}):** من {req['start_date']} إلى {req['end_date']} "
                         f"({req['days_requested']} أيام) — قيد المراجعة بواسطة {req['approver_name']}"
                     )
             else:
-                lines.append("📋 **Pending Leave Requests:**\n")
-                for req in pending:
+                lines.append("\n📋 **Other Pending Leave Requests:**\n")
+                for req in other_pending:
                     lines.append(
                         f"• **Request #{req['id']} ({req['leave_type']}):** {req['start_date']} to {req['end_date']} "
                         f"({req['days_requested']} working days) — Under review by {req['approver_name']}"
@@ -524,7 +583,7 @@ def handle_leave_status(state: ConversationState) -> dict:
             }
 
         return {
-            "final_answer": "\n".join(lines),
+            "final_answer": "\n".join(lines).strip(),
             "answer_status": AnswerStatus.VERIFIED.value,
             "action_payload": {
                 "action_type": "LEAVE_APPROVED_NOTIFICATION" if approved_payload else "LEAVE_PENDING_LIST",

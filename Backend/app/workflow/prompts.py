@@ -71,8 +71,8 @@ Choose one intent:
 - "greeting": a greeting or small talk with no question in it.
 - "apply_leave": an explicit intent or request to apply for, book, take, or submit leave (e.g. "I want to apply for 3 days annual leave starting Monday", "Book sick leave for tomorrow", "Submit leave request from Oct 12 to 15", "Apply for leave").
 - "cancel_leave": a request to cancel a pending or booked leave (e.g. "Cancel my leave request #2", "Cancel my leave next week").
-- "check_leave_status": a request to view or check status of pending/submitted leave applications (e.g. "What is the status of my pending leave?", "Show my leave requests", "Pending approvals", "What leave requests do I need to approve?").
-- "approve_leave": an explicit intent or command from a manager to approve an employee's leave request (e.g. "Approve leave for Ahmed", "Approve request #19", "Approve leave", "Yes approve").
+- "check_leave_status": a request to view or check status of the employee's own submitted/requested leave applications (e.g. "What is the status of my pending leave?", "What about my leave? is it approved", "Does my leaves approved by my manager", "Requested leaves?", "Requested leaves? (Does my leaves approved by my manager)").
+- "approve_leave": an explicit intent, inquiry, or command from a manager regarding approving a team member's leave request (e.g. "Approve leave for Ahmed", "Approve request #19", "Approve leave", "What leave requests do I need to approve?", "Leave request (What leave requests do I need to approve?)", "Pending approvals from my team").
 - "reject_leave": an explicit intent or command from a manager to reject an employee's leave request (e.g. "Reject leave for Ahmed", "Reject request #19", "Decline leave").
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
 
@@ -401,6 +401,42 @@ GREETING_BODY = {
         "* سياسات العمل عن بُعد\n"
         "* استرداد المصروفات\n"
         "* فترة التجربة والتقييم"
+    ),
+}
+
+ACKNOWLEDGMENT_MESSAGES = {
+    "en": (
+        "Great! Let me know if you need anything else or if you'd like to apply for leave."
+    ),
+    "ar": (
+        "ممتاز! أخبرني إذا كنت بحاجة إلى أي استفسار آخر أو ترغب في تقديم طلب إجازة."
+    ),
+}
+
+PLEASANTRY_MESSAGES = {
+    "en": (
+        "I'm doing well, thank you for asking! How can I help you with your leaves or HR policies today?"
+    ),
+    "ar": (
+        "أنا بخير، شكراً لسؤالك! كيف يمكنني مساعدتك في استفساراتك أو إجازاتك اليوم؟"
+    ),
+}
+
+GRATITUDE_MESSAGES = {
+    "en": (
+        "You're very welcome! Feel free to reach out if you have any more questions."
+    ),
+    "ar": (
+        "عفواً، يسعدني دائماً مساعدتك! لا تتردد في السؤال عن أي شيء آخر."
+    ),
+}
+
+REPEAT_GREETING_MESSAGES = {
+    "en": (
+        "Hello again, {employee_name}! How else can I assist you today?"
+    ),
+    "ar": (
+        "أهلاً بك مجدداً {employee_name}! كيف يمكنني مساعدتك أيضاً اليوم؟"
     ),
 }
 

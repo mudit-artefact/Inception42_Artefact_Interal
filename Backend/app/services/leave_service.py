@@ -472,6 +472,7 @@ def get_manager_pending_approvals(manager_id: str, session: Optional[Session] = 
         pending_requests = (
             session.query(LeaveRequest)
             .filter(
+                LeaveRequest.employee_id != manager_id,
                 (LeaveRequest.employee_id.in_(report_ids)) | (LeaveRequest.approver_name == manager.name),
                 LeaveRequest.status == "Pending",
             )

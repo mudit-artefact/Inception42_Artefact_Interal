@@ -135,22 +135,29 @@ export function ChatPanel({
                     <span className="text-[10px] text-muted-foreground font-medium mr-1">Quick Actions:</span>
                     <button
                       type="button"
+                      onClick={() => onSend("Requested leaves? (Does my leaves approved by my manager)")}
+                      className="px-2 py-1 rounded-md text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-medium transition-colors cursor-pointer"
+                    >
+                      📋 Requested leaves? (Does my leaves approved by my manager)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSend("Leave request (What leave requests do I need to approve?)")}
+                      className="px-2 py-1 rounded-md text-[11px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 font-medium transition-colors cursor-pointer"
+                    >
+                      👥 Leave request (What leave requests do I need to approve?)
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => onSend("How many annual leave days do I have left this year?")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-pink/10 hover:bg-pink/20 text-pink font-medium transition-colors"
+                      className="px-2 py-1 rounded-md text-[11px] bg-pink/10 hover:bg-pink/20 text-pink font-medium transition-colors cursor-pointer"
                     >
                       🌴 Check Leave Balance
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSend("What is the leave request workflow and notice period?")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
-                    >
-                      📄 Leave Request Workflow
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => onSend("Who is my current line manager and when did they change?")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
+                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors cursor-pointer"
                     >
                       👔 Line Manager Info
                     </button>

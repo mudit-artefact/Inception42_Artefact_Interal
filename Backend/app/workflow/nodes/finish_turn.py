@@ -15,12 +15,16 @@ from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
 import re
 from app.workflow.prompts import (
+    ACKNOWLEDGMENT_MESSAGES,
     ESCALATION_MESSAGES,
+    GRATITUDE_MESSAGES,
     GREETING_BODY,
     GREETING_MESSAGES,
     NO_EVIDENCE_MESSAGES,
     NOTHING_TO_REPHRASE_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
+    PLEASANTRY_MESSAGES,
+    REPEAT_GREETING_MESSAGES,
     message_in_language,
 )
 
@@ -33,32 +37,84 @@ ISLAMIC_GREETING_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+ACKNOWLEDGMENT_PATTERN = re.compile(
+    r"^(ok|okay|k|noted|got it|all right|alright|understood|sounds good|sure|fine|great|perfect|done|تمام|حسنا|حسناً|ماشي|اوكي|أوكي|طيب|تسلم)[\.\!\s]*$",
+    re.IGNORECASE,
+)
+
+PLEASANTRY_PATTERN = re.compile(
+    r"\b(how are you|how're you|how r u|how are you doing|how is it going|how's it going|how do you do|how have you been|how are things|كيف حالك|شخبارك|كيفك|شلونك|عساك بخير)\b",
+    re.IGNORECASE,
+)
+
+GRATITUDE_PATTERN = re.compile(
+    r"^(thank you|thanks|thank u|thx|much appreciated|many thanks|thanks a lot|شكرا|شكراً|مشكور|تسلم|يعطيك العافية|جزاك الله خير)[\.\!\s]*$",
+    re.IGNORECASE,
+)
+
 
 def generate_greeting(state: ConversationState) -> dict:
-    """Greet the employee by name with appropriate English/Arabic/Islamic response."""
+    """Greet the employee by name or respond naturally to pleasantries, gratitude, and acknowledgments."""
     requested_language = state.get("requested_language", "en")
     facts = state.get("employee_facts") or {}
     question = (state.get("employee_question") or "").strip().lower()
 
     is_arabic_script = bool(re.search(r"[\u0600-\u06FF]", question))
-    is_islamic_greeting = bool(ISLAMIC_GREETING_PATTERN.search(question))
+    lang = "ar" if (is_arabic_script or requested_language == "ar") else "en"
+    employee_name = (facts.get("name_ar") if lang == "ar" else facts.get("name")) or (facts.get("name") or "there")
 
+    # 1. Acknowledgment (e.g. "ok", "got it", "noted")
+    if ACKNOWLEDGMENT_PATTERN.match(question):
+        answer = message_in_language(ACKNOWLEDGMENT_MESSAGES, lang)
+        return {
+            "final_answer": _clean_and_format_markdown(answer),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
+
+    # 2. Gratitude (e.g. "thank you", "thanks", "شكراً")
+    if GRATITUDE_PATTERN.match(question):
+        answer = message_in_language(GRATITUDE_MESSAGES, lang)
+        return {
+            "final_answer": _clean_and_format_markdown(answer),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
+
+    # 3. Conversational pleasantry (e.g. "how are you?", "كيف حالك")
+    if PLEASANTRY_PATTERN.search(question):
+        answer = message_in_language(PLEASANTRY_MESSAGES, lang)
+        return {
+            "final_answer": _clean_and_format_markdown(answer),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
+
+    # 4. Mid-conversation repeat greeting (if conversation already has remembered turns)
+    remembered = state.get("remembered_turns") or []
+    if remembered:
+        answer_tmpl = message_in_language(REPEAT_GREETING_MESSAGES, lang)
+        answer = answer_tmpl.format(employee_name=employee_name)
+        return {
+            "final_answer": _clean_and_format_markdown(answer),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
+
+    # 5. First-turn standard welcome greeting
+    is_islamic_greeting = bool(ISLAMIC_GREETING_PATTERN.search(question))
     if is_arabic_script or is_islamic_greeting:
-        if is_arabic_script or requested_language == "ar":
-            employee_name = facts.get("name_ar") or facts.get("name") or ""
+        if lang == "ar":
             opening = f"وعليكم السلام {employee_name}! 👋".strip()
             body_lang = "ar"
         else:
-            employee_name = facts.get("name") or "there"
             opening = f"Wa 'alaykum as-salam {employee_name}! 👋"
             body_lang = "en"
     else:
-        if requested_language == "ar":
-            employee_name = facts.get("name_ar") or facts.get("name") or ""
+        if lang == "ar":
             opening = f"مرحباً {employee_name}! 👋".strip()
             body_lang = "ar"
         else:
-            employee_name = facts.get("name") or "there"
             opening = f"Hello {employee_name}! 👋"
             body_lang = "en"
 

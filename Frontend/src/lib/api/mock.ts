@@ -142,16 +142,36 @@ export function getMockEmployee(id: string | null | undefined): MockPersona {
 export const POLICY_LINKS: PolicySource[] = MOCK_EMPLOYEE.policyLinks;
 
 export const SUGGESTED_QUESTIONS: string[] = [
-  "I want to apply for leave",
+  "Has my leave request been approved?",
+  "What leave requests do I need to approve?",
+  "How do I apply for annual leave?",
   "How many annual leave days do I have left this year?",
   "What is the notice period for requesting annual leave?",
-  "What leave requests do I need to approve?",
-  "What documents do I need for sick leave over 2 days?",
   "Can I carry over unused leave into next year?",
 ];
 
 
 const MOCK_ANSWERS: { match: RegExp; answer: string; sources: PolicySource[] }[] = [
+  {
+    match: /has my leave( request)? been approved|is my leave approved|requested leaves|does my leaves? approved|status of my leave/i,
+    answer:
+      "🎉 **Yes! Your Leave Request has been Approved!**\n\n" +
+      "Your annual leave request was reviewed and approved by your manager, **Fatima Maryam Al Qubaisi**.\n\n" +
+      "You can add this leave to your calendar (.ics) or email your manager & HR in CC.",
+    sources: [
+      { title: "Annual Leave Policy", section: "HR-POL-014 Section 4", url: "#", snippet: "Approved leave is officially logged in Omni HR.", score: 0.98 },
+    ],
+  },
+  {
+    match: /what leave requests do i need to approve|leave requests? to approve|need to approve/i,
+    answer:
+      "📋 **Pending Leave Requests Awaiting Your Approval:**\n\n" +
+      "• **Request #18** by **Sara Nasser** (Consultant, Strategy): 10 days of Annual Leave from 2026-10-05 to 2026-10-16\n\n" +
+      "You can review and click **Approve Leave** or **Reject** on the card, or state the request ID.",
+    sources: [
+      { title: "Manager Leave Approval Duties", section: "HR-PRO-011 Section 2", url: "#", snippet: "Line managers must review leave requests within 3 working days.", score: 0.95 },
+    ],
+  },
   {
     match: /carry|carry-over|rollover/i,
     answer:
