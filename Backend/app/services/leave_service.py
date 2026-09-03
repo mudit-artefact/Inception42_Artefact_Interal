@@ -89,12 +89,22 @@ def get_required_notice_days(working_days: int) -> int:
 def normalize_leave_type(raw_type: str) -> str:
     """Map colloquial leave mentions to official DB leave types."""
     lower = (raw_type or "").strip().lower()
-    if "sick" in lower or "medical" in lower or "ill" in lower:
+    if any(w in lower for w in ["sick", "medical", "ill", "doctor", "hospital"]):
         return "Sick leave"
-    if "emergency" in lower:
+    if any(w in lower for w in ["emergency", "urgent"]):
         return "Emergency leave"
-    if "unpaid" in lower:
+    if any(w in lower for w in ["unpaid", "without pay"]):
         return "Unpaid leave"
+    if any(w in lower for w in ["maternity", "mother", "childbirth"]):
+        return "Maternity leave"
+    if any(w in lower for w in ["paternity", "parental", "father"]):
+        return "Paternity leave"
+    if any(w in lower for w in ["bereavement", "compassionate", "mourning", "death", "condolence"]):
+        return "Bereavement leave"
+    if any(w in lower for w in ["hajj", "pilgrimage"]):
+        return "Hajj leave"
+    if any(w in lower for w in ["study", "exam"]):
+        return "Study leave"
     return "Annual leave"
 
 
@@ -132,8 +142,45 @@ def validate_leave_policy(
             )
 
         leave_type = normalize_leave_type(draft.leave_type)
-        start_date = draft.start_date or date.today().strftime("%Y-%m-%d")
-        end_date = draft.end_date or start_date
+        start_date_str = draft.start_date or date.today().strftime("%Y-%m-%d")
+        end_date_str = draft.end_date or start_date_str
+
+        # 0. Date syntax validation
+        try:
+            d_start = parse_iso_date(start_date_str)
+            d_end = parse_iso_date(end_date_str)
+        except (ValueError, TypeError):
+            return LeaveValidationResult(
+                is_valid=False,
+                violations=["Invalid date format: Please provide dates in standard YYYY-MM-DD format."],
+                leave_type=leave_type,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                working_days=0,
+                balance_before=0.0,
+                balance_after=0.0,
+                notice_days_provided=0,
+                notice_days_required=0,
+                notice_compliant=False,
+                approver_name=employee.manager_name,
+            )
+
+        # Inverted date range check
+        if d_end < d_start:
+            return LeaveValidationResult(
+                is_valid=False,
+                violations=[f"Invalid date range: End date ({end_date_str}) cannot be earlier than start date ({start_date_str})."],
+                leave_type=leave_type,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                working_days=0,
+                balance_before=0.0,
+                balance_after=0.0,
+                notice_days_provided=0,
+                notice_days_required=0,
+                notice_compliant=False,
+                approver_name=employee.manager_name,
+            )
 
         # Retrieve current balance
         balance_row = (
@@ -146,10 +193,8 @@ def validate_leave_policy(
         )
         balance_before = float(balance_row.remaining_days) if balance_row else 0.0
 
-        working_days = calculate_working_days(start_date, end_date)
+        working_days = calculate_working_days(start_date_str, end_date_str)
         if working_days <= 0:
-            d_start = parse_iso_date(start_date)
-            d_end = parse_iso_date(end_date)
             holidays_in_range = []
             curr = d_start
             while curr <= d_end:
@@ -186,8 +231,8 @@ def validate_leave_policy(
                 is_valid=False,
                 violations=[msg],
                 leave_type=leave_type,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_date_str,
+                end_date=end_date_str,
                 working_days=0,
                 balance_before=balance_before,
                 balance_after=balance_before,
@@ -199,16 +244,33 @@ def validate_leave_policy(
 
         violations = []
 
-        # 1. Balance sufficiency check
+        # 1. Overlapping leave request check (Duplicate / Conflict)
+        overlapping = (
+            session.query(LeaveRequest)
+            .filter(
+                LeaveRequest.employee_id == employee_id,
+                LeaveRequest.status.in_(["Pending", "Approved"]),
+                LeaveRequest.start_date <= end_date_str,
+                LeaveRequest.end_date >= start_date_str,
+            )
+            .first()
+        )
+        if overlapping:
+            violations.append(
+                f"Conflicting leave request: You already have a {overlapping.status} leave request #{overlapping.id} "
+                f"({overlapping.leave_type}) from {overlapping.start_date} to {overlapping.end_date} covering these dates."
+            )
+
+        # 2. Balance sufficiency check
         if balance_before < working_days:
             violations.append(
                 f"Insufficient leave balance: You have {balance_before:.1f} {balance_row.unit if balance_row else 'days'} "
                 f"available, but requested {working_days} working days."
             )
 
-        # 2. Advance notice check (for Annual Leave per HC-PC-001 §1.4)
+        # 3. Advance notice check (for Annual Leave per HC-PC-001 §1.4)
         today_str = as_of_date or date.today().strftime("%Y-%m-%d")
-        notice_days_provided = calculate_notice_days(today_str, start_date)
+        notice_days_provided = calculate_notice_days(today_str, start_date_str)
         notice_days_required = get_required_notice_days(working_days)
         notice_compliant = True
 
@@ -220,7 +282,7 @@ def validate_leave_policy(
                 f"Only {notice_days_provided} working days notice was provided."
             )
 
-        # 3. Active probation restriction check (HC-PC-003 §3.2)
+        # 4. Active probation restriction check (HC-PC-003 §3.2)
         if leave_type == "Annual leave" and employee.probation_status in ("Active", "Extended"):
             violations.append(
                 f"Probation restriction: Your probation status is '{employee.probation_status}'. "
@@ -228,7 +290,7 @@ def validate_leave_policy(
                 "without special HR Director authorization."
             )
 
-        # 4. Medical certificate requirement for sick leave (HC-PC-002 §2.4)
+        # 5. Medical certificate requirement for sick leave (HC-PC-002 §2.4)
         requires_medical_certificate = False
         if leave_type == "Sick leave" and working_days > 2:
             requires_medical_certificate = True
@@ -240,8 +302,8 @@ def validate_leave_policy(
             is_valid=is_valid,
             violations=violations,
             leave_type=leave_type,
-            start_date=start_date,
-            end_date=end_date,
+            start_date=start_date_str,
+            end_date=end_date_str,
             working_days=working_days,
             balance_before=balance_before,
             balance_after=balance_after,
@@ -302,6 +364,40 @@ def commit_leave_request(
         session.commit()
         session.refresh(new_request)
 
+        # Dispatch Manager Notification
+        try:
+            from app.services.notification_service import create_notification
+            emp = session.query(Employee).filter(Employee.user_id == employee_id).first()
+            manager_target_id = emp.manager_id if emp and emp.manager_id else None
+            if not manager_target_id and emp and emp.manager_name:
+                mgr_record = session.query(Employee).filter(Employee.name == emp.manager_name).first()
+                if mgr_record:
+                    manager_target_id = mgr_record.user_id
+
+            if manager_target_id:
+                create_notification(
+                    recipient_id=manager_target_id,
+                    sender_id=employee_id,
+                    event_type="LEAVE_REQUESTED",
+                    title=f"Leave Request: {emp.name if emp else employee_id}",
+                    message=(
+                        f"{emp.name if emp else employee_id} requested {validation.working_days} working days "
+                        f"of {validation.leave_type} ({validation.start_date} to {validation.end_date})."
+                    ),
+                    action_payload={
+                        "request_id": new_request.id,
+                        "employee_id": employee_id,
+                        "employee_name": emp.name if emp else employee_id,
+                        "leave_type": validation.leave_type,
+                        "start_date": validation.start_date,
+                        "end_date": validation.end_date,
+                        "days_requested": validation.working_days,
+                    },
+                    session=session,
+                )
+        except Exception as notif_err:
+            logger.warning(f"Could not dispatch manager notification for leave request #{new_request.id}: {notif_err}")
+
         logger.info(
             f"Successfully queued pending leave request ID #{new_request.id} for {employee_id}: "
             f"{validation.working_days} days of {validation.leave_type} awaiting approval by {new_request.approver_name}"
@@ -339,6 +435,7 @@ def approve_leave_request(
     1. Validates request is Pending.
     2. Officially debits the LeaveBalance.
     3. Marks LeaveRequest as Approved.
+    4. Dispatches employee approval notification.
     """
     close_session = False
     if session is None:
@@ -370,6 +467,33 @@ def approve_leave_request(
 
         req.status = "Approved"
         session.commit()
+
+        # Dispatch Employee Notification
+        try:
+            from app.services.notification_service import create_notification
+            approver_display = manager.name if manager else req.approver_name
+            create_notification(
+                recipient_id=req.employee_id,
+                sender_id=manager_id,
+                event_type="LEAVE_APPROVED",
+                title=f"Leave Request #{req.id} Approved 🎉",
+                message=(
+                    f"Your request for {req.days_requested} working days of {req.leave_type} "
+                    f"({req.start_date} to {req.end_date}) has been approved by {approver_display}."
+                ),
+                action_payload={
+                    "request_id": req.id,
+                    "status": "Approved",
+                    "approver_name": approver_display,
+                    "leave_type": req.leave_type,
+                    "start_date": req.start_date,
+                    "end_date": req.end_date,
+                    "days_requested": req.days_requested,
+                },
+                session=session,
+            )
+        except Exception as notif_err:
+            logger.warning(f"Could not dispatch approval notification for request #{req.id}: {notif_err}")
 
         logger.info(f"Manager {manager_id} approved leave request #{req.id} for {req.employee_id}")
 
@@ -403,7 +527,7 @@ def reject_leave_request(
     reason: str = "",
     session: Optional[Session] = None,
 ) -> dict:
-    """Manager rejects a pending leave request."""
+    """Manager rejects a pending leave request and notifies employee."""
     close_session = False
     if session is None:
         session = SessionLocal()
@@ -423,6 +547,34 @@ def reject_leave_request(
         if reason:
             req.notes = f"{req.notes} | Rejected: {reason}".strip(" |")
         session.commit()
+
+        # Dispatch Employee Rejection Notification
+        try:
+            from app.services.notification_service import create_notification
+            approver_display = manager.name if manager else req.approver_name
+            reason_text = f" Reason: {reason}" if reason else ""
+            create_notification(
+                recipient_id=req.employee_id,
+                sender_id=manager_id,
+                event_type="LEAVE_REJECTED",
+                title=f"Leave Request #{req.id} Declined",
+                message=(
+                    f"Your request for {req.days_requested} days of {req.leave_type} "
+                    f"was declined by {approver_display}.{reason_text}"
+                ),
+                action_payload={
+                    "request_id": req.id,
+                    "status": "Rejected",
+                    "rejection_reason": reason,
+                    "approver_name": approver_display,
+                    "leave_type": req.leave_type,
+                    "start_date": req.start_date,
+                    "end_date": req.end_date,
+                },
+                session=session,
+            )
+        except Exception as notif_err:
+            logger.warning(f"Could not dispatch rejection notification for request #{req.id}: {notif_err}")
 
         logger.info(f"Manager {manager_id} rejected leave request #{req.id} for {req.employee_id}")
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChatPanel } from "@/components/concierge/ChatPanel";
 import { ConversationHistory } from "@/components/concierge/ConversationHistory";
 import { EmployeeCard } from "@/components/concierge/EmployeeCard";
+import { NotificationCenter } from "@/components/concierge/NotificationCenter";
 import { UserSwitcher } from "@/components/concierge/UserSwitcher";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -96,7 +97,13 @@ function ConciergePage() {
           <h1 className="font-display text-sm font-semibold tracking-tight">{TITLE}</h1>
         </div>
 
-        <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
+        <div className="flex items-center gap-2">
+          <NotificationCenter
+            employeeId={employeeId}
+            onActionClick={(prompt) => concierge.sendMessage(prompt)}
+          />
+          <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">

@@ -52,6 +52,7 @@ class Employee(Base):
     expense_claims = relationship("ExpenseClaim", back_populates="employee", cascade="all, delete-orphan")
     dependents = relationship("Dependent", back_populates="employee", cascade="all, delete-orphan")
     school_cases = relationship("SchoolVerificationCase", back_populates="employee", cascade="all, delete-orphan")
+    notifications_received = relationship("Notification", foreign_keys="[Notification.recipient_id]", back_populates="recipient", cascade="all, delete-orphan")
 
 
 class LeaveBalance(Base):
@@ -211,4 +212,23 @@ class SchoolVerificationCase(Base):
     employee = relationship("Employee", back_populates="school_cases")
     dependent = relationship("Dependent", back_populates="school_cases")
     academic_cycle = relationship("AcademicCycle", back_populates="school_cases")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    recipient_id = Column(String(32), ForeignKey("employees.user_id"), nullable=False, index=True)
+    sender_id = Column(String(32), ForeignKey("employees.user_id"), nullable=True, index=True)
+    event_type = Column(String(64), nullable=False)  # LEAVE_REQUESTED, LEAVE_APPROVED, LEAVE_REJECTED, etc.
+    title = Column(String(256), nullable=False)
+    message = Column(Text, nullable=False)
+    action_url = Column(String(256), nullable=True, default="")
+    action_payload = Column(Text, nullable=True)  # JSON serialized payload
+    is_read = Column(Integer, nullable=False, default=0)  # 0 = unread, 1 = read
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    recipient = relationship("Employee", foreign_keys=[recipient_id], back_populates="notifications_received")
+    sender = relationship("Employee", foreign_keys=[sender_id])
+
 

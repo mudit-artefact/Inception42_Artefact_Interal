@@ -14,6 +14,7 @@ from app.database.tables import (
     LeaveBalance,
     LeaveRequest,
     ManagerHistory,
+    Notification,
     SchoolVerificationCase,
 )
 
@@ -78,6 +79,7 @@ def seed_database(session: Session, force: bool = False) -> int:
 def _delete_everything(session: Session) -> None:
     """Remove records child-first, so no row is orphaned mid-delete."""
     for table in (
+        Notification,
         SchoolVerificationCase,
         Dependent,
         AcademicCycle,
