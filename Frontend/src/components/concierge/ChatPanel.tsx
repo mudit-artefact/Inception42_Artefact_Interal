@@ -89,7 +89,7 @@ export function ChatPanel({
   return (
     <div className="flex h-full flex-col">
       <Conversation className="flex-1">
-        <ConversationContent className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-6">
+        <ConversationContent className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="flex size-14 items-center justify-center rounded-2xl bg-pink/10 text-pink ring-8 ring-pink/5">
@@ -301,7 +301,7 @@ export function ChatPanel({
       </Conversation>
 
       <div className="border-t bg-card/60 backdrop-blur">
-        <div className="mx-auto w-full max-w-3xl space-y-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto w-full max-w-4xl space-y-3 px-4 py-4 sm:px-6">
           {isEmpty ? (
             <SuggestedQuestions questions={SUGGESTED_QUESTIONS} onSelect={onSend} disabled={busy} />
           ) : null}

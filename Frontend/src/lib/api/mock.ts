@@ -144,8 +144,10 @@ export const POLICY_LINKS: PolicySource[] = MOCK_EMPLOYEE.policyLinks;
 export const SUGGESTED_QUESTIONS: string[] = [
   "Has my leave request been approved?",
   "What leave requests do I need to approve?",
+  "Notice period for annual leave?",
   "How do I apply for annual leave?",
   "How many annual leave days do I have left?",
+  "Can I carry over unused leave into next year?",
 ];
 
 
