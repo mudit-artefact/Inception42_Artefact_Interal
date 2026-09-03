@@ -26,6 +26,10 @@ class QuestionIntent(StrEnum):
     CHECK_LEAVE_STATUS = "check_leave_status"
     APPROVE_LEAVE = "approve_leave"
     REJECT_LEAVE = "reject_leave"
+    # HCS-11 Proof of Schooling & Education Allowance intents
+    CHECK_SCHOOL_VERIFICATION = "check_school_verification"
+    SUBMIT_SCHOOL_VERIFICATION = "submit_school_verification"
+    REVIEW_SCHOOL_CASES = "review_school_cases"
 
 
 

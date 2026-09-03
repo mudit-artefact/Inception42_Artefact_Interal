@@ -52,6 +52,13 @@ def decide_after_understanding(state: ConversationState) -> str:
     if intent in (QuestionIntent.APPROVE_LEAVE, QuestionIntent.REJECT_LEAVE):
         return "handle_manager_approval"
 
+    if intent in (
+        QuestionIntent.CHECK_SCHOOL_VERIFICATION,
+        QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
+        QuestionIntent.REVIEW_SCHOOL_CASES,
+    ):
+        return "handle_school_verification"
+
 
     # A request to rework the last reply is answered from that reply, not by searching
     # the policy documents for the words "make that shorter". Asked before there is a

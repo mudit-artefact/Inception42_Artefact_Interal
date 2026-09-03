@@ -12,7 +12,7 @@ export function SuggestedQuestions({ questions, onSelect, disabled }: SuggestedQ
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         FAQs
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {questions.map((q) => (
           <button
             key={q}

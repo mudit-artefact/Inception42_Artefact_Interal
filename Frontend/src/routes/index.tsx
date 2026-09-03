@@ -11,9 +11,9 @@ import { useActiveEmployee } from "@/hooks/useActiveEmployee";
 import { useConcierge } from "@/hooks/useConcierge";
 import { InceptionLogo } from "@/components/common/InceptionLogo";
 
-const TITLE = "HCS-01 Policy & Leave Concierge";
+const TITLE = "Bayan HR";
 const DESCRIPTION =
-  "Ask HR policy and leave questions and get cited answers from the approved HCS-01 policy library, with your live leave balance alongside.";
+  "Ask HR policy and leave questions and get cited answers from the approved Bayan HR policy library, with your live leave balance alongside.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -109,7 +109,6 @@ function ConciergePage() {
               onNew={concierge.startNew}
               onDelete={concierge.deleteConversation}
               onClearAll={concierge.clearAll}
-              onToggleCollapse={() => setSidebarOpen(false)}
             />
           </aside>
         )}

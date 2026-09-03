@@ -12,10 +12,10 @@ from app.services.evaluation_service import run_benchmark_evaluation
 
 logger = logging.getLogger(__name__)
 
-SERVICE_NAME = "HCS-01 Policy & Leave Concierge"
+SERVICE_NAME = "Bayan HR — Policy & Leave Concierge"
 SERVICE_VERSION = "1.0.0"
 
-router = APIRouter(tags=["Policy & Leave Concierge"])
+router = APIRouter(tags=["Bayan HR"])
 
 
 @router.get(

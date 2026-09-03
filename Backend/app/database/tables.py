@@ -24,6 +24,13 @@ class Employee(Base):
     grade = Column(String(32), nullable=False, default="Grade 3")
     # 1.0 is full time. Annual leave is pro-rated against this (HC-PC-001 §1.2.3).
     employment_fraction = Column(Float, nullable=False, default=1.0)
+    payroll_id = Column(String(32), nullable=True, default="")
+    legal_entity = Column(String(128), nullable=False, default="Demo Entity UAE")
+    work_location = Column(String(128), nullable=False, default="Dubai Office")
+    benefit_plan_code = Column(String(64), nullable=False, default="EDU_STANDARD")
+    preferred_language = Column(String(32), nullable=False, default="Arabic")
+    employment_status = Column(String(32), nullable=False, default="Active")
+    exit_date = Column(String(32), nullable=True)
     email = Column(String(128), nullable=False)
     phone = Column(String(64), nullable=False, default="+971 50 123 4567")
     location = Column(String(128), nullable=False, default="Dubai Office, Level 14")
@@ -43,6 +50,8 @@ class Employee(Base):
     manager_history = relationship("ManagerHistory", back_populates="employee", cascade="all, delete-orphan")
     leave_requests = relationship("LeaveRequest", back_populates="employee", cascade="all, delete-orphan")
     expense_claims = relationship("ExpenseClaim", back_populates="employee", cascade="all, delete-orphan")
+    dependents = relationship("Dependent", back_populates="employee", cascade="all, delete-orphan")
+    school_cases = relationship("SchoolVerificationCase", back_populates="employee", cascade="all, delete-orphan")
 
 
 class LeaveBalance(Base):
@@ -122,3 +131,84 @@ class ExpenseClaim(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     employee = relationship("Employee", back_populates="expense_claims")
+
+
+class Dependent(Base):
+    __tablename__ = "dependents"
+
+    dependent_id = Column(String(32), primary_key=True, index=True)  # e.g. D0001
+    employee_id = Column(String(32), ForeignKey("employees.user_id"), nullable=False, index=True)
+    first_name = Column(String(64), nullable=False)
+    last_name = Column(String(64), nullable=False)
+    relationship_type = Column(String(32), nullable=False, default="Child")  # Child, Spouse
+    date_of_birth = Column(String(32), nullable=False)
+    dependent_status = Column(String(32), nullable=False, default="Active")
+    school_enrolment_status = Column(String(32), nullable=False, default="Enrolled")
+    preferred_language = Column(String(32), nullable=False, default="Arabic")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    employee = relationship("Employee", back_populates="dependents")
+    school_cases = relationship("SchoolVerificationCase", back_populates="dependent", cascade="all, delete-orphan")
+
+
+class BenefitPlanRule(Base):
+    __tablename__ = "benefit_plan_rules"
+
+    plan_code = Column(String(64), primary_key=True, index=True)  # EDU_STANDARD, EDU_ENHANCED, NONE
+    plan_name = Column(String(128), nullable=False)
+    annual_limit_aed = Column(Integer, nullable=False, default=0)
+    eligible_employee_statuses = Column(String(128), nullable=False, default="Active | On Leave")
+    eligible_relationship = Column(String(64), nullable=False, default="Child")
+    dependent_status_required = Column(String(64), nullable=False, default="Active")
+    school_enrolment_required = Column(String(64), nullable=False, default="Enrolled")
+    required_document_type = Column(String(128), nullable=False, default="Proof of schooling")
+    manual_review_conditions = Column(Text, nullable=False, default="Low extraction confidence | record mismatch | missing mandatory field")
+    required_documents = Column(Text, nullable=True)
+    claimable_charges = Column(Text, nullable=True)
+    effective_start = Column(String(32), nullable=False, default="2026-08-01")
+    effective_end = Column(String(32), nullable=False, default="2027-07-31")
+    active_flag = Column(String(16), nullable=False, default="Yes")
+
+
+class AcademicCycle(Base):
+    __tablename__ = "academic_cycles"
+
+    cycle_id = Column(String(32), primary_key=True, index=True)  # AC2026-27
+    academic_year = Column(String(32), nullable=False)
+    cycle_status = Column(String(32), nullable=False, default="Open")
+    submission_open_date = Column(String(32), nullable=False)
+    submission_deadline = Column(String(32), nullable=False)
+    review_deadline = Column(String(32), nullable=False)
+    payroll_cutoff = Column(String(32), nullable=False)
+    accepted_issue_start = Column(String(32), nullable=False)
+    accepted_issue_end = Column(String(32), nullable=False)
+
+    school_cases = relationship("SchoolVerificationCase", back_populates="academic_cycle", cascade="all, delete-orphan")
+
+
+class SchoolVerificationCase(Base):
+    __tablename__ = "school_verification_cases"
+
+    case_id = Column(String(32), primary_key=True, index=True)  # CASE0001
+    employee_id = Column(String(32), ForeignKey("employees.user_id"), nullable=False, index=True)
+    dependent_id = Column(String(32), ForeignKey("dependents.dependent_id"), nullable=False, index=True)
+    cycle_id = Column(String(32), ForeignKey("academic_cycles.cycle_id"), nullable=False, index=True)
+    case_status = Column(String(64), nullable=False, default="Submitted")
+    submission_deadline = Column(String(32), nullable=False)
+    reminder_count = Column(Integer, nullable=False, default=0)
+    document_reference = Column(String(256), nullable=True)
+    extraction_status = Column(String(64), nullable=False, default="Pending")
+    matching_status = Column(String(64), nullable=False, default="Not Started")
+    rules_check_status = Column(String(64), nullable=False, default="Not Started")
+    human_review_status = Column(String(64), nullable=False, default="Not Required")
+    final_outcome = Column(String(64), nullable=False, default="Not Evaluated")
+    approved_amount_aed = Column(Integer, nullable=True)
+    payment_status = Column(String(64), nullable=False, default="Not Ready")
+    assigned_reviewer = Column(String(128), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    employee = relationship("Employee", back_populates="school_cases")
+    dependent = relationship("Dependent", back_populates="school_cases")
+    academic_cycle = relationship("AcademicCycle", back_populates="school_cases")
+

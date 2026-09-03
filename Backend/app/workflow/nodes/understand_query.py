@@ -76,6 +76,25 @@ def understand_query(state: ConversationState) -> dict:
         r"^(thank you|thanks|thank u|thx|much appreciated|many thanks|thanks a lot|شكرا|شكراً|مشكور|تسلم|يعطيك العافية|جزاك الله خير)[\.\!\s]*$",
     ]
 
+    # Fast deterministic intent override for HCS-11 School Verification & Education Allowance
+    school_check_patterns = [
+        r"\b(school(ing)?|child(ren)?('s)?|dependent('s)?|education)\s+(verification|allowance|proof|certificate|status|claim)\b",
+        r"\bstatus of (my )?(child|school|education|dependent|rami|dana|hana|ziad|sara|maya)\b",
+        r"\b(is|did|has) (my )?(child|school|education|rami|dana|hana|ziad)('s)? (verification|letter|certificate) (approved|cleared|submitted)\b",
+        r"\bhow much (education|school(ing)?) allowance\b",
+        r"\b(education|school) allowance\b",
+        r"\bproof of schooling\b",
+        r"\bschool letter\b",
+    ]
+    school_submit_patterns = [
+        r"\b(submit|upload|send|apply for)\s+(proof of schooling|school(ing)?|child(ren)?|education)\b",
+        r"\b(submit|upload|send)\s+(a\s+)?(school\s+)?(letter|certificate|proof|document)\b",
+    ]
+    school_review_patterns = [
+        r"\b(school|education)\s+(cases?|claims?)\s+(needing|to|awaiting|pending)\s+review\b",
+        r"\bpending school(ing)? (verifications?|cases?|approvals?)\b",
+    ]
+
     if any(re.search(pat, q_norm) for pat in own_status_patterns):
         understanding = QueryUnderstanding(
             intent=QuestionIntent.CHECK_LEAVE_STATUS,
@@ -88,6 +107,33 @@ def understand_query(state: ConversationState) -> dict:
     elif any(re.search(pat, q_norm) for pat in manager_approval_patterns):
         understanding = QueryUnderstanding(
             intent=QuestionIntent.APPROVE_LEAVE,
+            confidence=1.0,
+            needs_clarification=False,
+            needs_rewrite=False,
+            is_multi_question=False,
+            missing_information=[],
+        )
+    elif any(re.search(pat, q_norm) for pat in school_submit_patterns):
+        understanding = QueryUnderstanding(
+            intent=QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
+            confidence=1.0,
+            needs_clarification=False,
+            needs_rewrite=False,
+            is_multi_question=False,
+            missing_information=[],
+        )
+    elif any(re.search(pat, q_norm) for pat in school_review_patterns):
+        understanding = QueryUnderstanding(
+            intent=QuestionIntent.REVIEW_SCHOOL_CASES,
+            confidence=1.0,
+            needs_clarification=False,
+            needs_rewrite=False,
+            is_multi_question=False,
+            missing_information=[],
+        )
+    elif any(re.search(pat, q_norm) for pat in school_check_patterns):
+        understanding = QueryUnderstanding(
+            intent=QuestionIntent.CHECK_SCHOOL_VERIFICATION,
             confidence=1.0,
             needs_clarification=False,
             needs_rewrite=False,

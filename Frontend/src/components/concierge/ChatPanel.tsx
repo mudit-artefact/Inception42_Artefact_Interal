@@ -313,7 +313,7 @@ export function ChatPanel({
                   : "Ask about leave entitlement, notice periods, medical certificates…"
               }
               disabled={busy}
-              aria-label="Message the policy concierge"
+              aria-label="Message Bayan HR"
             />
             <PromptInputFooter className="justify-between">
               <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

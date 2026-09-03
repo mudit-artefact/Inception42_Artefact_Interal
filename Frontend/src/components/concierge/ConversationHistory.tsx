@@ -1,4 +1,4 @@
-import { MessageSquare, PanelLeftClose, Plus, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Conversation } from "@/lib/api/types";
 
@@ -9,7 +9,6 @@ interface ConversationHistoryProps {
   onNew: () => void;
   onDelete: (id: string) => void;
   onClearAll?: () => void;
-  onToggleCollapse?: () => void;
 }
 
 const formatDate = (iso: string) => {
@@ -28,7 +27,6 @@ export function ConversationHistory({
   onNew,
   onDelete,
   onClearAll,
-  onToggleCollapse,
 }: ConversationHistoryProps) {
   // One empty, unused conversation is the cleared state, not something worth clearing.
   const hasAnythingToClear = conversations.some((c) => c.messages.length > 0);
@@ -44,28 +42,15 @@ export function ConversationHistory({
         <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           History
         </p>
-        <div className="flex items-center gap-2">
-          {onClearAll && hasAnythingToClear ? (
-            <button
-              type="button"
-              onClick={onClearAll}
-              className="rounded text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
-            >
-              Clear all
-            </button>
-          ) : null}
-          {onToggleCollapse ? (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              title="Close history sidebar"
-              aria-label="Close history sidebar"
-              className="hidden lg:inline-flex rounded p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-            >
-              <PanelLeftClose aria-hidden="true" className="size-3.5" />
-            </button>
-          ) : null}
-        </div>
+        {onClearAll && hasAnythingToClear ? (
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="rounded text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+          >
+            Clear all
+          </button>
+        ) : null}
       </div>
       <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
         {conversations.map((c) => {

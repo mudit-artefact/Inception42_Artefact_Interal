@@ -44,6 +44,14 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
     """
     employee = session.query(Employee).filter(Employee.user_id == employee_id).first()
     if employee is None:
+        if employee_id.startswith("E") and len(employee_id) == 5:
+            alt_id = "EMP" + employee_id[1:]
+            employee = session.query(Employee).filter(Employee.user_id == alt_id).first()
+        elif employee_id.startswith("EMP") and len(employee_id) == 6:
+            alt_id = "E" + employee_id[3:]
+            employee = session.query(Employee).filter(Employee.user_id == alt_id).first()
+
+    if employee is None:
         raise EmployeeNotFoundError(employee_id)
 
     leave_balances = [

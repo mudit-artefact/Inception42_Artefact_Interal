@@ -59,6 +59,7 @@ from app.workflow.nodes.handle_leave_action import (
     handle_leave_status,
     handle_manager_approval,
 )
+from app.workflow.nodes.handle_school_verification import handle_school_verification
 from app.workflow.nodes.load_employee_facts import load_employee_facts
 from app.workflow.nodes.rephrase_previous_answer import rephrase_previous_answer
 from app.workflow.nodes.rewrite_and_decompose import rewrite_and_decompose_query
@@ -100,6 +101,8 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_node("handle_leave_cancellation", handle_leave_cancellation)
     workflow.add_node("handle_leave_status", handle_leave_status)
     workflow.add_node("handle_manager_approval", handle_manager_approval)
+    # HCS-11 School Verification Action Node
+    workflow.add_node("handle_school_verification", handle_school_verification)
 
     workflow.add_edge(START, "load_employee_facts")
     workflow.add_edge("load_employee_facts", "understand_query")
@@ -118,6 +121,7 @@ def build_conversation_workflow() -> StateGraph:
             "handle_leave_cancellation": "handle_leave_cancellation",
             "handle_leave_status": "handle_leave_status",
             "handle_manager_approval": "handle_manager_approval",
+            "handle_school_verification": "handle_school_verification",
         },
     )
 
@@ -164,6 +168,7 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_edge("handle_leave_cancellation", "record_conversation_turn")
     workflow.add_edge("handle_leave_status", "record_conversation_turn")
     workflow.add_edge("handle_manager_approval", "record_conversation_turn")
+    workflow.add_edge("handle_school_verification", "record_conversation_turn")
     workflow.add_edge("record_conversation_turn", END)
 
 

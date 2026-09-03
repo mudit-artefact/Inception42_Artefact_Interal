@@ -170,7 +170,9 @@ def stub_policy_search_service(monkeypatch):
     def search(query, top_k=5, language=None):
         return list(canned_passages)
 
+    from app.services import policy_search_service
     monkeypatch.setattr(gather_evidence, "search_policies", search)
+    monkeypatch.setattr(policy_search_service, "search_policies", search)
     return canned_passages
 
 

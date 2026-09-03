@@ -44,7 +44,7 @@ ALLOWED_BROWSER_ORIGINS = [
 def create_application() -> FastAPI:
     """Build the application, ready to serve."""
     application = FastAPI(
-        title="HCS-01 Policy & Leave Concierge API",
+        title="Bayan HR — Policy & Leave Concierge API",
         description=(
             "A bilingual English and Arabic HR assistant for HC Services staff. Answers "
             "from the company's policy documents and the employee's own HR record, and "

@@ -12,7 +12,7 @@ from tests.workflow.conftest import (  # noqa: F401
 
 
 @pytest.fixture
-def client():
+def client(stub_policy_search_service):
     """The application, started, with the fake language model already in place."""
     from fastapi.testclient import TestClient
 

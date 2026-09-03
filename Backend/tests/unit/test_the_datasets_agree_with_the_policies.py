@@ -27,7 +27,6 @@ SERVICE_LADDER = [(0, 2, 21), (3, 5, 24), (6, 9, 26), (10, 99, 30)]
 # Employees whose record departs from the ladder, and the reason the policy allows it.
 DOCUMENTED_EXCEPTIONS = {
     "EMP007": "part-time at 0.6 FTE, pro-rated under HC-PC-001 §1.2.3",
-    "EMP008": "contractual entitlement above the policy, permitted by HC-PC-001 §1.1",
 }
 
 
