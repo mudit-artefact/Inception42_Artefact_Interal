@@ -96,8 +96,8 @@ export function ChatPanel({
         <ConversationContent className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl bg-pink/10 text-pink ring-8 ring-pink/5">
-                <InceptionLogo className="h-8 w-auto" />
+              <div className="mb-3 flex items-center justify-center">
+                <InceptionLogo className="h-10 sm:h-12 w-auto" />
               </div>
               <h2 className="mt-4 font-display text-lg font-semibold tracking-tight text-foreground">
                 Hello! How can I support your HR needs today?
