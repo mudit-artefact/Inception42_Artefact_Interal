@@ -15,6 +15,8 @@ from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
 import re
 from app.workflow.prompts import (
+    DOCUMENT_UPLOAD_RESPONSE,
+    DOCUMENT_UPLOAD_RESPONSE_WITH_FILES,
     ESCALATION_MESSAGES,
     GREETING_BODY,
     GREETING_MESSAGES,
@@ -32,6 +34,82 @@ ISLAMIC_GREETING_PATTERN = re.compile(
     r"|[\u0600-\u06FF]*سلام[\u0600-\u06FF]*|السلام\s+عليكم",
     re.IGNORECASE,
 )
+
+
+def generate_document_upload_prompt(state: ConversationState) -> dict:
+    """
+    Respond to a document upload request with instructions and trigger the upload UI.
+
+    The intent is set to 'document_upload' so the frontend knows to show the upload button.
+    """
+    question = (state.get("employee_question") or "").lower()
+
+    # Check if this is a status check or confirmation (not an upload request)
+    status_indicators = [
+        # Confirmations
+        "uploaded successfully",
+        "were just uploaded",
+        "have been submitted",
+        "just submitted",
+        "submitted successfully",
+        "documents were uploaded",
+        "confirm the status",
+        "confirmation",
+        # Status check questions
+        "are documents reviewed",
+        "are my documents reviewed",
+        "documents reviewed",
+        "is my verification",
+        "what is the status",
+        "check status",
+        "check the status",
+        "verification status",
+        "document status",
+        "have my documents been",
+        "were my documents",
+        "did you receive",
+        "did my documents",
+        "are they approved",
+        "is it approved",
+        "when will",
+        "how long",
+    ]
+    is_status_check = any(indicator in question for indicator in status_indicators)
+
+    if is_status_check:
+        # User is asking about document status - give helpful response
+        response = """\
+To check the current status of your school verification documents, please click the **Upload Documents** button below.
+
+This will show you:
+• Which documents have been received
+• Any issues that need to be fixed
+• The current review status of your case
+
+If your documents are under review, our team typically completes the review within 2-3 business days. Once approved, the payment will be processed through payroll.\
+"""
+        return {
+            "final_answer": response,
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
+
+    # Check if the message indicates files were attached
+    has_files_attached = any(
+        indicator in question
+        for indicator in ["[file", "[document", "[attached", "[uploaded", "attached file"]
+    )
+
+    if has_files_attached:
+        response = DOCUMENT_UPLOAD_RESPONSE_WITH_FILES
+    else:
+        response = DOCUMENT_UPLOAD_RESPONSE
+
+    return {
+        "final_answer": response,
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+    }
 
 
 def generate_greeting(state: ConversationState) -> dict:

@@ -48,6 +48,7 @@ from app.workflow.nodes.clarification import (
 from app.workflow.nodes.finish_turn import (
     build_safe_fallback,
     finalize_verified_answer,
+    generate_document_upload_prompt,
     generate_greeting,
     record_conversation_turn,
 )
@@ -76,6 +77,7 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_node("load_employee_facts", load_employee_facts)
     workflow.add_node("understand_query", understand_query)
     workflow.add_node("generate_greeting", generate_greeting)
+    workflow.add_node("generate_document_upload_prompt", generate_document_upload_prompt)
     workflow.add_node("compose_clarification_question", compose_clarification_question)
     workflow.add_node("wait_for_clarification", wait_for_clarification)
     workflow.add_node("merge_clarification_into_question", merge_clarification_into_question)
@@ -98,6 +100,7 @@ def build_conversation_workflow() -> StateGraph:
         decide_after_understanding,
         {
             "generate_greeting": "generate_greeting",
+            "generate_document_upload_prompt": "generate_document_upload_prompt",
             "build_safe_fallback": "build_safe_fallback",
             "compose_clarification_question": "compose_clarification_question",
             "rephrase_previous_answer": "rephrase_previous_answer",
@@ -142,6 +145,7 @@ def build_conversation_workflow() -> StateGraph:
     )
 
     workflow.add_edge("generate_greeting", "record_conversation_turn")
+    workflow.add_edge("generate_document_upload_prompt", "record_conversation_turn")
     workflow.add_edge("finalize_verified_answer", "record_conversation_turn")
     workflow.add_edge("build_safe_fallback", "record_conversation_turn")
     workflow.add_edge("record_conversation_turn", END)

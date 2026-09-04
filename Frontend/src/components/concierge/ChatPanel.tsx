@@ -1,4 +1,5 @@
-import { AlertTriangle, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, FileUp, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -14,6 +15,8 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DataChart } from "@/components/concierge/DataChart";
+import { DocumentUpload } from "@/components/concierge/DocumentUpload";
 import { MessageFeedback } from "@/components/concierge/MessageFeedback";
 import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
@@ -33,6 +36,7 @@ interface ChatPanelProps {
   onDismissError: () => void;
   onFeedback: (id: string, value: "up" | "down") => void;
   isAwaitingClarification?: boolean;
+  employeeId?: string;
 }
 
 function formatMessageContent(content: string): string {
@@ -66,9 +70,11 @@ export function ChatPanel({
   onDismissError,
   onFeedback,
   isAwaitingClarification = false,
+  employeeId = "EMP001",
 }: ChatPanelProps) {
   const busy = status === "submitted" && stage !== null;
   const isEmpty = messages.length === 0;
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
 
   const handleSubmit = (
     value: { text: string; files?: unknown[] },
@@ -121,6 +127,11 @@ export function ChatPanel({
                   </div>
                 ) : null}
 
+                {/* Chart visualization for numeric data */}
+                {m.role === "assistant" && m.chart ? (
+                  <DataChart chart={m.chart} />
+                ) : null}
+
                 {/* Proactive Greeting Action Pills */}
                 {m.role === "assistant" && m.intent === "greeting" ? (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
@@ -145,6 +156,27 @@ export function ChatPanel({
                       className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
                     >
                       👔 Line Manager Info
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDocumentUpload(true)}
+                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors"
+                    >
+                      📎 Upload School Documents
+                    </button>
+                  </div>
+                ) : null}
+
+                {/* Document Upload Action Button */}
+                {m.role === "assistant" && m.intent === "document_upload" ? (
+                  <div className="mt-3 pt-2 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setShowDocumentUpload(true)}
+                      className="w-full px-4 py-2.5 rounded-lg text-sm bg-pink hover:bg-pink/90 text-white font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FileUp className="size-4" />
+                      Upload Documents
                     </button>
                   </div>
                 ) : null}
@@ -240,15 +272,43 @@ export function ChatPanel({
               aria-label="Message the policy concierge"
             />
             <PromptInputFooter className="justify-between">
-              <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <ShieldCheck aria-hidden="true" className="size-3.5 text-pink" />
-                Answers verified by Omni HR SQL & Official Policy PDFs
-              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1.5 text-[11px] text-muted-foreground hover:text-pink"
+                  onClick={() => setShowDocumentUpload(true)}
+                  disabled={busy}
+                >
+                  <FileUp aria-hidden="true" className="size-3.5" />
+                  Upload Documents
+                </Button>
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <ShieldCheck aria-hidden="true" className="size-3.5 text-pink" />
+                  Verified by Omni HR & Policy PDFs
+                </span>
+              </div>
               <PromptInputSubmit {...(busy ? { status: "submitted" as const } : {})} disabled={busy} />
             </PromptInputFooter>
           </PromptInput>
         </div>
       </div>
+
+      {/* Document Upload Modal */}
+      {showDocumentUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <DocumentUpload
+            employeeId={employeeId}
+            onClose={() => setShowDocumentUpload(false)}
+            onComplete={(childName: string) => {
+              setShowDocumentUpload(false);
+              // Send a simple confirmation that doesn't trigger document_upload intent
+              onSend(`My school documents for ${childName} were just uploaded successfully.`);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -399,4 +399,97 @@ def build_seed_employees() -> list[dict]:
                              policy_reference="HC-PC-005 §5.6"),
             ],
         },
+        # ─────────────────────────────────────────────────────────────────────
+        # HCS-11 Integration Employees
+        # These employees have matching records in the HCS-11 verification system
+        # for testing the school document upload workflow.
+        # ─────────────────────────────────────────────────────────────────────
+        {
+            # Alia Al Suwaidi - Has one child enrolled in school, eligible for HCS-11.
+            # Grade 5, 5 years service = 24 days annual leave.
+            "employee": Employee(
+                user_id="E0001", name="Alia Al Suwaidi",
+                name_ar="عالية السويدي", role="Senior Analyst",
+                job_title="Senior Analyst", department="Business Operations",
+                grade="Grade 5", email="alia.suwaidi@hcservices.ae",
+                phone="+971 50 111 2222", location="Dubai Office, Level 12",
+                start_date="2021-08-15", years_of_service=5, probation_status="Passed",
+                manager_name="Fatima Maryam Al Qubaisi", manager_id="EMP002",
+                manager_email="fatima.qubaisi@hcservices.ae",
+                manager_role="VP, People & Culture",
+            ),
+            "balances": [
+                annual_leave_row(entitled=24, used=10, carry_over=2),
+                *sick_leave_rows(days_used=3),
+                annual_leave_row(entitled=24, used=18, carry_over=0, year=2025),
+            ],
+            "manager_history": [
+                ManagerHistory(previous_manager="External Appointment",
+                               current_manager="Fatima Maryam Al Qubaisi",
+                               effective_date="2021-08-15",
+                               change_reason="Initial assignment on joining Business Operations"),
+            ],
+            "leave_requests": [
+                LeaveRequest(leave_type="Annual Leave", start_date="2026-03-15",
+                             end_date="2026-03-21", days_requested=5, status="Approved",
+                             approver_name="Fatima Maryam Al Qubaisi",
+                             notes="Spring break with family"),
+                LeaveRequest(leave_type="Annual Leave", start_date="2026-06-20",
+                             end_date="2026-06-24", days_requested=5, status="Approved",
+                             approver_name="Fatima Maryam Al Qubaisi",
+                             notes="Summer vacation"),
+                LeaveRequest(leave_type="Sick Leave", start_date="2026-04-10",
+                             end_date="2026-04-12", days_requested=3, status="Approved",
+                             approver_name="Fatima Maryam Al Qubaisi",
+                             notes="Medical appointment and recovery"),
+            ],
+            "expense_claims": [],
+        },
+        {
+            # Rashid Al Ketbi - Has two children enrolled in school, eligible for HCS-11.
+            # Grade 6, 7 years service = 26 days annual leave.
+            "employee": Employee(
+                user_id="E0002", name="Rashid Al Ketbi",
+                name_ar="راشد الكتبي", role="Manager, Operations",
+                job_title="Manager, Operations", department="Business Operations",
+                grade="Grade 6", email="rashid.ketbi@hcservices.ae",
+                phone="+971 50 333 4444", location="Abu Dhabi Office, Level 9",
+                start_date="2019-04-01", years_of_service=7, probation_status="Passed",
+                manager_name="Khalifa Saeed Al Nahyan", manager_id="EMP004",
+                manager_email="khalifa.nahyan@hcservices.ae",
+                manager_role="Director, Finance & Treasury",
+            ),
+            "balances": [
+                annual_leave_row(entitled=26, used=14, carry_over=5),
+                *sick_leave_rows(days_used=5),
+                annual_leave_row(entitled=26, used=22, carry_over=0, year=2025),
+            ],
+            "manager_history": [
+                ManagerHistory(previous_manager="External Appointment",
+                               current_manager="Khalifa Saeed Al Nahyan",
+                               effective_date="2019-04-01",
+                               change_reason="Appointment as Manager, Operations"),
+            ],
+            "leave_requests": [
+                LeaveRequest(leave_type="Annual Leave", start_date="2026-01-20",
+                             end_date="2026-01-31", days_requested=10, status="Approved",
+                             approver_name="Khalifa Saeed Al Nahyan",
+                             notes="Family travel during school break"),
+                LeaveRequest(leave_type="Annual Leave", start_date="2026-07-15",
+                             end_date="2026-07-18", days_requested=4, status="Approved",
+                             approver_name="Khalifa Saeed Al Nahyan",
+                             notes="Personal time"),
+                LeaveRequest(leave_type="Sick Leave", start_date="2026-05-05",
+                             end_date="2026-05-09", days_requested=5, status="Approved",
+                             approver_name="Khalifa Saeed Al Nahyan",
+                             notes="Flu recovery with medical certificate"),
+            ],
+            "expense_claims": [
+                ExpenseClaim(category="Travel & Accommodation", amount_aed=1800.00,
+                             claim_date="2026-04-20", status="Approved",
+                             approver="Khalifa Saeed Al Nahyan", receipt_reference="REC-2026-0420",
+                             description="Client site visit, 2 nights accommodation",
+                             policy_reference="HC-PC-005 §5.3.3"),
+            ],
+        },
     ]

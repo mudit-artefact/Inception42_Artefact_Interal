@@ -12,6 +12,7 @@ GREETING_LABEL = "greeting"
 OUT_OF_SCOPE_LABEL = "not_in_scope"
 AWAITING_CLARIFICATION_LABEL = "ambiguous"
 ANSWERED_LABEL = "in_scope"
+DOCUMENT_UPLOAD_LABEL = "document_upload"
 
 
 def wire_intent_for(
@@ -24,6 +25,8 @@ def wire_intent_for(
         return AWAITING_CLARIFICATION_LABEL
     if question_intent == QuestionIntent.GREETING:
         return GREETING_LABEL
+    if question_intent == QuestionIntent.DOCUMENT_UPLOAD:
+        return DOCUMENT_UPLOAD_LABEL
     if question_intent == QuestionIntent.OUT_OF_SCOPE or answer_status == AnswerStatus.REFUSED:
         return OUT_OF_SCOPE_LABEL
     return ANSWERED_LABEL

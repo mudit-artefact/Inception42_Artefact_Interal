@@ -20,6 +20,10 @@ class QuestionIntent(StrEnum):
     # rather than a question about HR. The answer already exists; searching the policy
     # documents for "make that shorter" finds nothing and means nothing.
     ABOUT_THE_LAST_ANSWER = "about_the_last_answer"
+    # A request to upload documents for HCS-11 school verification — school letters,
+    # fee receipts, invoices, birth certificates. This triggers the document upload UI
+    # rather than searching policy documents.
+    DOCUMENT_UPLOAD = "document_upload"
 
 
 class RequiredEvidence(StrEnum):

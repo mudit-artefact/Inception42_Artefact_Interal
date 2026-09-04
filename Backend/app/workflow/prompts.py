@@ -73,6 +73,15 @@ Choose one intent:
   balances, sick leave, remote work, expenses, probation, their line manager, benefits.
   This includes both questions ("How much leave do I have?") AND statements of intent
   ("I want to take some leave", "I need time off").
+- "document_upload": anything related to HCS-11 school verification documents. This includes:
+  * Requests to upload: "upload documents", "submit my school documents", "I want to upload"
+  * HCS-11 references: "HCS-11 documents", "school verification"
+  * Implicit uploads: "[file attached]", "[document uploaded]"
+  * Upload confirmations: "my documents were uploaded", "uploaded successfully", "just submitted"
+  * Status checks: "what is the status of my verification?", "did my documents upload?"
+
+  Choose this for ANY message about school verification documents, whether uploading,
+  confirming upload, or checking status.
 - "out_of_scope": anything else — weather, general knowledge, coding, other companies.
 - "about_the_last_answer": a request to change the *form* of the reply you just gave,
   asking nothing new — "make that shorter", "in Arabic please", "as bullet points",
@@ -144,6 +153,33 @@ CLARIFICATION_INSTRUCTIONS = """\
 You write the single short question an HR assistant asks when an employee's request is
 too vague to answer. Ask about the one thing that matters most. Be warm and brief, never
 list more than three options, and never answer the original question.\
+"""
+
+# ── Document Upload Response ────────────────────────────────────────────────
+
+DOCUMENT_UPLOAD_RESPONSE = """\
+I can help you upload your school verification documents for HCS-11.
+
+To proceed, please use the **Upload Documents** button below. You'll need to upload:
+
+• **School Enrollment Letter** — official letter confirming your child's enrollment
+• **Fee Receipt** — proof of payment to the school
+• **Invoice** — the school's fee invoice
+• **Birth Certificate** — your child's birth certificate
+
+Once uploaded, I'll verify your documents and let you know the status of your claim.\
+"""
+
+DOCUMENT_UPLOAD_RESPONSE_WITH_FILES = """\
+I see you've attached documents for school verification.
+
+Please use the **Upload Documents** button below to submit them through the HCS-11 verification system. This ensures your documents are properly verified and matched to your employee record.
+
+Required documents:
+• School Enrollment Letter
+• Fee Receipt
+• Invoice
+• Birth Certificate\
 """
 
 QUERY_DECOMPOSITION_INSTRUCTIONS = """\
@@ -320,11 +356,67 @@ HOW TO ANSWER
    - "What are the per diem rates?" → Table (Location / Rate)
 9. Do not write citation markers such as [Source: HC-PC-001]. Sources are shown
    separately by the interface.
-10. Never invent a policy or an employee fact.
-11. The evidence may be split into numbered parts, one per thing the employee asked.
+10. **Chart Visualization (Optional):** Include a chart ONLY when visualization genuinely
+   helps the employee understand numeric data that DIRECTLY answers their question.
+
+   **Chart Types (choose the most appropriate):**
+   - `nested_bar`: Show Total vs Remaining as overlapping bars (outer=total, inner=remaining).
+     USE FOR: "What's my leave balance?", "How much leave do I have left?"
+     The colored bar shows remaining, gray background shows total entitlement.
+   - `horizontal_bar`: Compare ONE metric across categories (e.g., just remaining days)
+   - `grouped_bar`: Compare TWO metrics side-by-side (e.g., 2025 vs 2026, Plan vs Actual)
+   - `stacked_bar`: Show parts that sum to whole (e.g., Used + Remaining stacked)
+   - `progress`: Single value against maximum (e.g., 12 of 24 days used = 50%)
+   - `line`: Trends over time (e.g., monthly usage)
+
+   **When to include a chart:**
+   - Question asks about balance/usage AND answer has 2+ comparable values
+   - Question asks for comparison (this year vs last year, entitled vs used)
+   - The numbers form a meaningful visual relationship
+
+   **Do NOT include charts for:**
+   - Process/how-to questions ("How do I submit leave?")
+   - Policy explanations ("What is the remote work policy?")
+   - Single-value answers ("You have 12 days left" — no chart needed)
+   - Numbers mentioned incidentally but not central to the question
+   - Questions about procedures, eligibility, or rules
+
+   **Chart data structure (IMPORTANT):**
+
+   For `nested_bar` (Total vs Remaining as overlapping bars):
+   - data: each item has `label`, `value` (total/entitled), `value2` (remaining)
+   - series_names: exactly 2 names, e.g., ["Entitled", "Remaining"]
+   - Example for leave balance:
+     data=[(label="Annual Leave", value=24, value2=12), (label="Sick Leave", value=90, value2=80)]
+     series_names=["Entitled", "Remaining"]
+
+   For `horizontal_bar` (single metric per category):
+   - data: each item has `label` and `value` only
+   - Example: (label="Annual Leave", value=12), (label="Sick Leave", value=80)
+
+   For `grouped_bar` (TWO metrics side-by-side, like year comparison):
+   - data: each item has `label`, `value` (first metric), `value2` (second metric)
+   - series_names: exactly 2 names
+   - Example: (label="Annual", value=24, value2=21) with series_names=["2025", "2026"]
+
+   For `stacked_bar` (parts stacked on top of each other):
+   - data: each item has `label`, `value`, `value2`
+   - series_names: exactly 2 names
+   - Example: (label="Annual", value=12, value2=12) with series_names=["Used", "Remaining"]
+
+   For `progress` (single value against max):
+   - data: single item with label and value (current amount)
+   - max_value: the total/entitlement
+   - Example: (label="Annual Leave Used", value=12), max_value=24
+
+   For `line` (trend over time):
+   - data: items with label (time period) and value
+   - Example: (label="Jan", value=2), (label="Feb", value=3)
+11. Never invent a policy or an employee fact.
+12. The evidence may be split into numbered parts, one per thing the employee asked.
    Answer every part, in order, and keep the answer to one coherent reply rather than a
    list of disconnected ones.
-12. Where a part is marked as having nothing behind it, answer the parts that do and say
+13. Where a part is marked as having nothing behind it, answer the parts that do and say
    plainly which part you cannot answer:
    - If the unanswerable part asks for another employee's private or confidential
      information (e.g. someone else's salary, home address, personal contact details, or
@@ -336,7 +428,7 @@ HOW TO ANSWER
      alone (e.g. for inquiries regarding their own compensation or unlisted policies).
    Never fill a missing part from general knowledge, and never let a missing part stop you
    answering the others.
-13. The employee's message may be followed by "(Understood as: ...)". That is the same
+14. The employee's message may be followed by "(Understood as: ...)". That is the same
    question written out in full, because what they typed leaned on what was said earlier
    in the conversation. Answer the full question, in language that fits the way they
    actually asked it. Do not quote the reworded version back at them.\

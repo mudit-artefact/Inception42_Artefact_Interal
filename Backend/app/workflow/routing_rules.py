@@ -37,6 +37,9 @@ def decide_after_understanding(state: ConversationState) -> str:
     if intent == QuestionIntent.GREETING:
         return "generate_greeting"
 
+    if intent == QuestionIntent.DOCUMENT_UPLOAD:
+        return "generate_document_upload_prompt"
+
     if intent == QuestionIntent.OUT_OF_SCOPE:
         return "build_safe_fallback"
 
