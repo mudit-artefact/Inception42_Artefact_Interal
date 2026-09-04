@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, FileUp, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { AlertTriangle, FileUp, RotateCcw, Sparkles, X } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -339,11 +339,7 @@ export function ChatPanel({
               disabled={busy}
               aria-label="Message Bayan HR"
             />
-            <PromptInputFooter className="justify-between">
-              <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <ShieldCheck aria-hidden="true" className="size-3.5 text-pink" />
-                Answers verified by Omni HR SQL & Official Policy PDFs
-              </span>
+            <PromptInputFooter className="justify-end">
               <PromptInputSubmit {...(busy ? { status: "submitted" as const } : {})} disabled={busy} />
             </PromptInputFooter>
           </PromptInput>
