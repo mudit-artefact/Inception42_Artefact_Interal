@@ -31,12 +31,12 @@ def test_leave_agent_e2e():
     print(f"Employee {emp.name} has {bal.remaining_days} days annual leave.")
     initial_remaining = bal.remaining_days
 
-    # Turn 1: Apply for leave with valid advance dates (e.g. 2026-10-12 to 2026-10-14 -> 3 working days)
+    # Turn 1: Apply for leave with valid advance dates (e.g. 2026-11-16 to 2026-11-18 -> 3 working days)
     print("\n2. Sending Leave Request Turn 1...")
     conv_id = "test-leave-agent-001"
     res1 = answer_question(
         workflow=workflow,
-        employee_question="I want to apply for 3 days of annual leave from 2026-10-12 to 2026-10-14",
+        employee_question="I want to apply for 3 days of annual leave from 2026-11-16 to 2026-11-18",
         employee_id="EMP001",
         conversation_id=conv_id,
         requested_language="en",
@@ -67,21 +67,30 @@ def test_leave_agent_e2e():
     print(f"  Action Payload: {res2.action_payload}")
     print(f"  Intent: {res2.intent}")
 
-    assert "Leave Request Submitted Successfully" in res2.answer or "Request ID" in res2.answer
+    assert "Leave Request Submitted" in res2.answer or "Request ID" in res2.answer or "pending" in res2.answer.lower()
 
-    # Verify DB changes
+    # Verify pending state: balance untouched until manager approval
     session.refresh(bal)
-    print(f"\n4. Verifying DB state: New remaining balance = {bal.remaining_days} (expected {initial_remaining - 3})")
+    assert bal.remaining_days == initial_remaining
+
+    # Manager approves request
+    req_id = res2.action_payload["receipt"]["request_id"]
+    from app.services.leave_service import approve_leave_request
+    app_res = approve_leave_request("EMP003", req_id, session=session)
+    assert app_res["success"] is True
+
+    # Verify DB changes after approval
+    session.refresh(bal)
+    print(f"\n4. Verifying DB state after approval: New remaining balance = {bal.remaining_days} (expected {initial_remaining - 3})")
     assert bal.remaining_days == initial_remaining - 3
 
     # Clean up test leave request
-    if res2.action_payload and "receipt" in res2.action_payload:
-        req_id = res2.action_payload["receipt"]["request_id"]
-        print(f"Cancelling test request #{req_id} to restore balance...")
-        cancel_res = cancel_leave_request("EMP001", req_id, session)
-        session.refresh(bal)
-        print(f"Restored balance = {bal.remaining_days}")
-        assert bal.remaining_days == initial_remaining
+    print(f"Cancelling test request #{req_id} to restore balance...")
+    cancel_res = cancel_leave_request("EMP001", req_id, session)
+    assert cancel_res["success"] is True
+    session.refresh(bal)
+    print(f"Restored balance = {bal.remaining_days}")
+    assert bal.remaining_days == initial_remaining
 
     # Test Policy Rejection 1: Insufficient Balance
     print("\n5. Testing Policy Rejection: Insufficient Balance...")
@@ -106,7 +115,7 @@ def test_leave_agent_e2e():
         requested_language="en",
     )
     print(f"  Answer:\n{res_status.answer}")
-    assert "Pending Leave Requests" in res_status.answer or "no pending leave" in res_status.answer
+    assert "pending leave requests" in res_status.answer.lower() or "no pending" in res_status.answer.lower()
     print("  ✅ Status check answered as expected.")
 
     print("\n🎉 ALL LEAVE AGENT E2E & POLICY GUARDRAIL TESTS PASSED!")

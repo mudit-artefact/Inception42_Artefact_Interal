@@ -113,7 +113,7 @@ class LeaveApplicationDraft(BaseModel):
 
     leave_type: str = Field(
         default="Annual leave",
-        description="Leave type, e.g. 'Annual leave', 'Sick leave', 'Emergency leave', 'Unpaid leave'",
+        description="Leave type, e.g. 'Annual leave', 'Sick leave', 'Emergency leave', 'Unpaid leave', 'Maternity leave', 'Paternity leave', 'Bereavement leave', 'Study leave', 'Hajj leave'",
     )
     start_date: str | None = Field(default=None, description="Start date in YYYY-MM-DD format")
     end_date: str | None = Field(default=None, description="End date in YYYY-MM-DD format (inclusive)")

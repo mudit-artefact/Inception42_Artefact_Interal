@@ -156,13 +156,13 @@ LEAVE_EXTRACTION_INSTRUCTIONS = """\
 You extract structured leave details from an employee's message for HC Services.
 Given the employee's message and the conversation context:
 1. Extract:
-   - leave_type: "Annual leave", "Sick leave", "Emergency leave", or "Unpaid leave".
-   - start_date: in YYYY-MM-DD format. Resolve relative terms ("next Monday", "tomorrow", etc.) using the reference date provided in the prompt.
-   - end_date: in YYYY-MM-DD format (inclusive). If a duration in days is given, compute the corresponding end date.
+   - leave_type: "Annual leave", "Sick leave", "Emergency leave", "Unpaid leave", "Maternity leave", "Paternity leave", "Bereavement leave", "Study leave", or "Hajj leave".
+   - start_date: in YYYY-MM-DD format. Resolve relative terms ("next Monday", "tomorrow", "today", etc.) using the reference date provided in the prompt.
+   - end_date: in YYYY-MM-DD format (inclusive). If a duration in days is given without an end date, compute the corresponding inclusive end date taking calendar working days into account.
    - days_requested: number of days requested if mentioned.
    - reason: reason or notes provided by the employee, if any.
 2. Determine completeness:
-   - is_complete: true if both start_date and end_date (or duration) are known and unambiguous.
+   - is_complete: true if both start_date and end_date (or start_date and duration) are known and unambiguous.
    - missing_fields: list any essential fields that are missing, e.g. ["start_date", "end_date"].
 """
 

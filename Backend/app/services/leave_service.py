@@ -74,16 +74,16 @@ def calculate_notice_days(request_date: str, start_date: str) -> int:
 
 def get_required_notice_days(working_days: int) -> int:
     """
-    Policy clause HC-PC-001 §1.4:
-    - 1-2 days of annual leave: 2 working days notice
-    - 3-9 days of annual leave: 5 working days notice
-    - 10+ days of annual leave: 10 working days notice (2 weeks)
+    Policy clause HC-PC-001 §1.4.1:
+    - 1–4 working days of annual leave: 5 working days notice
+    - 5–9 working days of annual leave: 10 working days notice
+    - 10+ working days of annual leave: 20 working days notice
     """
-    if working_days <= 2:
-        return 2
-    if 3 <= working_days <= 9:
+    if working_days <= 4:
         return 5
-    return 10
+    if 5 <= working_days <= 9:
+        return 10
+    return 20
 
 
 def normalize_leave_type(raw_type: str) -> str:
@@ -182,16 +182,73 @@ def validate_leave_policy(
                 approver_name=employee.manager_name,
             )
 
-        # Retrieve current balance
-        balance_row = (
-            session.query(LeaveBalance)
-            .filter(
-                LeaveBalance.employee_id == employee_id,
-                LeaveBalance.leave_type == leave_type,
+        # Retrieve current balance according to leave type
+        is_sick = "sick" in leave_type.lower()
+        is_emergency = "emergency" in leave_type.lower()
+        is_unpaid = "unpaid" in leave_type.lower()
+        is_maternity = "maternity" in leave_type.lower()
+        is_paternity = "paternity" in leave_type.lower()
+        is_bereavement = "bereavement" in leave_type.lower()
+        is_study = "study" in leave_type.lower()
+        is_hajj = "hajj" in leave_type.lower()
+        balance_unit = "days"
+
+        if is_sick:
+            # HC-PC-002 §2.2.1: Sick leave is held across three pay tranches (full pay, half pay, unpaid).
+            sick_tranches = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == employee_id,
+                    LeaveBalance.leave_type.like("Sick leave%"),
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
             )
-            .first()
-        )
-        balance_before = float(balance_row.remaining_days) if balance_row else 0.0
+            current_year = max((b.year for b in sick_tranches), default=2026)
+            active_tranches = [b for b in sick_tranches if b.year == current_year]
+            balance_before = float(sum(b.remaining_days for b in active_tranches))
+        elif is_emergency:
+            # HC-PC-001 §1.4.3: Emergency leave is deducted from the employee's Annual leave balance.
+            annual_rows = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == employee_id,
+                    LeaveBalance.leave_type == "Annual leave",
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
+            )
+            current_year = max((b.year for b in annual_rows), default=2026)
+            active_annual = [b for b in annual_rows if b.year == current_year]
+            balance_before = float(active_annual[0].remaining_days) if active_annual else 0.0
+        elif is_unpaid:
+            balance_before = 0.0
+        elif is_maternity:
+            balance_before = 60.0  # UAE Labour Law Art. 30 (45 full pay + 15 half pay)
+        elif is_paternity:
+            balance_before = 5.0   # UAE Labour Law Art. 32(1)(b)
+        elif is_bereavement:
+            balance_before = 5.0   # UAE Labour Law Art. 32(1)(a)
+        elif is_study:
+            balance_before = 10.0  # UAE Labour Law Art. 32
+        elif is_hajj:
+            balance_before = 30.0  # UAE Labour Law Art. 32
+        else:
+            # Annual leave: read from the latest leave year on file
+            annual_rows = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == employee_id,
+                    LeaveBalance.leave_type == "Annual leave",
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
+            )
+            current_year = max((b.year for b in annual_rows), default=2026)
+            active_annual = [b for b in annual_rows if b.year == current_year]
+            balance_before = float(active_annual[0].remaining_days) if active_annual else 0.0
+            if active_annual:
+                balance_unit = active_annual[0].unit
 
         working_days = calculate_working_days(start_date_str, end_date_str)
         if working_days <= 0:
@@ -262,16 +319,60 @@ def validate_leave_policy(
             )
 
         # 2. Balance sufficiency check
-        if balance_before < working_days:
+        if not is_unpaid and balance_before < working_days:
+            if is_sick:
+                violations.append(
+                    f"Insufficient leave balance: You have {balance_before:.1f} days available across sick leave tranches, "
+                    f"but requested {working_days} working days."
+                )
+            elif is_emergency:
+                violations.append(
+                    f"Insufficient leave balance: Emergency leave is deducted from annual leave. "
+                    f"You have {balance_before:.1f} days of annual leave available, but requested {working_days} working days."
+                )
+            elif is_maternity:
+                violations.append(
+                    f"Statutory leave limit exceeded: Maternity leave is capped at 60 calendar days under UAE Labour Law Art. 30, "
+                    f"but {working_days} working days were requested."
+                )
+            elif is_paternity:
+                violations.append(
+                    f"Statutory leave limit exceeded: Paternity leave is capped at 5.0 working days under UAE Labour Law Art. 32(1)(b), "
+                    f"but {working_days} working days were requested."
+                )
+            elif is_bereavement:
+                violations.append(
+                    f"Statutory leave limit exceeded: Bereavement leave is capped at 5 days under UAE Labour Law Art. 32(1)(a), "
+                    f"but {working_days} working days were requested."
+                )
+            elif is_study:
+                violations.append(
+                    f"Statutory leave limit exceeded: Study leave is capped at 10 working days under UAE Labour Law Art. 32(2), "
+                    f"but {working_days} working days were requested."
+                )
+            elif is_hajj:
+                violations.append(
+                    f"Statutory leave limit exceeded: Hajj pilgrimage leave is capped at 30 days under UAE Labour Law Art. 32(3), "
+                    f"but {working_days} working days were requested."
+                )
+            else:
+                violations.append(
+                    f"Insufficient leave balance: You have {balance_before:.1f} {balance_unit} "
+                    f"available, but requested {working_days} working days."
+                )
+
+        # Additional statutory check for Study Leave (UAE Labour Law Art. 32(2): requires at least 2 years continuous service)
+        if is_study and employee.years_of_service < 2:
             violations.append(
-                f"Insufficient leave balance: You have {balance_before:.1f} {balance_row.unit if balance_row else 'days'} "
-                f"available, but requested {working_days} working days."
+                "Study leave eligibility requirement not met: UAE Labour Law Art. 32(2) requires at least "
+                "2 years of continuous service to be eligible for study leave."
             )
 
         # 3. Advance notice check (for Annual Leave per HC-PC-001 §1.4)
+        # Sick leave, emergency leave, bereavement, etc. are unplanned/exempt
         today_str = as_of_date or date.today().strftime("%Y-%m-%d")
         notice_days_provided = calculate_notice_days(today_str, start_date_str)
-        notice_days_required = get_required_notice_days(working_days)
+        notice_days_required = get_required_notice_days(working_days) if leave_type == "Annual leave" else 0
         notice_compliant = True
 
         if leave_type == "Annual leave" and notice_days_provided < notice_days_required:
@@ -282,7 +383,10 @@ def validate_leave_policy(
                 f"Only {notice_days_provided} working days notice was provided."
             )
 
-        # 4. Active probation restriction check (HC-PC-003 §3.2)
+        # 4. Active probation restriction check (HC-PC-003 §3.5.1 / §3.2)
+        # Annual leave cannot be taken during active probation without special HR approval.
+        # Emergency leave is expressly exempt (HC-PC-003 §3.5.1).
+        # Sick leave is permitted from day one (HC-PC-002 §2.1 & §2.2.2).
         if leave_type == "Annual leave" and employee.probation_status in ("Active", "Extended"):
             violations.append(
                 f"Probation restriction: Your probation status is '{employee.probation_status}'. "
@@ -290,12 +394,13 @@ def validate_leave_policy(
                 "without special HR Director authorization."
             )
 
-        # 5. Medical certificate requirement for sick leave (HC-PC-002 §2.4)
+        # 5. Medical certificate requirement for sick leave (HC-PC-002 §2.3.2)
+        # Absences of 1 or 2 consecutive days permit self-certification; >2 working days requires medical certificate.
         requires_medical_certificate = False
-        if leave_type == "Sick leave" and working_days > 2:
+        if is_sick and working_days > 2:
             requires_medical_certificate = True
 
-        balance_after = max(0.0, balance_before - working_days)
+        balance_after = max(0.0, balance_before - working_days) if not is_unpaid else 0.0
         is_valid = len(violations) == 0
 
         return LeaveValidationResult(
@@ -352,14 +457,46 @@ def commit_leave_request(
         session.add(new_request)
 
         # 2. Retrieve balance without deducting until manager approval
-        balance_row = (
-            session.query(LeaveBalance)
-            .filter(
-                LeaveBalance.employee_id == employee_id,
-                LeaveBalance.leave_type == validation.leave_type,
+        is_sick = "sick" in validation.leave_type.lower()
+        is_emergency = "emergency" in validation.leave_type.lower()
+
+        if is_sick:
+            sick_tranches = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == employee_id,
+                    LeaveBalance.leave_type.like("Sick leave%"),
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
             )
-            .first()
-        )
+            current_year = max((b.year for b in sick_tranches), default=2026)
+            active_tranches = [b for b in sick_tranches if b.year == current_year]
+            current_bal = float(sum(b.remaining_days for b in active_tranches))
+        elif is_emergency:
+            annual_rows = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == employee_id,
+                    LeaveBalance.leave_type == "Annual leave",
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
+            )
+            current_year = max((b.year for b in annual_rows), default=2026)
+            active_annual = [b for b in annual_rows if b.year == current_year]
+            current_bal = float(active_annual[0].remaining_days) if active_annual else 0.0
+        else:
+            balance_rows = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == employee_id,
+                    LeaveBalance.leave_type == validation.leave_type,
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
+            )
+            current_bal = float(balance_rows[0].remaining_days) if balance_rows else validation.balance_before
 
         session.commit()
         session.refresh(new_request)
@@ -412,7 +549,7 @@ def commit_leave_request(
             "end_date": new_request.end_date,
             "days_requested": new_request.days_requested,
             "approver_name": new_request.approver_name,
-            "current_balance": balance_row.remaining_days if balance_row else validation.balance_before,
+            "current_balance": current_bal,
             "projected_balance": validation.balance_after,
             "created_at": new_request.created_at.strftime("%Y-%m-%d %H:%M:%S") if new_request.created_at else "",
         }
@@ -453,17 +590,69 @@ def approve_leave_request(
         manager = session.query(Employee).filter(Employee.user_id == manager_id).first()
 
         # Debit balance upon formal manager approval
-        balance_row = (
-            session.query(LeaveBalance)
-            .filter(
-                LeaveBalance.employee_id == req.employee_id,
-                LeaveBalance.leave_type == req.leave_type,
+        is_sick = "sick" in req.leave_type.lower()
+        is_emergency = "emergency" in req.leave_type.lower()
+        new_balance = 0.0
+
+        if is_sick:
+            # HC-PC-002 §2.2.1: Deduct from active year tranches in sequential order: full pay -> half pay -> unpaid
+            all_sick = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == req.employee_id,
+                    LeaveBalance.leave_type.like("Sick leave%"),
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
             )
-            .first()
-        )
-        if balance_row:
-            balance_row.used_days += req.days_requested
-            balance_row.remaining_days = max(0, balance_row.remaining_days - req.days_requested)
+            current_year = max((b.year for b in all_sick), default=2026)
+            active_tranches = [b for b in all_sick if b.year == current_year]
+            active_tranches.sort(key=lambda b: (b.pay_rate_pct if b.pay_rate_pct is not None else 0), reverse=True)
+
+            remaining_to_deduct = req.days_requested
+            for tranche in active_tranches:
+                if remaining_to_deduct <= 0:
+                    break
+                deduct = min(tranche.remaining_days, remaining_to_deduct)
+                tranche.used_days += deduct
+                tranche.remaining_days = max(0, tranche.remaining_days - deduct)
+                remaining_to_deduct -= deduct
+            new_balance = float(sum(b.remaining_days for b in active_tranches))
+        elif is_emergency:
+            # HC-PC-001 §1.4.3: Emergency leave is debited from Annual leave
+            annual_rows = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == req.employee_id,
+                    LeaveBalance.leave_type == "Annual leave",
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
+            )
+            current_year = max((b.year for b in annual_rows), default=2026)
+            active_annual = [b for b in annual_rows if b.year == current_year]
+            if active_annual:
+                annual_bal = active_annual[0]
+                annual_bal.used_days += req.days_requested
+                annual_bal.remaining_days = max(0, annual_bal.remaining_days - req.days_requested)
+                new_balance = float(annual_bal.remaining_days)
+        else:
+            annual_rows = (
+                session.query(LeaveBalance)
+                .filter(
+                    LeaveBalance.employee_id == req.employee_id,
+                    LeaveBalance.leave_type == req.leave_type,
+                )
+                .order_by(LeaveBalance.year.desc())
+                .all()
+            )
+            if annual_rows:
+                current_year = max((b.year for b in annual_rows), default=2026)
+                active_rows = [b for b in annual_rows if b.year == current_year]
+                target_bal = active_rows[0] if active_rows else annual_rows[0]
+                target_bal.used_days += req.days_requested
+                target_bal.remaining_days = max(0, target_bal.remaining_days - req.days_requested)
+                new_balance = float(target_bal.remaining_days)
 
         req.status = "Approved"
         session.commit()
@@ -510,7 +699,7 @@ def approve_leave_request(
             "status": "Approved",
             "approver_name": manager.name if manager else req.approver_name,
             "manager_email": manager.email if manager else (applicant.manager_email if applicant else ""),
-            "new_balance": balance_row.remaining_days if balance_row else 0,
+            "new_balance": new_balance,
         }
     except Exception as e:
         session.rollback()
@@ -713,17 +902,70 @@ def cancel_leave_request(employee_id: str, request_id: int, session: Optional[Se
             return {"success": False, "message": f"Leave request #{request_id} is already cancelled."}
 
         # Restore balance if it was previously approved and deducted
-        balance_row = (
-            session.query(LeaveBalance)
-            .filter(
-                LeaveBalance.employee_id == employee_id,
-                LeaveBalance.leave_type == req.leave_type,
-            )
-            .first()
-        )
-        if balance_row and req.status == "Approved":
-            balance_row.used_days = max(0, balance_row.used_days - req.days_requested)
-            balance_row.remaining_days += req.days_requested
+        is_sick = "sick" in req.leave_type.lower()
+        is_emergency = "emergency" in req.leave_type.lower()
+        restored_balance = None
+
+        was_approved = (req.status == "Approved")
+        if was_approved:
+            if is_sick:
+                all_sick = (
+                    session.query(LeaveBalance)
+                    .filter(
+                        LeaveBalance.employee_id == employee_id,
+                        LeaveBalance.leave_type.like("Sick leave%"),
+                    )
+                    .order_by(LeaveBalance.year.desc())
+                    .all()
+                )
+                current_year = max((b.year for b in all_sick), default=2026)
+                # Reverse order: unpaid (0%), half pay (50%), full pay (100%)
+                active_tranches = [b for b in all_sick if b.year == current_year]
+                active_tranches.sort(key=lambda b: (b.pay_rate_pct if b.pay_rate_pct is not None else 0), reverse=False)
+
+                remaining_to_restore = req.days_requested
+                for tranche in active_tranches:
+                    if remaining_to_restore <= 0:
+                        break
+                    restore_amount = min(tranche.used_days, remaining_to_restore)
+                    tranche.used_days = max(0, tranche.used_days - restore_amount)
+                    tranche.remaining_days += restore_amount
+                    remaining_to_restore -= restore_amount
+                restored_balance = float(sum(b.remaining_days for b in active_tranches))
+            elif is_emergency:
+                annual_rows = (
+                    session.query(LeaveBalance)
+                    .filter(
+                        LeaveBalance.employee_id == employee_id,
+                        LeaveBalance.leave_type == "Annual leave",
+                    )
+                    .order_by(LeaveBalance.year.desc())
+                    .all()
+                )
+                current_year = max((b.year for b in annual_rows), default=2026)
+                active_annual = [b for b in annual_rows if b.year == current_year]
+                if active_annual:
+                    annual_bal = active_annual[0]
+                    annual_bal.used_days = max(0, annual_bal.used_days - req.days_requested)
+                    annual_bal.remaining_days += req.days_requested
+                    restored_balance = float(annual_bal.remaining_days)
+            else:
+                balance_rows = (
+                    session.query(LeaveBalance)
+                    .filter(
+                        LeaveBalance.employee_id == employee_id,
+                        LeaveBalance.leave_type == req.leave_type,
+                    )
+                    .order_by(LeaveBalance.year.desc())
+                    .all()
+                )
+                if balance_rows:
+                    current_year = max((b.year for b in balance_rows), default=2026)
+                    active_rows = [b for b in balance_rows if b.year == current_year]
+                    target_bal = active_rows[0] if active_rows else balance_rows[0]
+                    target_bal.used_days = max(0, target_bal.used_days - req.days_requested)
+                    target_bal.remaining_days += req.days_requested
+                    restored_balance = float(target_bal.remaining_days)
 
         req.status = "Cancelled"
         session.commit()
@@ -732,8 +974,8 @@ def cancel_leave_request(employee_id: str, request_id: int, session: Optional[Se
             "success": True,
             "request_id": req.id,
             "status": "Cancelled",
-            "restored_days": req.days_requested if req.status == "Approved" else 0,
-            "current_balance": balance_row.remaining_days if balance_row else None,
+            "restored_days": req.days_requested if was_approved else 0,
+            "current_balance": restored_balance,
             "message": f"Leave request #{request_id} ({req.days_requested} days of {req.leave_type}) has been cancelled.",
         }
     except Exception as e:
