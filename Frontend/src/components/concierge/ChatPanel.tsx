@@ -179,15 +179,21 @@ export function ChatPanel({
                 ) : null}
 
                 {/* Document Upload Action Button */}
-                {m.role === "assistant" && m.intent === "document_upload" ? (
-                  <div className="mt-3 pt-2 border-t border-border/40">
+                {m.role === "assistant" &&
+                (m.intent === "document_upload" ||
+                  m.action_payload?.action_type === "SCHOOL_DOCUMENT_SUBMISSION" ||
+                  m.action_payload?.action_type === "SCHOOL_VERIFICATION_STATUS" ||
+                  m.content.toLowerCase().includes("proof of schooling") ||
+                  m.content.toLowerCase().includes("school verification") ||
+                  m.content.toLowerCase().includes("upload school document")) ? (
+                  <div className="mt-3 pt-2.5 border-t border-border/40">
                     <button
                       type="button"
                       onClick={() => setShowDocumentUpload(true)}
-                      className="w-full px-4 py-2.5 rounded-lg text-sm bg-pink hover:bg-pink/90 text-white font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-lg text-sm bg-pink hover:bg-pink/90 text-white font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs hover:shadow-md"
                     >
                       <FileUp className="size-4" />
-                      Upload Documents
+                      Upload School Documents (HCS-11)
                     </button>
                   </div>
                 ) : null}
@@ -339,7 +345,19 @@ export function ChatPanel({
               disabled={busy}
               aria-label="Message Bayan HR"
             />
-            <PromptInputFooter className="justify-end">
+            <PromptInputFooter className="justify-between items-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 rounded-lg text-xs font-semibold border-pink/30 bg-pink/5 hover:bg-pink/15 text-pink transition-colors cursor-pointer shadow-2xs"
+                onClick={() => setShowDocumentUpload(true)}
+                disabled={busy}
+                title="Upload School Verification Documents (HCS-11)"
+              >
+                <FileUp aria-hidden="true" className="size-3.5 text-pink" />
+                <span>Upload School Document</span>
+              </Button>
               <PromptInputSubmit {...(busy ? { status: "submitted" as const } : {})} disabled={busy} />
             </PromptInputFooter>
           </PromptInput>

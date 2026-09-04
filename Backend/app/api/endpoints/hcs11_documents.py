@@ -123,6 +123,25 @@ async def health_check() -> dict:
         )
 
 
+def _normalize_employee_id(emp_id: str | None) -> str:
+    """Map HCS-01 employee IDs (e.g. EMP001) to HCS-11 test employee IDs (e.g. E0001)."""
+    if not emp_id:
+        return "E0001"
+    emp_upper = emp_id.strip().upper()
+    if emp_upper.startswith("E00"):
+        return emp_upper
+    mapping = {
+        "EMP001": "E0001",
+        "EMP002": "E0001",
+        "EMP003": "E0002",
+        "EMP004": "E0003",
+        "EMP005": "E0003",
+        "EMP006": "E0001",
+        "EMP007": "E0007",
+    }
+    return mapping.get(emp_upper, "E0001")
+
+
 @router.get(
     "/cases",
     response_model=CaseListResponse,
@@ -136,9 +155,10 @@ async def list_cases(employee_id: str) -> CaseListResponse:
     Each case represents one child for one academic year. Most employees
     have one or a few active cases.
     """
+    norm_id = _normalize_employee_id(employee_id)
     try:
         async with get_hcs11_client() as client:
-            cases = await client.get_employee_cases(employee_id)
+            cases = await client.get_employee_cases(norm_id)
             return CaseListResponse(cases=cases, count=len(cases))
     except HCS11ConnectionError:
         raise HTTPException(status_code=503, detail="Document verification service unavailable")
@@ -187,9 +207,10 @@ async def get_active_case(employee_id: str) -> CaseDetailResponse | None:
     Returns the first case that isn't fully paid. Returns null if
     all cases are complete or the employee has no cases.
     """
+    norm_id = _normalize_employee_id(employee_id)
     try:
         async with get_hcs11_client() as client:
-            case = await client.get_active_case(employee_id)
+            case = await client.get_active_case(norm_id)
             if case is None:
                 return None
             return CaseDetailResponse(
@@ -514,9 +535,10 @@ def list_dependents(
     employee_id: str | None = None,
 ) -> list[dict]:
     """Get eligible dependents and children for education allowance."""
+    norm_id = _normalize_employee_id(employee_id)
     try:
         from app.services.hcs11_client import hcs11_client
-        return hcs11_client.get_dependents(employee_id=employee_id)
+        return hcs11_client.get_dependents(employee_id=norm_id)
     except Exception as ex:
         logger.warning(f"Error fetching dependents from hcs11_client: {ex}")
         return []

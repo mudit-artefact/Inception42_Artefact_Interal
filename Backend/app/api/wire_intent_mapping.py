@@ -14,6 +14,7 @@ AWAITING_CLARIFICATION_LABEL = "ambiguous"
 ANSWERED_LABEL = "in_scope"
 ACTION_CONFIRMATION_LABEL = "action_confirmation"
 ACTION_EXECUTED_LABEL = "action_executed"
+DOCUMENT_UPLOAD_LABEL = "document_upload"
 
 
 def wire_intent_for(
@@ -28,6 +29,13 @@ def wire_intent_for(
         return GREETING_LABEL
     if question_intent == QuestionIntent.OUT_OF_SCOPE or answer_status == AnswerStatus.REFUSED:
         return OUT_OF_SCOPE_LABEL
+    if question_intent in (
+        QuestionIntent.DOCUMENT_UPLOAD,
+        QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
+        QuestionIntent.CHECK_SCHOOL_VERIFICATION,
+        "document_upload",
+    ):
+        return DOCUMENT_UPLOAD_LABEL
     if answer_status == AnswerStatus.ACTION_EXECUTED:
         return ACTION_EXECUTED_LABEL
     return ANSWERED_LABEL

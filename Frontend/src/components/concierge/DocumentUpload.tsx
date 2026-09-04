@@ -128,11 +128,6 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
   if (status === "success" && uploadResult) {
     const childName = caseData?.case.dependent_name || "your child";
 
-    // Auto-close after showing success briefly
-    setTimeout(() => {
-      onComplete?.(childName);
-    }, 100);
-
     return (
       <Card className="w-full max-w-2xl mx-auto border-green-500/30 bg-green-500/5">
         <CardHeader className="pb-3">
