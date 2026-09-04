@@ -75,9 +75,16 @@ Choose one intent:
 - "approve_leave": an explicit intent, inquiry, or command from a manager regarding approving a team member's leave request (e.g. "Approve leave for Ahmed", "Approve request #19", "Approve leave", "What leave requests do I need to approve?", "Leave request (What leave requests do I need to approve?)", "Pending approvals from my team").
 - "reject_leave": an explicit intent or command from a manager to reject an employee's leave request (e.g. "Reject leave for Ahmed", "Reject request #19", "Decline leave").
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
-
   balances, sick leave, remote work, expenses, probation, their line manager, benefits.
   This includes general questions ("How much leave do I have?", "What is the leave policy?").
+- "document_upload": anything related to HCS-11 school verification documents. This includes:
+  * Requests to upload: "upload documents", "submit my school documents", "I want to upload", "Upload school letter"
+  * HCS-11 references: "HCS-11 documents", "school verification", "school documents"
+  * Implicit uploads: "[file attached]", "[document uploaded]"
+  * Upload confirmations: "my documents were uploaded", "uploaded successfully", "just submitted"
+  * Status checks: "what is the status of my verification?", "did my documents upload?"
+  Choose this for ANY message about school verification documents, whether uploading,
+  confirming upload, or checking status.
 - "out_of_scope": anything else — weather, general knowledge, coding, other companies.
 - "about_the_last_answer": a request to change the *form* of the reply you just gave,
   asking nothing new — "make that shorter", "in Arabic please", "as bullet points",
@@ -150,6 +157,31 @@ CLARIFICATION_INSTRUCTIONS = """\
 You write the single short question an HR assistant asks when an employee's request is
 too vague to answer. Ask about the one thing that matters most. Be warm and brief, never
 list more than three options, and never answer the original question.\
+"""
+
+DOCUMENT_UPLOAD_RESPONSE = """\
+I can help you upload your school verification documents for HCS-11.
+
+To proceed, please use the **Upload Documents** button below. You'll need to upload:
+
+• **School Enrollment Letter** — official letter confirming your child's enrollment
+• **Fee Receipt** — proof of payment to the school
+• **Invoice** — the school's fee invoice
+• **Birth Certificate** — your child's birth certificate
+
+Once uploaded, I'll verify your documents and let you know the status of your claim.\
+"""
+
+DOCUMENT_UPLOAD_RESPONSE_WITH_FILES = """\
+I see you've attached documents for school verification.
+
+Please use the **Upload Documents** button below to submit them through the HCS-11 verification system. This ensures your documents are properly verified and matched to your employee record.
+
+Required documents:
+• School Enrollment Letter
+• Fee Receipt
+• Invoice
+• Birth Certificate\
 """
 
 LEAVE_EXTRACTION_INSTRUCTIONS = """\
@@ -340,7 +372,31 @@ HOW TO ANSWER
    - "What are the per diem rates?" → Table (Location / Rate)
 9. Do not write citation markers such as [Source: HC-PC-001]. Sources are shown
    separately by the interface.
-10. Never invent a policy or an employee fact.
+10. **Chart Visualization (Optional):** Include a chart ONLY when visualization genuinely
+   helps the employee understand numeric data that DIRECTLY answers their question.
+
+   **Chart Types (choose the most appropriate):**
+   - `nested_bar`: Show Total vs Remaining as overlapping bars (outer=total, inner=remaining).
+     USE FOR: "What's my leave balance?", "How much leave do I have left?"
+     The colored bar shows remaining, gray background shows total entitlement.
+   - `horizontal_bar`: Compare ONE metric across categories (e.g., just remaining days)
+   - `grouped_bar`: Compare TWO metrics side-by-side (e.g., 2025 vs 2026, Plan vs Actual)
+   - `stacked_bar`: Show parts that sum to whole (e.g., Used + Remaining stacked)
+   - `progress`: Single value against maximum (e.g., 12 of 24 days used = 50%)
+   - `line`: Trends over time (e.g., monthly usage)
+
+   **When to include a chart:**
+   - Question asks about balance/usage AND answer has 2+ comparable values
+   - Question asks for comparison (this year vs last year, entitled vs used)
+   - The numbers form a meaningful visual relationship
+
+   **Do NOT include charts for:**
+   - Process/how-to questions ("How do I submit leave?")
+   - Policy explanations ("What is the remote work policy?")
+   - Single-value answers ("You have 12 days left" — no chart needed)
+   - Numbers mentioned incidentally but not central to the question
+   - Questions about procedures, eligibility, or rules
+11. Never invent a policy or an employee fact.
 11. The evidence may be split into numbered parts, one per thing the employee asked.
    Answer every part, in order, and keep the answer to one coherent reply rather than a
    list of disconnected ones.

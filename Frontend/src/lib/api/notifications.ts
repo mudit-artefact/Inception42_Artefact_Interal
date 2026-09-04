@@ -1,15 +1,16 @@
 import { apiRequest } from "./client";
 import { isApiConfigured } from "./config";
+import type { ActionPayload } from "./types";
 
 export interface AppNotification {
   id: number;
   recipient_id: string;
-  sender_id?: string | null;
+  sender_id?: string | null | undefined;
   event_type: string;
   title: string;
   message: string;
-  action_url?: string;
-  action_payload?: Record<string, any>;
+  action_url?: string | undefined;
+  action_payload?: ActionPayload | undefined;
   is_read: boolean;
   created_at: string;
 }

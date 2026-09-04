@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 
 interface LeaveCalendarPickerProps {
   onSelectDates: (leaveType: string, startDate: string, endDate: string) => void;
-  leaveType?: string;
-  minDate?: string;
+  leaveType?: string | undefined;
+  minDate?: string | undefined;
 }
 
 const LEAVE_TYPES = [
@@ -48,9 +48,11 @@ export function LeaveCalendarPicker({
   let initialMonth = 9; // October (0-indexed 9)
   if (minDate) {
     const parts = minDate.split("-");
-    if (parts.length === 3) {
-      initialYear = parseInt(parts[0], 10);
-      initialMonth = parseInt(parts[1], 10) - 1;
+    const p0 = parts[0];
+    const p1 = parts[1];
+    if (p0 && p1) {
+      initialYear = parseInt(p0, 10);
+      initialMonth = parseInt(p1, 10) - 1;
     }
   }
 

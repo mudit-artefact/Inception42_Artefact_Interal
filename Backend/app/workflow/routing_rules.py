@@ -59,6 +59,9 @@ def decide_after_understanding(state: ConversationState) -> str:
     ):
         return "handle_school_verification"
 
+    if intent == QuestionIntent.DOCUMENT_UPLOAD:
+        return "generate_document_upload_prompt"
+
 
     # A request to rework the last reply is answered from that reply, not by searching
     # the policy documents for the words "make that shorter". Asked before there is a

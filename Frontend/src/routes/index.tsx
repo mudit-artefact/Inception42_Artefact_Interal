@@ -100,7 +100,7 @@ function ConciergePage() {
         <div className="flex items-center gap-2">
           <NotificationCenter
             employeeId={employeeId}
-            onActionClick={(prompt) => concierge.sendMessage(prompt)}
+            onActionClick={(prompt) => concierge.send(prompt)}
           />
           <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
         </div>
@@ -131,6 +131,7 @@ function ConciergePage() {
             onDismissError={concierge.dismissError}
             onFeedback={concierge.setFeedback}
             isAwaitingClarification={concierge.isAwaitingClarification}
+            employeeId={employeeId}
           />
         </main>
 

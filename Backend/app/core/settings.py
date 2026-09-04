@@ -58,6 +58,20 @@ class Settings(BaseSettings):
     # ── Employees ─────────────────────────────────────────────────
     default_employee_id: str = Field(default="EMP001", alias="DEFAULT_EMPLOYEE_ID")
 
+    # ── HCS-11 Document Verification Integration ─────────────────
+    hcs11_backend_url: str = Field(
+        default="http://localhost:8001",
+        alias="HCS11_BACKEND_URL",
+    )
+    hcs11_timeout_seconds: int = Field(
+        default=120,
+        alias="HCS11_TIMEOUT_SECONDS",
+    )
+    hcs11_enabled: bool = Field(
+        default=True,
+        alias="HCS11_ENABLED",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:

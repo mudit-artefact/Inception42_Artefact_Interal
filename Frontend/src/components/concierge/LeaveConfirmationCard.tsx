@@ -2,11 +2,12 @@ import React from "react";
 import { Calendar, CheckCircle2, AlertCircle, Clock, UserCheck, ArrowRight, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { ActionPayload } from "@/lib/api/types";
 
 interface LeaveConfirmationCardProps {
-  payload: Record<string, any>;
-  onConfirm?: (text: string) => void;
-  isLatestAssistantMessage?: boolean;
+  payload: ActionPayload;
+  onConfirm?: ((text: string) => void) | undefined;
+  isLatestAssistantMessage?: boolean | undefined;
 }
 
 export function LeaveConfirmationCard({

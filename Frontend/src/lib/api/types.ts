@@ -1,50 +1,79 @@
 export type ChatRole = "user" | "assistant";
 
 export interface PolicySource {
-  id?: string;
+  id?: string | undefined;
   title: string;
-  source?: string;
-  source_type?: "policy" | "database";
-  table_name?: string;
-  section?: string;
-  page_number?: number;
-  url?: string;
-  snippet?: string;
-  score?: number;
-  language?: string;
-  pdf_url?: string;
-  has_image?: boolean;
+  source?: string | undefined;
+  source_type?: "policy" | "database" | undefined;
+  table_name?: string | undefined;
+  section?: string | undefined;
+  page_number?: number | undefined;
+  url?: string | undefined;
+  snippet?: string | undefined;
+  score?: number | undefined;
+  language?: string | undefined;
+  pdf_url?: string | undefined;
+  has_image?: boolean | undefined;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  [key: string]: unknown;
+}
+
+export interface ChartPayload {
+  title?: string | undefined;
+  type?: "bar" | "pie" | "line" | undefined;
+  data: ChartDataPoint[];
+  xAxisKey?: string | undefined;
+  dataKey?: string | undefined;
+  unit?: string | undefined;
 }
 
 export interface ChatRequest {
-  message?: string;
-  query?: string;
-  conversation_id?: string | null;
-  employee_id?: string;
-  target_language?: string;
+  message?: string | undefined;
+  query?: string | undefined;
+  conversation_id?: string | null | undefined;
+  employee_id?: string | undefined;
+  target_language?: string | undefined;
   // For clarification follow-up (ambiguous query handling)
-  original_question?: string | null;
-  user_clarification?: string | null;
+  original_question?: string | null | undefined;
+  user_clarification?: string | null | undefined;
+}
+
+export interface ActionPayload {
+  action_type?: string | undefined;
+  leave_type?: string | undefined;
+  min_date?: string | undefined;
+  start_date?: string | undefined;
+  end_date?: string | undefined;
+  pending_approvals?: any[] | undefined;
+  approved_leave?: any | undefined;
+  cases?: any[] | undefined;
+  dependents?: any[] | undefined;
+  [key: string]: any;
 }
 
 export interface ChatResponse {
   answer: string;
   sources: PolicySource[];
-  conversation_id?: string;
-  employee_profile?: EmployeeProfile;
-  target_language?: string;
-  latency_ms?: number;
-  tokens_used?: number;
-  intent?: string;
-  rewritten_query?: string;
-  confidence_score?: number;
+  conversation_id?: string | undefined;
+  employee_profile?: EmployeeProfile | undefined;
+  target_language?: string | undefined;
+  latency_ms?: number | undefined;
+  tokens_used?: number | undefined;
+  intent?: string | undefined;
+  rewritten_query?: string | undefined;
+  confidence_score?: number | undefined;
   // Clarification handling (for ambiguous queries)
-  is_awaiting_clarification?: boolean;
-  original_question?: string | null;
-  clarifying_question?: string | null;
+  is_awaiting_clarification?: boolean | undefined;
+  original_question?: string | null | undefined;
+  clarifying_question?: string | null | undefined;
   // Agentic Action handling
-  action_payload?: Record<string, any> | null;
-  is_action_required?: boolean;
+  action_payload?: ActionPayload | null | undefined;
+  is_action_required?: boolean | undefined;
+  chart?: ChartPayload | undefined;
 }
 
 export interface ChatMessage {
@@ -52,20 +81,20 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   createdAt: string;
-  sources?: PolicySource[];
-  feedback?: "up" | "down" | null;
-  error?: string;
-  intent?: string;
-  rewritten_query?: string;
-  confidence_score?: number;
+  sources?: PolicySource[] | undefined;
+  feedback?: "up" | "down" | null | undefined;
+  error?: string | undefined;
+  intent?: string | undefined;
+  rewritten_query?: string | undefined;
+  confidence_score?: number | undefined;
   // Clarification handling
-  is_awaiting_clarification?: boolean;
-  original_question?: string | null;
+  is_awaiting_clarification?: boolean | undefined;
+  original_question?: string | null | undefined;
   // Agentic Action handling
-  action_payload?: Record<string, any> | null;
-  is_action_required?: boolean;
+  action_payload?: ActionPayload | null | undefined;
+  is_action_required?: boolean | undefined;
+  chart?: ChartPayload | undefined;
 }
-
 
 export interface Conversation {
   /** Local, stable identifier used for UI routing/history. */
@@ -90,23 +119,23 @@ export interface LeaveBalance {
 
 export interface EmployeeProfile {
   id: string;
-  user_id?: string;
+  user_id?: string | undefined;
   name: string;
-  name_ar?: string;
+  name_ar?: string | undefined;
   jobTitle: string;
-  role?: string;
+  role?: string | undefined;
   department: string;
   grade: string;
   manager: string;
-  email?: string;
+  email?: string | undefined;
   balances: LeaveBalance[];
-  policyLinks?: PolicySource[];
-  annual_leave_balance?: number;
-  sick_leave_balance?: number;
-  carry_over_days?: number;
-  probation_status?: string;
-  years_of_service?: number;
-  start_date?: string;
+  policyLinks?: PolicySource[] | undefined;
+  annual_leave_balance?: number | undefined;
+  sick_leave_balance?: number | undefined;
+  carry_over_days?: number | undefined;
+  probation_status?: string | undefined;
+  years_of_service?: number | undefined;
+  start_date?: string | undefined;
 }
 
 export class ApiError extends Error {
@@ -117,4 +146,3 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
-

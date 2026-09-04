@@ -5,7 +5,7 @@ import type { EmployeeProfile, PolicySource } from "@/lib/api/types";
 
 interface EmployeeCardProps {
   employee: EmployeeProfile;
-  policyLinks?: PolicySource[];
+  policyLinks?: PolicySource[] | undefined;
 }
 
 export function EmployeeCard({ employee, policyLinks = [] }: EmployeeCardProps) {

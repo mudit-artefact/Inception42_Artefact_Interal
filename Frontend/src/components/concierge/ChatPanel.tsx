@@ -1,4 +1,5 @@
-import { AlertTriangle, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, FileUp, RotateCcw, ShieldCheck, Sparkles, X } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -14,13 +15,13 @@ import {
 import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DataChart } from "@/components/concierge/DataChart";
+import { DocumentUpload } from "@/components/concierge/DocumentUpload";
 import { LeaveConfirmationCard } from "@/components/concierge/LeaveConfirmationCard";
 import { LeaveCalendarPicker } from "@/components/concierge/LeaveCalendarPicker";
 import { LeaveApprovedCard } from "@/components/concierge/LeaveApprovedCard";
 import { ManagerApprovalCard } from "@/components/concierge/ManagerApprovalCard";
 import { MessageFeedback } from "@/components/concierge/MessageFeedback";
-
-
 import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
 import { SUGGESTED_QUESTIONS } from "@/lib/api/mock";
@@ -39,6 +40,7 @@ interface ChatPanelProps {
   onDismissError: () => void;
   onFeedback: (id: string, value: "up" | "down") => void;
   isAwaitingClarification?: boolean;
+  employeeId?: string;
 }
 
 function formatMessageContent(content: string): string {
@@ -72,9 +74,11 @@ export function ChatPanel({
   onDismissError,
   onFeedback,
   isAwaitingClarification = false,
+  employeeId = "EMP001",
 }: ChatPanelProps) {
   const busy = status === "submitted" && stage !== null;
   const isEmpty = messages.length === 0;
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
 
   const handleSubmit = (
     value: { text: string; files?: unknown[] },
@@ -106,7 +110,6 @@ export function ChatPanel({
 
           {messages.map((m, i) => (
             <Message key={m.id} from={m.role}>
-
               {m.role === "assistant" ? (
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Concierge
@@ -128,6 +131,10 @@ export function ChatPanel({
                   </div>
                 ) : null}
 
+                {/* Chart visualization for numeric data */}
+                {m.role === "assistant" && m.chart ? (
+                  <DataChart chart={m.chart} />
+                ) : null}
 
                 {/* Proactive Greeting Action Pills */}
                 {m.role === "assistant" && m.intent === "greeting" ? (
@@ -156,6 +163,13 @@ export function ChatPanel({
                     </button>
                     <button
                       type="button"
+                      onClick={() => setShowDocumentUpload(true)}
+                      className="px-2 py-1 rounded-md text-[11px] bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-medium transition-colors cursor-pointer"
+                    >
+                      📎 Upload School Documents
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => onSend("Who is my current line manager and when did they change?")}
                       className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors cursor-pointer"
                     >
@@ -164,7 +178,21 @@ export function ChatPanel({
                   </div>
                 ) : null}
 
-                {/* Proactive Leave Application Suggestion Pill (Req #2) */}
+                {/* Document Upload Action Button */}
+                {m.role === "assistant" && m.intent === "document_upload" ? (
+                  <div className="mt-3 pt-2 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setShowDocumentUpload(true)}
+                      className="w-full px-4 py-2.5 rounded-lg text-sm bg-pink hover:bg-pink/90 text-white font-medium transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      <FileUp className="size-4" />
+                      Upload Documents
+                    </button>
+                  </div>
+                ) : null}
+
+                {/* Proactive Leave Application Suggestion Pill */}
                 {m.role === "assistant" &&
                 i === messages.length - 1 &&
                 !m.action_payload &&
@@ -184,7 +212,7 @@ export function ChatPanel({
                   </div>
                 ) : null}
 
-                {/* Calendar Date-Range Picker (Req #4) */}
+                {/* Calendar Date-Range Picker */}
                 {m.action_payload?.action_type === "SHOW_LEAVE_CALENDAR_PICKER" ? (
                   <LeaveCalendarPicker
                     leaveType={m.action_payload.leave_type}
@@ -195,7 +223,7 @@ export function ChatPanel({
                   />
                 ) : null}
 
-                {/* Manager Approvals Card (Req #3) */}
+                {/* Manager Approvals Card */}
                 {m.action_payload?.action_type === "MANAGER_PENDING_APPROVALS" &&
                 m.action_payload.pending_approvals ? (
                   <ManagerApprovalCard
@@ -204,14 +232,15 @@ export function ChatPanel({
                   />
                 ) : null}
 
-                {/* Post-Approval Celebration & Calendar/Email Card (Req #5 & #1) */}
+                {/* Post-Approval Celebration & Calendar/Email Card */}
                 {m.action_payload?.action_type === "LEAVE_APPROVED_NOTIFICATION" &&
                 m.action_payload.approved_leave ? (
                   <LeaveApprovedCard approvedLeave={m.action_payload.approved_leave} />
                 ) : null}
 
-                {/* Agentic Leave Confirmation & Receipt Cards (Req #1) */}
+                {/* Agentic Leave Confirmation & Receipt Cards */}
                 {m.action_payload &&
+                m.action_payload.action_type &&
                 [
                   "CONFIRM_LEAVE_APPLICATION",
                   "LEAVE_SUBMITTED_PENDING_APPROVAL",
@@ -225,8 +254,6 @@ export function ChatPanel({
                   />
                 ) : null}
               </MessageContent>
-
-
 
               {m.role === "assistant" ? (
                 <>
@@ -247,9 +274,6 @@ export function ChatPanel({
                 Concierge
               </p>
               <MessageContent>
-                {/* The live step, replaced as the workflow advances. It used to be one
-                    fixed sentence for the whole wait, which said the same thing whether
-                    the answer took four seconds or sixty. */}
                 <Shimmer className="text-sm">
                   {stage?.text ?? "Working on it…"}
                 </Shimmer>
@@ -325,6 +349,22 @@ export function ChatPanel({
           </PromptInput>
         </div>
       </div>
+
+      {/* Document Upload Modal */}
+      {showDocumentUpload ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-2xl">
+            <DocumentUpload
+              employeeId={employeeId}
+              onClose={() => setShowDocumentUpload(false)}
+              onComplete={(childName) => {
+                setShowDocumentUpload(false);
+                onSend(`My school verification documents for ${childName} were uploaded successfully. Please confirm the status.`);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

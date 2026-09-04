@@ -30,6 +30,7 @@ class QuestionIntent(StrEnum):
     CHECK_SCHOOL_VERIFICATION = "check_school_verification"
     SUBMIT_SCHOOL_VERIFICATION = "submit_school_verification"
     REVIEW_SCHOOL_CASES = "review_school_cases"
+    DOCUMENT_UPLOAD = "document_upload"
 
 
 
