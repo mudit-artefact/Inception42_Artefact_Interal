@@ -100,10 +100,10 @@ export function ChatPanel({
                 <InceptionLogo className="h-8 w-auto" />
               </div>
               <h2 className="mt-4 font-display text-lg font-semibold tracking-tight text-foreground">
-                How can I help with your HR policies today?
+                Hello! How can I support your HR needs today?
               </h2>
               <p className="mt-1.5 max-w-md text-xs text-muted-foreground">
-                Ask about annual leave, carry-over caps, probation reviews, medical certificates, or line manager approvals.
+                Ask me about leave policies and probation rules, or simply upload your school checkup certificates for instant verification.
               </p>
             </div>
           ) : null}
