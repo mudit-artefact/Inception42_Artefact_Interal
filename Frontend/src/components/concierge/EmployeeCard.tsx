@@ -1,6 +1,5 @@
 import { ExternalLink, FileText } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import type { EmployeeProfile, PolicySource } from "@/lib/api/types";
 
 interface EmployeeCardProps {
@@ -100,11 +99,6 @@ export function EmployeeCard({ employee, policyLinks = [] }: EmployeeCardProps) 
                 <FileText aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-pink" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium text-foreground">{link.title}</span>
-                  {link.section ? (
-                    <Badge variant="secondary" className="mt-1 font-normal">
-                      {link.section.replace(/§\s*/g, "Section ").replace(/§/g, "Section ")}
-                    </Badge>
-                  ) : null}
                 </span>
                 <ExternalLink
                   aria-hidden="true"
