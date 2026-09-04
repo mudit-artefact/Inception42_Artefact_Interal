@@ -54,6 +54,7 @@ export interface CaseSummary {
   submitted_on: string | null;
   payment_status: string;
   awaiting_review: boolean;
+  approved_amount_aed?: number | null;
 }
 
 export interface CaseDetail extends CaseSummary {

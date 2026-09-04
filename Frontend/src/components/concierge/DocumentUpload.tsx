@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -39,6 +39,8 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
     reset,
   } = useDocumentUpload();
 
+  const [forceShowUpload, setForceShowUpload] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -72,18 +74,23 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
   const handleClose = () => {
     reset();
+    setForceShowUpload(false);
     onClose();
   };
 
   const handleChildChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const caseId = e.target.value;
     if (caseId) {
+      setForceShowUpload(false);
       selectCase(caseId);
     }
   };
 
-  // Check if all required documents are received
-  const allDocumentsReceived = caseData?.case.required_documents.every((doc) => doc.received) ?? false;
+  // Check if all required documents are received (avoiding [].every which is vacuously true)
+  const hasRequiredDocs = (caseData?.case.required_documents.length ?? 0) > 0;
+  const allDocumentsReceived = hasRequiredDocs
+    ? (caseData?.case.required_documents.every((doc) => doc.received) ?? false)
+    : caseData?.case.case_status === "Approved";
 
   // Loading state
   if (status === "loading_cases") {
@@ -270,14 +277,36 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
         {/* Success message when all documents received (but not auto-approved) */}
         {allDocumentsReceived && !uploadResult && (
-          <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
-            <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-green-700">Everything we need is here</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                All required documents have been received. You can close this window.
-              </p>
+          <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/5 space-y-2">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-700">
+                  {caseData?.case.case_status === "Approved"
+                    ? "Approved for Education Allowance"
+                    : "Everything we need is here"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {caseData?.case.approved_amount_aed
+                    ? `AED ${caseData.case.approved_amount_aed.toLocaleString()} ready for payroll processing.`
+                    : "All required documents have been received for this academic cycle."}
+                </p>
+              </div>
             </div>
+            {!forceShowUpload && selectedFiles.length === 0 && (
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5 border-pink/30 text-pink hover:bg-pink/10 cursor-pointer"
+                  onClick={() => setForceShowUpload(true)}
+                >
+                  <Upload className="size-3" />
+                  Upload Replacement or New Document
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -344,17 +373,21 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
           </div>
         )}
 
-        {/* Drop zone - only show if documents are missing or there are issues to fix */}
-        {(!allDocumentsReceived || hasIssues) && (
+        {/* Drop zone - show if documents are missing, has issues, user requested upload, or files are selected */}
+        {(!allDocumentsReceived || hasIssues || forceShowUpload || selectedFiles.length > 0) && (
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:border-pink/50 hover:bg-pink/5 transition-colors"
+            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-pink/30 hover:border-pink bg-pink/5 hover:bg-pink/10 rounded-lg cursor-pointer transition-colors"
           >
-            <Upload className="size-8 text-muted-foreground/50" />
-            <p className="mt-2 text-sm font-medium">
-              {hasIssues ? "Upload corrected document(s)" : "Drop files here or click to browse"}
+            <Upload className="size-8 text-pink/70" />
+            <p className="mt-2 text-sm font-medium text-foreground">
+              {hasIssues
+                ? "Upload corrected document(s)"
+                : allDocumentsReceived
+                ? "Drop new or replacement document here"
+                : "Drop official school certificate here or click to browse"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">PDF, PNG, or JPEG up to 10MB each</p>
             <input
@@ -408,26 +441,36 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
       {/* Fixed footer with action buttons */}
       <div className="shrink-0 p-4 pt-2 border-t bg-card space-y-2">
         <div className="flex gap-2">
-          {allDocumentsReceived && !hasIssues ? (
-            // All done - show single "Done" button
-            <Button
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={() => {
-                const childName = caseData?.case.dependent_name || "your child";
-                onComplete?.(childName);
-              }}
-            >
-              <CheckCircle2 className="size-4 mr-2" />
-              Done
-            </Button>
-          ) : (
-            // Still need uploads
+          {allDocumentsReceived && !hasIssues && !forceShowUpload && selectedFiles.length === 0 ? (
+            // All done - show "Upload Document" and "Done"
             <>
-              <Button variant="outline" className="flex-1" onClick={handleClose}>
+              <Button
+                variant="outline"
+                className="flex-1 border-pink/30 text-pink hover:bg-pink/10 cursor-pointer"
+                onClick={() => setForceShowUpload(true)}
+              >
+                <Upload className="size-4 mr-2" />
+                Upload Document
+              </Button>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white cursor-pointer"
+                onClick={() => {
+                  const childName = caseData?.case.dependent_name || "your child";
+                  onComplete?.(childName);
+                }}
+              >
+                <CheckCircle2 className="size-4 mr-2" />
+                Done
+              </Button>
+            </>
+          ) : (
+            // Needs upload or has selected files
+            <>
+              <Button variant="outline" className="flex-1 cursor-pointer" onClick={handleClose}>
                 Cancel
               </Button>
               <Button
-                className="flex-1 bg-pink hover:bg-pink/90"
+                className="flex-1 bg-pink hover:bg-pink/90 text-white font-medium cursor-pointer"
                 disabled={selectedFiles.length === 0}
                 onClick={handleUpload}
               >
