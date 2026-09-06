@@ -149,7 +149,7 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 shrink-0">
-                        {isLeaveReq && <Clock className="size-4 text-amber-500" />}
+                        {isLeaveReq && <Clock className="size-4 text-primary" />}
                         {isApproved && <CheckCircle2 className="size-4 text-emerald-500" />}
                         {isRejected && <XCircle className="size-4 text-rose-500" />}
                         {!isLeaveReq && !isApproved && !isRejected && (

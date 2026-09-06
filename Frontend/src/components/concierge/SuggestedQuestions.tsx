@@ -19,7 +19,7 @@ export function SuggestedQuestions({ questions, onSelect, disabled }: SuggestedQ
             type="button"
             disabled={disabled}
             onClick={() => onSelect(q)}
-            className="group flex w-full items-center justify-between gap-2 rounded-xl border bg-card/90 px-3.5 py-2 text-left text-xs text-foreground transition-all hover:border-pink/50 hover:bg-accent/60 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer shadow-2xs"
+            className="group flex w-full items-center justify-between gap-2 rounded-xl border bg-card/90 px-3.5 py-2 text-left text-xs text-foreground transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer shadow-2xs"
           >
             <span className="line-clamp-1 font-medium text-foreground group-hover:text-foreground">
               {q}

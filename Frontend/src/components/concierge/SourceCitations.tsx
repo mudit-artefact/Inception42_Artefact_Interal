@@ -31,7 +31,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
         aria-expanded={isOpen}
       >
         <span className="flex flex-wrap items-center gap-1.5">
-          <BookOpen aria-hidden="true" className="size-3.5 text-pink" />
+          <BookOpen aria-hidden="true" className="size-3.5 text-primary" />
           <span className="font-semibold uppercase tracking-wider text-muted-foreground text-[11px]">
             Verified Sources ({displaySources.length})
           </span>
@@ -51,7 +51,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
             </Badge>
           ) : null}
           {hasVisualDiagrams ? (
-            <Badge variant="outline" className="hidden sm:inline-flex items-center gap-1 border-pink/30 bg-pink/5 text-[10px] text-pink">
+            <Badge variant="outline" className="hidden sm:inline-flex items-center gap-1 border-primary/30 bg-primary/5 text-[10px] text-primary">
               <Sparkles className="size-2.5" />
               PDF Flowcharts
             </Badge>
@@ -78,7 +78,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
                   <span
                     aria-hidden="true"
                     className={`grid size-4 shrink-0 place-items-center rounded text-[10px] font-semibold ${
-                      isDatabase ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-pink/10 text-pink"
+                      isDatabase ? "bg-blue-500/10 text-blue-600 dark:text-blue-400" : "bg-primary/10 text-primary"
                     }`}
                   >
                     {i + 1}
@@ -106,9 +106,9 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
                           href={pdfPageHref}
                           target="_blank"
                           rel="noreferrer"
-                          className="font-medium text-foreground hover:text-pink hover:underline inline-flex items-center gap-1"
+                          className="font-medium text-foreground hover:text-primary hover:underline inline-flex items-center gap-1"
                         >
-                          <FileText className="size-3 text-pink" />
+                          <FileText className="size-3 text-primary" />
                           {source.title || source.source || "Policy Document"}
                         </a>
 
@@ -119,7 +119,7 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
                         ) : null}
 
                         {source.has_image ? (
-                          <Badge variant="secondary" className="gap-1 border-pink/20 bg-pink/10 text-[10px] font-normal text-pink">
+                          <Badge variant="secondary" className="gap-1 border-primary/20 bg-primary/10 text-[10px] font-normal text-primary">
                             <Sparkles className="size-2.5" />
                             <span>PDF Flowchart {pageNum ? `(Page ${pageNum})` : ""}</span>
                           </Badge>

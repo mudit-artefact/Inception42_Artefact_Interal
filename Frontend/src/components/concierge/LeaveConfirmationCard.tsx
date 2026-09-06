@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, CheckCircle2, AlertCircle, Clock, UserCheck, ArrowRight, XCircle } from "lucide-react";
+import { Calendar, CheckCircle2, AlertCircle, Clock, ArrowRight, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { ActionPayload } from "@/lib/api/types";
@@ -42,39 +42,28 @@ export function LeaveConfirmationCard({
   if ((action_type === "LEAVE_SUBMITTED_PENDING_APPROVAL" || action_type === "LEAVE_SUBMITTED_SUCCESS") && receipt) {
     const isPending = receipt.status === "Pending" || action_type === "LEAVE_SUBMITTED_PENDING_APPROVAL";
     return (
-      <div className={`mt-3 overflow-hidden rounded-xl border p-4 text-sm shadow-sm transition-all ${
-        isPending
-          ? "border-amber-500/30 bg-amber-500/5 dark:border-amber-500/20 dark:bg-amber-950/20"
-          : "border-emerald-500/30 bg-emerald-500/5 dark:border-emerald-500/20 dark:bg-emerald-950/20"
-      }`}>
-        <div className={`flex items-center gap-2 font-medium ${isPending ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-          {isPending ? <Clock className="size-5 shrink-0 text-amber-500" /> : <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />}
-          <span className="font-semibold">Leave Request Logged</span>
-          <Badge variant="outline" className={`ml-auto text-[10px] ${
-            isPending
-              ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-              : "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
-          }`}>
+      <div className="mt-3 overflow-hidden rounded-xl border border-primary/25 bg-primary/5 dark:border-primary/20 dark:bg-primary/10 p-4 text-sm shadow-xs transition-all">
+        <div className="flex items-center gap-2 font-medium text-primary">
+          {isPending ? <Clock className="size-5 shrink-0 text-primary" /> : <CheckCircle2 className="size-5 shrink-0 text-primary" />}
+          <span className="font-semibold text-foreground">Leave Request Logged</span>
+          <Badge variant="outline" className="ml-auto text-[10px] border-primary/30 bg-primary/10 text-primary font-medium">
             {receipt.status || (isPending ? "Pending Approval" : "Approved")}
           </Badge>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg bg-background/60 p-2.5 border border-border/50">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <div className="rounded-lg bg-card p-2.5 border border-border/50 shadow-2xs">
             <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Period</span>
-            <span className="font-medium text-foreground">{receipt.start_date} → {receipt.end_date}</span>
-            <span className="text-primary font-semibold text-[11px] block mt-0.5">{receipt.days_requested} Working Days</span>
+            <span className="font-medium text-foreground">{receipt.start_date} → {receipt.end_date} ({receipt.days_requested} {receipt.days_requested === 1 ? "day" : "days"})</span>
           </div>
-          <div className="rounded-lg bg-background/60 p-2.5 border border-border/50">
+          <div className="rounded-lg bg-card p-2.5 border border-border/50 shadow-2xs">
             <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Balance</span>
-            <span className="font-medium text-foreground">{receipt.current_balance ?? receipt.remaining_balance} Days Available</span>
-            <span className="text-muted-foreground text-[10px] block mt-0.5">{isPending ? "Will debit upon approval" : "Updated balance"}</span>
+            <span className="font-medium text-foreground">{receipt.current_balance ?? receipt.remaining_balance} Days</span>
           </div>
-        </div>
-
-        <div className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <UserCheck className="size-3.5 text-primary" />
-          <span>Forwarded to Line Manager: <strong className="text-foreground">{receipt.approver_name}</strong> for review</span>
+          <div className="rounded-lg bg-card p-2.5 border border-border/50 shadow-2xs">
+            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Line Manager</span>
+            <span className="font-medium text-foreground">{receipt.approver_name}</span>
+          </div>
         </div>
       </div>
     );
@@ -84,7 +73,7 @@ export function LeaveConfirmationCard({
   // 2. Policy violation card
   if (action_type === "POLICY_VIOLATION") {
     return (
-      <div className="mt-3 overflow-hidden rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm shadow-sm dark:border-rose-500/20 dark:bg-rose-950/20">
+      <div className="mt-3 overflow-hidden rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm shadow-xs dark:border-rose-500/20 dark:bg-rose-950/20">
         <div className="flex items-center gap-2 font-medium text-rose-600 dark:text-rose-400">
           <AlertCircle className="size-5 shrink-0 text-rose-500" />
           <span className="font-semibold">Policy Compliance Check Failed</span>
@@ -106,25 +95,25 @@ export function LeaveConfirmationCard({
   // 3. Human-in-the-Loop Confirmation Card
   if (action_type === "CONFIRM_LEAVE_APPLICATION") {
     return (
-      <div className="mt-3 overflow-hidden rounded-xl border border-pink/30 bg-gradient-to-b from-pink/5 to-transparent p-4 text-sm shadow-sm transition-all">
+      <div className="mt-3 overflow-hidden rounded-xl border border-primary/25 bg-gradient-to-b from-primary/5 to-transparent p-4 text-sm shadow-xs transition-all">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-pink/10 text-pink">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Calendar className="size-4" />
             </div>
             <div>
               <span className="font-semibold text-foreground text-xs">{leave_type} Application</span>
             </div>
           </div>
-          <Badge variant="outline" className="border-pink/40 bg-pink/10 text-pink text-[10px]">
+          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[10px] font-medium">
             Confirmation Required
           </Badge>
         </div>
 
         {/* Date Details */}
         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg bg-background/80 p-2.5 border border-border/50 shadow-2xs">
+          <div className="rounded-lg bg-card p-2.5 border border-border/50 shadow-2xs">
             <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Dates</span>
             <div className="font-medium text-foreground mt-0.5 flex items-center gap-1">
               <span>{start_date}</span>
@@ -133,10 +122,10 @@ export function LeaveConfirmationCard({
             </div>
           </div>
 
-          <div className="rounded-lg bg-background/80 p-2.5 border border-border/50 shadow-2xs">
+          <div className="rounded-lg bg-card p-2.5 border border-border/50 shadow-2xs">
             <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Working Days</span>
             <div className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
-              <Clock className="size-3.5 text-pink" />
+              <Clock className="size-3.5 text-primary" />
               <span>{working_days} {working_days === 1 ? "day" : "days"}</span>
             </div>
           </div>
@@ -150,14 +139,14 @@ export function LeaveConfirmationCard({
           </div>
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Projected Balance:</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatDays(balance_after)} Days</span>
+            <span className="font-semibold text-primary">{formatDays(balance_after)} Days</span>
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-border/40 text-muted-foreground">
             <span>Line Manager:</span>
             <span className="font-medium text-foreground">{approver_name}</span>
           </div>
           {requires_medical_certificate ? (
-            <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pt-0.5">
+            <div className="flex items-center gap-1 text-[11px] text-primary pt-0.5">
               <AlertCircle className="size-3" />
               <span>Medical certificate required (&gt;2 days sick leave)</span>
             </div>
@@ -171,7 +160,7 @@ export function LeaveConfirmationCard({
               type="button"
               size="sm"
               onClick={() => onConfirm("Confirm")}
-              className="flex-1 bg-pink text-white hover:bg-pink/90 text-xs font-medium h-8 shadow-xs"
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium h-8 shadow-xs"
             >
               <CheckCircle2 className="size-3.5 mr-1.5" />
               Confirm & Submit

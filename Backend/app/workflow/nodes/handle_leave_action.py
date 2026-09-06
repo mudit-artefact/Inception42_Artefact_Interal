@@ -155,15 +155,7 @@ def handle_leave_application(state: ConversationState) -> dict:
                 "end_date": validation.end_date,
                 "working_days": validation.working_days,
             },
-            "citations": [
-                {
-                    "source": "HC-PC-001 §1.4 / omni_hr.db",
-                    "section": "Leave Policy Compliance Check",
-                    "score": 1.0,
-                    "language": lang,
-                    "snippet": f"Validated against {validation.leave_type} policies and live balances.",
-                }
-            ],
+            "citations": [],
         }
 
     # Step E: Valid! Prepare Human-in-the-Loop Confirmation Card and Pause
@@ -229,25 +221,9 @@ def handle_leave_application(state: ConversationState) -> dict:
         proj_bal_display = int(receipt['projected_balance']) if isinstance(receipt['projected_balance'], (int, float)) and float(receipt['projected_balance']).is_integer() else receipt['projected_balance']
 
         if lang == "ar":
-            success_msg = (
-                f"✅ **تم إرسال طلب الإجازة بنجاح وهو بانتظار اعتماد المدير!**\n\n"
-                f"• **نوع الإجازة:** {receipt['leave_type']}\n"
-                f"• **الفترة:** من {receipt['start_date']} إلى {receipt['end_date']} ({receipt['days_requested']} أيام عمل)\n"
-                f"• **الحالة:** قيد المراجعة والاعتماد ({receipt['status']})\n"
-                f"• **المدير المباشر:** {receipt['approver_name']}\n"
-                f"• **الرصيد المتبقي الحالي:** {cur_bal_display} يوم\n\n"
-                f"تم إرسال طلب اعتماد رسمي إلى مديرك المباشر. فور اعتماده، سيصلك إشعار لتسجيل الإجازة بالتقويم."
-            )
+            success_msg = "✅ **تم إرسال طلب الإجازة بنجاح وهو بانتظار اعتماد المدير.**"
         else:
-            success_msg = (
-                f"✅ **Leave Request Submitted & Awaiting Manager Approval!**\n\n"
-                f"• **Leave Type:** {receipt['leave_type']}\n"
-                f"• **Dates:** {receipt['start_date']} to {receipt['end_date']} ({receipt['days_requested']} working days)\n"
-                f"• **Status:** Pending Approval\n"
-                f"• **Approver:** {receipt['approver_name']} (Line Manager)\n"
-                f"• **Current Balance:** {cur_bal_display} days (will become {proj_bal_display} upon approval)\n\n"
-                f"Your request has been forwarded to your line manager for review. Once approved, you will be notified and can download your calendar invite (.ics)."
-            )
+            success_msg = "✅ **Leave Request Submitted & Awaiting Manager Approval!**"
 
         return {
             "final_answer": success_msg,
@@ -256,16 +232,7 @@ def handle_leave_application(state: ConversationState) -> dict:
                 "action_type": "LEAVE_SUBMITTED_PENDING_APPROVAL",
                 "receipt": receipt,
             },
-            "citations": [
-                {
-                    "source": "omni_hr.db / leave_requests",
-                    "table_name": "leave_requests",
-                    "section": "Leave Request",
-                    "score": 1.0,
-                    "language": lang,
-                    "snippet": f"Submitted {validation.leave_type} ({validation.working_days} days) for manager review.",
-                }
-            ],
+            "citations": [],
         }
     except Exception as exc:
         logger.error(f"Error submitting leave request: {exc}", exc_info=True)
@@ -309,49 +276,32 @@ def handle_manager_approval(state: ConversationState) -> dict:
     b_name = manager.name.split()[0] if manager and manager.name else "there"
 
     if is_inquiry or not is_action_command or intent == QuestionIntent.CHECK_LEAVE_STATUS:
-            if not pending_approvals:
-                msg = (
-                    f"No {b_name}, you don't have any leave request pending of your juniors."
-                    if lang == "en"
-                    else f"لا {b_name}، لا توجد لديك أي طلبات إجازة معلقة من موظفيك."
-                )
-                return {
-                    "final_answer": msg,
-                    "answer_status": AnswerStatus.VERIFIED.value,
-                    "citations": [],
-                }
-
-            if len(pending_approvals) == 1:
-                c_name = pending_approvals[0]["employee_name"]
-                header = (
-                    f"Yes, **{c_name}** asked for a leave request:\n"
-                    if lang == "en"
-                    else f"نعم، طلب **{c_name}** إجازة بانتظار اعتمادك:\n"
-                )
-            else:
-                c_names = ", ".join(list(dict.fromkeys(pa["employee_name"] for pa in pending_approvals)))
-                header = (
-                    f"Yes, your juniors ({c_names}) asked for leave requests:\n"
-                    if lang == "en"
-                    else f"نعم، طلب موظفوك ({c_names}) إجازة بانتظار اعتمادك:\n"
-                )
-
-            lines = [header]
-            for pa in pending_approvals:
-                lines.append(
-                    f"• **{pa['leave_type']}** for **{pa['employee_name']}** ({pa['employee_role']}): "
-                    f"{pa['days_requested']} days from {pa['start_date']} to {pa['end_date']}"
-                )
-            lines.append("\nYou can review and click **Approve Leave** or **Reject** on the card below.")
+        if not pending_approvals:
+            msg = (
+                f"No {b_name}, you don't have any leave request pending of your juniors."
+                if lang == "en"
+                else f"لا {b_name}، لا توجد لديك أي طلبات إجازة معلقة من موظفيك."
+            )
             return {
-                "final_answer": "\n".join(lines),
+                "final_answer": msg,
                 "answer_status": AnswerStatus.VERIFIED.value,
-                "action_payload": {
-                    "action_type": "MANAGER_PENDING_APPROVALS",
-                    "pending_approvals": pending_approvals,
-                },
                 "citations": [],
             }
+
+        msg = (
+            "You can review and click **Approve Leave** or **Reject** on the card below."
+            if lang == "en"
+            else "يمكنك مراجعة الطلب والنقر على **اعتماد الإجازة** أو **رفض** في البطاقة أدناه."
+        )
+        return {
+            "final_answer": msg,
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "action_payload": {
+                "action_type": "MANAGER_PENDING_APPROVALS",
+                "pending_approvals": pending_approvals,
+            },
+            "citations": [],
+        }
 
     # Extract target request ID if stated, or look for direct report name
     id_match = re.search(r"#?\b(\d+)\b", question)
@@ -368,15 +318,13 @@ def handle_manager_approval(state: ConversationState) -> dict:
             target_id = pending_approvals[0]["request_id"]
 
     if not target_id:
-        lines = ["📋 **Pending Leave Requests Awaiting Your Approval:**\n"]
-        for pa in pending_approvals:
-            lines.append(
-                f"• **{pa['leave_type']}** for **{pa['employee_name']}** ({pa['employee_role']}): "
-                f"{pa['days_requested']} days from {pa['start_date']} to {pa['end_date']}"
-            )
-        lines.append("\nPlease click **Approve Leave** or **Reject** on the card below.")
+        msg = (
+            "Please review and click **Approve Leave** or **Reject** on the card below."
+            if lang == "en"
+            else "يرجى مراجعة الطلبات والنقر على **اعتماد الإجازة** أو **رفض** في البطاقة أدناه."
+        )
         return {
-            "final_answer": "\n".join(lines),
+            "final_answer": msg,
             "answer_status": AnswerStatus.VERIFIED.value,
             "action_payload": {
                 "action_type": "MANAGER_PENDING_APPROVALS",
@@ -431,23 +379,21 @@ def handle_manager_approval(state: ConversationState) -> dict:
             "citations": [],
         }
 
-    # Otherwise, NEVER auto-approve; display the pending approvals card!
-        lines = ["📋 **Pending Leave Requests Awaiting Your Approval:**\n"]
-        for pa in pending_approvals:
-            lines.append(
-                f"• **{pa['leave_type']}** for **{pa['employee_name']}** ({pa['employee_role']}): "
-                f"{pa['days_requested']} days from {pa['start_date']} to {pa['end_date']}"
-            )
-        lines.append("\nPlease click **Approve Leave** or **Reject** on the card below.")
-        return {
-            "final_answer": "\n".join(lines),
-            "answer_status": AnswerStatus.VERIFIED.value,
-            "action_payload": {
-                "action_type": "MANAGER_PENDING_APPROVALS",
-                "pending_approvals": pending_approvals,
-            },
-            "citations": [],
-        }
+    # Otherwise, display the pending approvals card!
+    msg = (
+        "Please review and click **Approve Leave** or **Reject** on the card below."
+        if lang == "en"
+        else "يرجى مراجعة الطلبات والنقر على **اعتماد الإجازة** أو **رفض** في البطاقة أدناه."
+    )
+    return {
+        "final_answer": msg,
+        "answer_status": AnswerStatus.VERIFIED.value,
+        "action_payload": {
+            "action_type": "MANAGER_PENDING_APPROVALS",
+            "pending_approvals": pending_approvals,
+        },
+        "citations": [],
+    }
 
 
 def handle_leave_status(state: ConversationState) -> dict:
@@ -588,16 +534,7 @@ def handle_leave_status(state: ConversationState) -> dict:
                 "approved_leave": approved_payload,
                 "pending_requests": pending,
             },
-            "citations": [
-                {
-                    "source": "omni_hr.db / leave_requests",
-                    "table_name": "leave_requests",
-                    "section": "Leave Status Tracking",
-                    "score": 1.0,
-                    "language": lang,
-                    "snippet": "Retrieved latest leave records.",
-                }
-            ],
+            "citations": [],
         }
     finally:
         session.close()
@@ -660,14 +597,5 @@ def handle_leave_cancellation(state: ConversationState) -> dict:
     return {
         "final_answer": ans,
         "answer_status": AnswerStatus.ACTION_EXECUTED.value,
-        "citations": [
-            {
-                "source": "omni_hr.db / leave_requests",
-                "table_name": "leave_requests",
-                "section": "Cancelled Leave Request",
-                "score": 1.0,
-                "language": lang,
-                "snippet": "Cancelled pending leave request in Omni HR record.",
-            }
-        ],
+        "citations": [],
     }

@@ -92,10 +92,10 @@ function ConciergePage() {
           <PanelLeft aria-hidden="true" className="size-4" />
         </Button>
 
-        <div className="flex items-center gap-2">
-          <InceptionLogo className="h-6.5 w-auto shrink-0" />
+        <div className="flex items-center gap-2.5">
+          <InceptionLogo className="h-7.5 sm:h-8.5 w-auto shrink-0" />
           <div className="animate-brand-spin cursor-default select-none">
-            <h1 className="font-display text-base sm:text-lg font-black tracking-tight bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent hover:scale-105 transition-transform">
+            <h1 className="font-display text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent hover:scale-105 transition-transform">
               {TITLE}
             </h1>
           </div>

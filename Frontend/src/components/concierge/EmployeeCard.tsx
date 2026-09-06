@@ -91,7 +91,7 @@ export function EmployeeCard({ employee, policyLinks = [] }: EmployeeCardProps) 
                 href={link.url ?? "#"}
                 className="group flex items-start gap-2 rounded-md px-2 py-2 text-xs transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <FileText aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-pink" />
+                <FileText aria-hidden="true" className="mt-0.5 size-3.5 shrink-0 text-primary" />
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium text-foreground">{link.title}</span>
                 </span>

@@ -69,7 +69,7 @@ export function UserSwitcher({ employees, activeId, onSelect, className }: UserS
                 aria-hidden="true"
                 className={cn(
                   "grid size-8 shrink-0 place-items-center rounded-full bg-primary font-display text-[11px] font-semibold text-primary-foreground",
-                  isActive && "ring-2 ring-pink ring-offset-1 ring-offset-popover",
+                  isActive && "ring-2 ring-primary ring-offset-1 ring-offset-popover",
                 )}
               >
                 {initialsOf(employee.name)}
@@ -81,7 +81,7 @@ export function UserSwitcher({ employees, activeId, onSelect, className }: UserS
                   {employee.department} · {employee.grade}
                 </span>
               </span>
-              {isActive ? <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-pink" /> : null}
+              {isActive ? <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /> : null}
             </DropdownMenuItem>
           );
         })}

@@ -117,86 +117,116 @@ export function ChatPanel({
         <ConversationContent className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center py-10 text-center animate-in fade-in-50 duration-500">
-              <div className="mb-4 flex items-center justify-center">
+              <div className="mb-3 flex items-center justify-center">
                 <InceptionLogo className="h-10 sm:h-12 w-auto" />
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-display">
-                What can I help with?
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display uppercase">
+                AI Policy & Leave Concierge Agent
               </h2>
-              <p className="mt-2 max-w-md text-xs sm:text-sm text-muted-foreground">
-                Ask about company HR policies, submit leave applications, review team approvals, or check your live balances.
+              <p className="mt-1.5 max-w-md text-xs sm:text-sm text-muted-foreground">
+                Your intelligent agent for HR policies, live leave balances, and team approvals
               </p>
 
-              {/* Action shortcuts matching prompt style */}
-              <div className="mt-8 grid w-full max-w-lg gap-2 text-left">
+              {/* Action shortcuts matching prompt style with 4 pastel card tones */}
+              <div className="mt-7 grid w-full max-w-xl grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
                 <button
                   type="button"
                   onClick={() => onSend("I want to apply for leave")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-card/50 hover:bg-accent/70 hover:border-primary/40 text-foreground transition-all duration-200 group cursor-pointer shadow-xs"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
                 >
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:scale-105 transition-transform">
+                  <div className="p-2 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
                     <CalendarPlus className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold">Submit a leave request</div>
-                    <div className="text-[11px] text-muted-foreground">Apply for annual, sick, or remote work</div>
+                    <div className="text-xs font-semibold text-foreground">Submit a leave request</div>
+                    <div className="text-[11px] text-muted-foreground">Apply for annual, sick, or remote</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onSend("What leave requests do I need to approve?")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-card/50 hover:bg-accent/70 hover:border-blue-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-xs"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
                 >
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:scale-105 transition-transform">
+                  <div className="p-2 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
                     <CheckCircle2 className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold">Approve leave requests (Manager)</div>
-                    <div className="text-[11px] text-muted-foreground">Review and decide on pending team submissions</div>
+                    <div className="text-xs font-semibold text-foreground">Approve leave requests</div>
+                    <div className="text-[11px] text-muted-foreground">Review pending team approvals</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onSend("How many annual leave days do I have left this year?")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-card/50 hover:bg-accent/70 hover:border-pink/40 text-foreground transition-all duration-200 group cursor-pointer shadow-xs"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
                 >
-                  <div className="p-2 rounded-lg bg-pink/10 text-pink group-hover:scale-105 transition-transform">
+                  <div className="p-2 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
                     <BarChart2 className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold">Check my leave balances & status</div>
-                    <div className="text-[11px] text-muted-foreground">Deterministic lookup from your live Omni HR record</div>
+                    <div className="text-xs font-semibold text-foreground">Check live leave balances</div>
+                    <div className="text-[11px] text-muted-foreground">Deterministic balance tracking</div>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => onSend("What is the sick leave policy with pay entitlement?")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-border/70 bg-card/50 hover:bg-accent/70 hover:border-amber-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-xs"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 hover:border-rose-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
                 >
-                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-105 transition-transform">
+                  <div className="p-2 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">
                     <FileText className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold">Search HR policies & rules</div>
-                    <div className="text-[11px] text-muted-foreground">Citations grounded in official HC Services documentation</div>
+                    <div className="text-xs font-semibold text-foreground">Search HR policies & rules</div>
+                    <div className="text-[11px] text-muted-foreground">Citations grounded in official policy</div>
                   </div>
                 </button>
               </div>
             </div>
           ) : null}
 
-          {messages.map((m, i) => (
-            <Message key={m.id} from={m.role}>
-              <MessageContent>
-                <MessageResponse>{formatMessageContent(m.content)}</MessageResponse>
+          {messages.map((m, i) => {
+            let messageText = m.content;
+            if (
+              m.role === "assistant" &&
+              m.action_payload?.action_type &&
+              ["LEAVE_SUBMITTED_PENDING_APPROVAL", "LEAVE_SUBMITTED_SUCCESS"].includes(
+                m.action_payload.action_type
+              )
+            ) {
+              const lines = messageText.split("\n");
+              const nonBulletLines = lines.filter((line) => {
+                const trimmed = line.trim().toLowerCase();
+                return (
+                  !trimmed.startsWith("•") &&
+                  !trimmed.startsWith("*") &&
+                  !trimmed.startsWith("-") &&
+                  !trimmed.includes("leave type:") &&
+                  !trimmed.includes("current balance:") &&
+                  !trimmed.includes("approver:") &&
+                  !trimmed.includes("dates:") &&
+                  !trimmed.includes("status:") &&
+                  !trimmed.includes("calendar invite") &&
+                  !trimmed.includes("forwarded to your line manager")
+                );
+              });
+              messageText =
+                nonBulletLines.join("\n").trim() ||
+                "✅ Leave Request Submitted & Awaiting Manager Approval!";
+            }
+
+            return (
+              <Message key={m.id} from={m.role}>
+                <MessageContent>
+                  <MessageResponse>{formatMessageContent(messageText)}</MessageResponse>
 
                 {/* Clarification Indicator for Ambiguous Queries */}
                 {m.role === "assistant" && m.is_awaiting_clarification && !m.action_payload ? (
-                  <div className="mt-3 flex items-center gap-2 pt-2 border-t border-amber-500/30">
-                    <Badge variant="outline" className="gap-1 border-amber-500/40 bg-amber-500/10 text-amber-600 text-[10px]">
+                  <div className="mt-3 flex items-center gap-2 pt-2 border-t border-primary/20">
+                    <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary text-[10px]">
                       <AlertTriangle className="size-2.5" />
                       <span>Clarification Needed</span>
                     </Badge>
@@ -218,30 +248,30 @@ export function ChatPanel({
                     <button
                       type="button"
                       onClick={() => onSend("How many annual leave days do I have left this year?")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-pink/10 hover:bg-pink/20 text-pink font-medium transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-medium transition-colors cursor-pointer border border-emerald-500/20"
                     >
                       🌴 Check Leave Balance
                     </button>
                     <button
                       type="button"
                       onClick={() => onSend("Who is my current line manager and when did they change?")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 font-medium transition-colors cursor-pointer border border-sky-500/20"
                     >
                       👔 Line Manager Info
                     </button>
                     <button
                       type="button"
                       onClick={() => onSend("I want to apply for leave")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-medium transition-colors cursor-pointer border border-indigo-500/20"
                     >
-                      🌴 Do you want to apply for leave?
+                      🌴 Apply for Leave
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSend("How do I submit school document verification for my children?")}
-                      className="px-2 py-1 rounded-md text-[11px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium transition-colors cursor-pointer"
+                      onClick={() => onSend("What is the sick leave policy with pay entitlement?")}
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 font-medium transition-colors cursor-pointer border border-rose-500/20"
                     >
-                      🏫 School Document Verification
+                      📋 Sick Leave Policy
                     </button>
                   </div>
                 ) : null}
@@ -312,7 +342,25 @@ export function ChatPanel({
 
               {m.role === "assistant" ? (
                 <>
-                  <SourceCitations sources={m.sources ?? []} />
+                  {!m.action_payload &&
+                  !m.is_action_required &&
+                  ![
+                    "action_executed",
+                    "action_confirmation",
+                    "document_upload",
+                    "greeting",
+                    "not_in_scope",
+                    "apply_leave",
+                    "cancel_leave",
+                    "check_leave_status",
+                    "approve_leave",
+                    "reject_leave",
+                    "check_school_verification",
+                    "submit_school_verification",
+                    "review_school_cases",
+                  ].includes(m.intent || "") ? (
+                    <SourceCitations sources={m.sources ?? []} />
+                  ) : null}
                   <MessageFeedback
                     content={m.content}
                     feedback={m.feedback}
@@ -321,7 +369,8 @@ export function ChatPanel({
                 </>
               ) : null}
             </Message>
-          ))}
+          );
+        })}
 
           {busy ? (
             <Message from="assistant">

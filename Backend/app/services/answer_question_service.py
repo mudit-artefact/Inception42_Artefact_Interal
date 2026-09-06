@@ -18,6 +18,7 @@ from app.core.conversation_identifier import (
     use_or_create_conversation_identifier,
 )
 from app.core.language_detection import detect_language
+from app.domain.enums import QuestionIntent
 from app.schemas.answer import AnswerResponse, SourceCitation
 from app.workflow.conversation_state import thread_name_for
 from app.workflow.stage_names import describe_stage, opening_stage
@@ -291,9 +292,30 @@ def _present(
             is_action_required=pause.get("is_action_required", False),
         )
 
+    is_action_query = bool(
+        result.get("action_payload")
+        or result.get("is_action_required")
+        or result.get("question_intent")
+        in {
+            QuestionIntent.APPLY_LEAVE,
+            QuestionIntent.CANCEL_LEAVE,
+            QuestionIntent.CHECK_LEAVE_STATUS,
+            QuestionIntent.APPROVE_LEAVE,
+            QuestionIntent.REJECT_LEAVE,
+            QuestionIntent.CHECK_SCHOOL_VERIFICATION,
+            QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
+            QuestionIntent.REVIEW_SCHOOL_CASES,
+            QuestionIntent.DOCUMENT_UPLOAD,
+            QuestionIntent.GREETING,
+            QuestionIntent.OUT_OF_SCOPE,
+        }
+    )
+
+    citations = [] if is_action_query else result.get("citations", [])
+
     return AnswerResponse(
         answer=result.get("final_answer", ""),
-        sources=[SourceCitation(**citation) for citation in result.get("citations", [])],
+        sources=[SourceCitation(**citation) for citation in citations],
         conversation_id=conversation_id,
         employee_profile=result.get("employee_profile", {}),
         target_language=requested_language,

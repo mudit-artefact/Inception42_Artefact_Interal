@@ -125,8 +125,8 @@ def test_manager_inquiry_does_not_execute_approval(temporary_database):
 
 def test_manager_inquiry_with_junior_leave_requests(temporary_database):
     """
-    When B has juniors who requested leave, chatbot should respond:
-    'Yes, {junior} asked for a leave request: ...'
+    When manager has direct reports with pending leave requests,
+    the chatbot displays the pending approvals card and clear review instruction.
     """
     state = {
         "employee_id": "EMP001",
@@ -136,8 +136,7 @@ def test_manager_inquiry_with_junior_leave_requests(temporary_database):
     }
     result = handle_manager_approval(state)
     answer = result["final_answer"]
-    assert "Yes" in answer
-    assert "asked for a leave request" in answer
+    assert "Approve Leave" in answer
     assert result.get("action_payload", {}).get("action_type") == "MANAGER_PENDING_APPROVALS"
 
 

@@ -358,12 +358,28 @@ def _citations_for(state: ConversationState) -> list[dict]:
     """
     The employee's own record first, then each policy extract that was used.
 
-    When nothing was retrieved this turn, whatever the state already carries is kept.
-    That is the reworked-reply path: it searches for nothing, and brings forward the
-    sources of the reply it reworked. Rebuilding from an empty search would strip them,
-    and the employee would be shown a reply with no sources where a moment ago the same
-    content had several.
+    When nothing was retrieved this turn, whatever the state already carries is kept only
+    for the reworked-reply path (ABOUT_THE_LAST_ANSWER).
+    Action-based queries (leave requests, approvals, school document verifications, uploads)
+    do not show citations.
     """
+    intent = state.get("question_intent")
+    action_intents = {
+        QuestionIntent.APPLY_LEAVE,
+        QuestionIntent.CANCEL_LEAVE,
+        QuestionIntent.CHECK_LEAVE_STATUS,
+        QuestionIntent.APPROVE_LEAVE,
+        QuestionIntent.REJECT_LEAVE,
+        QuestionIntent.CHECK_SCHOOL_VERIFICATION,
+        QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
+        QuestionIntent.REVIEW_SCHOOL_CASES,
+        QuestionIntent.DOCUMENT_UPLOAD,
+        QuestionIntent.GREETING,
+        QuestionIntent.OUT_OF_SCOPE,
+    }
+    if intent in action_intents or state.get("action_payload"):
+        return []
+
     citations = []
 
     hr_data = state.get("hr_data_facts") or {}
@@ -379,7 +395,13 @@ def _citations_for(state: ConversationState) -> list[dict]:
         citation.model_dump()
         for citation in build_policy_citations(state.get("policy_passages") or [])
     )
-    return citations or list(state.get("citations") or [])
+    if citations:
+        return citations
+
+    if intent == QuestionIntent.ABOUT_THE_LAST_ANSWER:
+        return list(state.get("citations") or [])
+
+    return []
 
 
 def _infer_fallback_reason(state: ConversationState) -> str:

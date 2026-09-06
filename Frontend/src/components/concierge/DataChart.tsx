@@ -23,12 +23,12 @@ interface DataChartProps {
 }
 
 const COLORS = [
-  "#E6007E", // Inception pink
-  "#8B5CF6", // Purple
+  "#00A389", // G42 Teal
   "#3B82F6", // Blue
-  "#10B981", // Emerald
-  "#F59E0B", // Amber
   "#6366F1", // Indigo
+  "#10B981", // Emerald
+  "#F43F5E", // Rose
+  "#8B5CF6", // Purple
 ];
 
 export function DataChart({ chart }: DataChartProps) {
@@ -45,11 +45,11 @@ export function DataChart({ chart }: DataChartProps) {
       {chart.title ? (
         <div className="mb-3 flex items-center gap-2">
           {chartType === "pie" ? (
-            <PieIcon className="size-4 text-pink" />
+            <PieIcon className="size-4 text-primary" />
           ) : chartType === "line" ? (
-            <TrendingUp className="size-4 text-pink" />
+            <TrendingUp className="size-4 text-primary" />
           ) : (
-            <BarChart3 className="size-4 text-pink" />
+            <BarChart3 className="size-4 text-primary" />
           )}
           <h4 className="font-display text-xs font-semibold text-foreground">
             {chart.title}

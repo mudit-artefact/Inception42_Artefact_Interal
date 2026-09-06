@@ -315,7 +315,7 @@ export function LeaveCalendarPicker({
                   onSelectDates(selectedType, startDate, endDate || startDate);
                 }
               }}
-              className="h-7 gap-1.5 px-3.5 text-xs bg-pink hover:bg-pink/90 text-white disabled:opacity-50"
+              className="h-7 gap-1.5 px-3.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 font-medium"
             >
               <Check className="size-3" />
               Apply for Dates

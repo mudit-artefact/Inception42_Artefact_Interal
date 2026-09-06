@@ -39,18 +39,7 @@ def handle_school_verification(state: ConversationState) -> Dict[str, Any]:
 
     return {
         "final_answer": msg,
-        "citations": [
-            {
-                "id": "hcs-policy-edu",
-                "title": "Education Allowance & Child Benefits Policy",
-                "source": "HC-PC-011 Proof of Schooling Guidelines",
-                "source_type": "policy",
-                "section": "Section 3 — Annual Verification & Allowance Cap",
-                "score": 0.98,
-                "snippet": "Annual proof of schooling is required for eligible dependents between ages 4 and 18. Maximum allowance is 45,000 AED per child.",
-                "url": "#",
-            }
-        ],
+        "citations": [],
         "answer_status": AnswerStatus.VERIFIED.value,
     }
 
