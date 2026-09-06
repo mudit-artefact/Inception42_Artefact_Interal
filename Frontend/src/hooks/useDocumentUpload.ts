@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import {
   type CaseDetailResponse,
   type CaseSummary,
@@ -7,6 +8,7 @@ import {
   getEmployeeCases,
   getCaseDetail,
   uploadDocumentsWithProgress,
+  removeDocument,
 } from "@/lib/api/hcs11";
 
 export type DocumentUploadStatus =
@@ -18,24 +20,30 @@ export type DocumentUploadStatus =
   | "error"
   | "no_case";
 
+export interface UnrecognizedFile {
+  document_id: string;
+  file_name: string;
+  detected_type: string | null;
+}
+
 export interface UseDocumentUploadReturn {
   status: DocumentUploadStatus;
   stage: string | null;
-  // All cases for the employee (for child selector)
   allCases: CaseSummary[];
-  // Currently selected case details
   caseData: CaseDetailResponse | null;
   uploadResult: UploadResponse | null;
   error: string | null;
   selectedFiles: File[];
-  // Load all cases for an employee
+  unrecognizedFiles: UnrecognizedFile[];
+  isRemoving: string | null;
   loadCases: (employeeId: string) => Promise<void>;
-  // Select a specific case (child)
   selectCase: (caseId: string) => Promise<void>;
   addFiles: (files: File[]) => void;
   removeFile: (index: number) => void;
   clearFiles: () => void;
   upload: () => Promise<void>;
+  removeServerDocument: (documentId: string) => Promise<void>;
+  refreshCase: () => Promise<void>;
   reset: () => void;
 }
 
@@ -61,6 +69,8 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [unrecognizedFiles, setUnrecognizedFiles] = useState<UnrecognizedFile[]>([]);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
 
   const loadCases = useCallback(async (employeeId: string) => {
     setStatus("loading_cases");
@@ -68,6 +78,7 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
     setCaseData(null);
     setAllCases([]);
     setUploadResult(null);
+    setUnrecognizedFiles([]);
 
     try {
       const cases = await getEmployeeCases(employeeId);
@@ -89,6 +100,18 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
       const firstCase = activeCases[0]!;
       const details = await getCaseDetail(firstCase.case_id);
       setCaseData({ case: details.case, status_message: details.status_message });
+
+      // Extract unrecognized files from case documents
+      // HCS-11 marks unplaceable files with kind = null, undefined, empty, or "other"
+      const unrecognized = details.case.documents
+        .filter((doc) => !doc.kind || doc.kind === "other")
+        .map((doc) => ({
+          document_id: doc.document_id,
+          file_name: doc.file_name,
+          detected_type: doc.kind_label,
+        }));
+      setUnrecognizedFiles(unrecognized);
+
       setStatus("ready");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load cases";
@@ -102,10 +125,23 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
     setError(null);
     setUploadResult(null);
     setSelectedFiles([]);
+    setUnrecognizedFiles([]);
 
     try {
       const details = await getCaseDetail(caseId);
       setCaseData({ case: details.case, status_message: details.status_message });
+
+      // Extract unrecognized files
+      // HCS-11 marks unplaceable files with kind = null, undefined, empty, or "other"
+      const unrecognized = details.case.documents
+        .filter((doc) => !doc.kind || doc.kind === "other")
+        .map((doc) => ({
+          document_id: doc.document_id,
+          file_name: doc.file_name,
+          detected_type: doc.kind_label,
+        }));
+      setUnrecognizedFiles(unrecognized);
+
       setStatus("ready");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Failed to load case details";
@@ -113,6 +149,28 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
       setStatus("error");
     }
   }, []);
+
+  const refreshCase = useCallback(async () => {
+    if (!caseData) return;
+
+    try {
+      const details = await getCaseDetail(caseData.case.case_id);
+      setCaseData({ case: details.case, status_message: details.status_message });
+
+      // Update unrecognized files
+      // HCS-11 marks unplaceable files with kind = null, undefined, empty, or "other"
+      const unrecognized = details.case.documents
+        .filter((doc) => !doc.kind || doc.kind === "other")
+        .map((doc) => ({
+          document_id: doc.document_id,
+          file_name: doc.file_name,
+          detected_type: doc.kind_label,
+        }));
+      setUnrecognizedFiles(unrecognized);
+    } catch (e) {
+      console.error("Failed to refresh case:", e);
+    }
+  }, [caseData]);
 
   const addFiles = useCallback((files: File[]) => {
     const errors: string[] = [];
@@ -163,42 +221,85 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
         selectedFiles,
         {
           onStage: (s: UploadStage) => setStage(s.text),
-          onComplete: (r) => {
+          onComplete: async (r) => {
             setUploadResult(r);
             setStage(null);
+            setSelectedFiles([]);
+
+            // Show toast notification based on result
             if (r.status === "success") {
               setStatus("success");
-              setSelectedFiles([]);
+              toast.success("Documents received", {
+                description: "Each one has been read. Your checklist shows what was recognised.",
+              });
+            } else if (r.issues.length > 0) {
+              setStatus("ready");
+              toast.warning("Documents need attention", {
+                description: `${r.issues.length} issue(s) to fix. See details below.`,
+              });
             } else {
               setStatus("ready");
-              // Clear selected files after upload attempt so user can add new ones
-              setSelectedFiles([]);
+              toast.info("Documents uploaded", {
+                description: r.message,
+              });
             }
+
+            // Refresh case data to get updated state
+            await refreshCase();
           },
           onError: (err) => {
             setError(err);
             setStage(null);
             setStatus("error");
+            toast.error("Upload failed", {
+              description: err,
+            });
           },
         }
       );
 
+      // Handle case where onComplete wasn't called
       if (result.status === "success") {
         setStatus("success");
-        setSelectedFiles([]);
       } else {
         setStatus("ready");
-        // Clear selected files after upload attempt
-        setSelectedFiles([]);
       }
       setUploadResult(result);
+      setSelectedFiles([]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Upload failed";
       setError(msg);
       setStatus("error");
       setStage(null);
+      toast.error("Upload failed", {
+        description: msg,
+      });
     }
-  }, [caseData, selectedFiles]);
+  }, [caseData, selectedFiles, refreshCase]);
+
+  const removeServerDocument = useCallback(async (documentId: string) => {
+    if (!caseData) return;
+
+    setIsRemoving(documentId);
+    try {
+      await removeDocument(caseData.case.case_id, documentId);
+
+      // Remove from local state
+      setUnrecognizedFiles((prev) => prev.filter((f) => f.document_id !== documentId));
+
+      // Refresh case data
+      await refreshCase();
+
+      toast.success("Document removed");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to remove document";
+      toast.error("Failed to remove document", {
+        description: msg,
+      });
+    } finally {
+      setIsRemoving(null);
+    }
+  }, [caseData, refreshCase]);
 
   const reset = useCallback(() => {
     setStatus("idle");
@@ -208,6 +309,8 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
     setUploadResult(null);
     setError(null);
     setSelectedFiles([]);
+    setUnrecognizedFiles([]);
+    setIsRemoving(null);
   }, []);
 
   return {
@@ -218,12 +321,16 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
     uploadResult,
     error,
     selectedFiles,
+    unrecognizedFiles,
+    isRemoving,
     loadCases,
     selectCase,
     addFiles,
     removeFile,
     clearFiles,
     upload,
+    removeServerDocument,
+    refreshCase,
     reset,
   };
 }

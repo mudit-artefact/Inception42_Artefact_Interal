@@ -1,5 +1,20 @@
 export type ChatRole = "user" | "assistant";
 
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  value2?: number;  // Second value for grouped charts
+}
+
+export interface ChartData {
+  chart_type: "horizontal_bar" | "grouped_bar" | "stacked_bar" | "nested_bar" | "progress" | "line";
+  title: string;
+  data: ChartDataPoint[];
+  series_names: string[];  // e.g., ["Entitled", "Remaining"]
+  unit?: string;
+  max_value?: number;
+}
+
 export interface PolicySource {
   id?: string;
   title: string;
@@ -42,6 +57,8 @@ export interface ChatResponse {
   is_awaiting_clarification?: boolean;
   original_question?: string | null;
   clarifying_question?: string | null;
+  // Chart visualization for numeric breakdowns
+  chart?: ChartData | null;
 }
 
 export interface ChatMessage {
@@ -58,6 +75,8 @@ export interface ChatMessage {
   // Clarification handling
   is_awaiting_clarification?: boolean;
   original_question?: string | null;
+  // Chart visualization
+  chart?: ChartData | null;
 }
 
 export interface Conversation {

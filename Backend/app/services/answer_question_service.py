@@ -18,7 +18,7 @@ from app.core.conversation_identifier import (
     use_or_create_conversation_identifier,
 )
 from app.core.language_detection import detect_language
-from app.schemas.answer import AnswerResponse, SourceCitation
+from app.schemas.answer import AnswerResponse, ChartData, ChartDataPoint, SourceCitation
 from app.workflow.conversation_state import thread_name_for
 from app.workflow.stage_names import describe_stage, opening_stage
 
@@ -289,6 +289,18 @@ def _present(
             clarifying_question=pause["clarification_question"],
         )
 
+    chart_data = None
+    if result.get("chart"):
+        raw_chart = result["chart"]
+        chart_data = ChartData(
+            chart_type=raw_chart["chart_type"],
+            title=raw_chart["title"],
+            data=[ChartDataPoint(**point) for point in raw_chart.get("data", [])],
+            series_names=raw_chart.get("series_names", []),
+            unit=raw_chart.get("unit"),
+            max_value=raw_chart.get("max_value"),
+        )
+
     return AnswerResponse(
         answer=result.get("final_answer", ""),
         sources=[SourceCitation(**citation) for citation in result.get("citations", [])],
@@ -306,6 +318,7 @@ def _present(
         rewritten_query=result.get("retrieval_query"),
         confidence_score=result.get("intent_confidence", 1.0),
         is_awaiting_clarification=False,
+        chart=chart_data,
     )
 
 

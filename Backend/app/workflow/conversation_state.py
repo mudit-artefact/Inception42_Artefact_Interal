@@ -129,6 +129,8 @@ class ConversationState(TypedDict, total=False):
     # from. Read only by the check that follows, to tell arithmetic from invention.
     declared_calculations: list[dict]
     tokens_used: int
+    # Optional chart visualization data for numeric breakdowns
+    chart: dict | None
 
     # The check before the answer is allowed out
     answer_verdict: str  # "valid" | "invalid"

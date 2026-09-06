@@ -180,6 +180,7 @@ export function useConcierge(employeeId: string) {
           confidence_score: res.confidence_score,
           is_awaiting_clarification: res.is_awaiting_clarification,
           original_question: res.original_question,
+          chart: res.chart,
         };
 
         // Replaces the placeholder rather than appending: the text is already on screen,

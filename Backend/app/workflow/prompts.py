@@ -350,6 +350,11 @@ HOW TO ANSWER
    |----------|----------|----------|
    | Value A  | Value B  | Value C  |
 
+   **IMPORTANT table formatting rules:**
+   - Each table row MUST be on a SINGLE line (no line breaks within a row)
+   - Keep cell content short and concise — use abbreviations if needed
+   - Example: use "Days 1-15" not "Sick days (within the 90-day limit)"
+
    Examples of when to use tables:
    - "What is the sick leave pay structure?" → Table (Days / Pay Level / Percentage)
    - "What is annual leave entitlement by tenure?" → Table (Years / Days / Accrual)
@@ -376,10 +381,12 @@ HOW TO ANSWER
 
    **Do NOT include charts for:**
    - Process/how-to questions ("How do I submit leave?")
-   - Policy explanations ("What is the remote work policy?")
+   - Policy explanations ("What is the remote work policy?", "What is the sick leave pay structure?")
+   - Policy rules presented as tables (pay tiers, entitlement by tenure, per diem rates)
    - Single-value answers ("You have 12 days left" — no chart needed)
    - Numbers mentioned incidentally but not central to the question
-   - Questions about procedures, eligibility, or rules
+   - Questions about procedures, eligibility, rules, or structure
+   - Questions asking "what is the X policy/structure/rule" — these need tables, NOT charts
 
    **Chart data structure (IMPORTANT):**
 
@@ -412,6 +419,7 @@ HOW TO ANSWER
    For `line` (trend over time):
    - data: items with label (time period) and value
    - Example: (label="Jan", value=2), (label="Feb", value=3)
+   - IMPORTANT: Only include months/periods that have ACTUAL data. Do NOT include future months with 0 values.
 11. Never invent a policy or an employee fact.
 12. The evidence may be split into numbered parts, one per thing the employee asked.
    Answer every part, in order, and keep the answer to one coherent reply rather than a

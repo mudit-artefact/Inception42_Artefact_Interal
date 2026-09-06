@@ -301,11 +301,6 @@ export function ChatPanel({
           <DocumentUpload
             employeeId={employeeId}
             onClose={() => setShowDocumentUpload(false)}
-            onComplete={(childName: string) => {
-              setShowDocumentUpload(false);
-              // Send a simple confirmation that doesn't trigger document_upload intent
-              onSend(`My school documents for ${childName} were just uploaded successfully.`);
-            }}
           />
         </div>
       )}

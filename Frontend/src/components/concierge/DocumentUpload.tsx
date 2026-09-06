@@ -3,9 +3,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
+  Circle,
   Clock,
   FileText,
   Loader2,
+  Trash2,
   Upload,
   X,
   XCircle,
@@ -19,10 +21,113 @@ import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 interface DocumentUploadProps {
   employeeId: string;
   onClose: () => void;
-  onComplete?: (childName: string) => void;
 }
 
-export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUploadProps) {
+type ProgressStep = "documents" | "checks" | "decision" | "payment";
+
+interface StepConfig {
+  key: ProgressStep;
+  label: string;
+  sublabel: string;
+}
+
+const PROGRESS_STEPS: StepConfig[] = [
+  { key: "documents", label: "Documents received", sublabel: "" },
+  { key: "checks", label: "Checks completed", sublabel: "" },
+  { key: "decision", label: "Decision", sublabel: "With HC Services" },
+  { key: "payment", label: "Paid through payroll", sublabel: "Approved claims only" },
+];
+
+function getStepStatus(
+  step: ProgressStep,
+  caseStatus: string | null,
+  paymentStatus: string | null,
+  allDocsReceived: boolean
+): "complete" | "active" | "pending" {
+  switch (step) {
+    case "documents":
+      return allDocsReceived ? "complete" : "active";
+    case "checks":
+      if (!allDocsReceived) return "pending";
+      if (caseStatus === "Under Review" || caseStatus === "Pending Review") return "active";
+      if (caseStatus === "Approved" || caseStatus === "Rejected") return "complete";
+      return "pending";
+    case "decision":
+      if (caseStatus === "Approved") return "complete";
+      if (caseStatus === "Rejected") return "complete";
+      if (caseStatus === "Under Review") return "active";
+      return "pending";
+    case "payment":
+      if (paymentStatus === "Paid" || paymentStatus === "Sent") return "complete";
+      if (paymentStatus === "Pending" && caseStatus === "Approved") return "active";
+      return "pending";
+    default:
+      return "pending";
+  }
+}
+
+function ProgressTracker({
+  caseStatus,
+  paymentStatus,
+  allDocsReceived,
+  receivedCount,
+  totalCount,
+}: {
+  caseStatus: string | null;
+  paymentStatus: string | null;
+  allDocsReceived: boolean;
+  receivedCount: number;
+  totalCount: number;
+}) {
+  return (
+    <div className="space-y-2">
+      {PROGRESS_STEPS.map((step) => {
+        const status = getStepStatus(step.key, caseStatus, paymentStatus, allDocsReceived);
+        const isComplete = status === "complete";
+        const isActive = status === "active";
+
+        let sublabel = step.sublabel;
+        if (step.key === "documents") {
+          sublabel = `${receivedCount} of ${totalCount} received`;
+        } else if (step.key === "checks" && isComplete) {
+          sublabel = "Done";
+        } else if (step.key === "decision" && caseStatus === "Approved") {
+          sublabel = "Approved. Finance will confirm the amount";
+        } else if (step.key === "decision" && caseStatus === "Rejected") {
+          sublabel = "Rejected";
+        }
+
+        return (
+          <div key={step.key} className="flex items-start gap-2">
+            <div className="mt-0.5">
+              {isComplete ? (
+                <div className="size-4 rounded-full bg-green-500 flex items-center justify-center">
+                  <CheckCircle2 className="size-3 text-white" />
+                </div>
+              ) : isActive ? (
+                <div className="size-4 rounded-full bg-pink flex items-center justify-center">
+                  <Circle className="size-2 text-white fill-white" />
+                </div>
+              ) : (
+                <div className="size-4 rounded-full border-2 border-muted-foreground/30" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-xs font-medium ${isComplete ? "text-green-700" : isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                {step.label}
+              </p>
+              {sublabel && (
+                <p className="text-[10px] text-muted-foreground truncate">{sublabel}</p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
   const {
     status,
     stage,
@@ -31,11 +136,14 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
     uploadResult,
     error,
     selectedFiles,
+    unrecognizedFiles,
+    isRemoving,
     loadCases,
     selectCase,
     addFiles,
     removeFile,
     upload,
+    removeServerDocument,
     reset,
   } = useDocumentUpload();
 
@@ -84,11 +192,15 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
   // Check if all required documents are received
   const allDocumentsReceived = caseData?.case.required_documents.every((doc) => doc.received) ?? false;
+  const receivedCount = caseData?.case.required_documents.filter((doc) => doc.received).length ?? 0;
+  const totalCount = caseData?.case.required_documents.length ?? 0;
+  const hasIssues = uploadResult && uploadResult.issues.length > 0;
+  const isUploading = status === "uploading";
 
   // Loading state
   if (status === "loading_cases") {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-3xl mx-auto">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="size-8 animate-spin text-pink" />
           <p className="mt-3 text-sm text-muted-foreground">Loading your verification cases...</p>
@@ -100,7 +212,7 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
   // No case found
   if (status === "no_case") {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-3xl mx-auto">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold">Document Verification</CardTitle>
@@ -124,331 +236,329 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
     );
   }
 
-  // Success state - all documents verified
-  if (status === "success" && uploadResult) {
-    const childName = caseData?.case.dependent_name || "your child";
-
-    // Auto-close after showing success briefly
-    setTimeout(() => {
-      onComplete?.(childName);
-    }, 100);
-
-    return (
-      <Card className="w-full max-w-2xl mx-auto border-green-500/30 bg-green-500/5">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="size-5 text-green-500" />
-              <CardTitle className="text-base font-semibold text-green-700">
-                {uploadResult.title}
-              </CardTitle>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <X className="size-4" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">{uploadResult.message}</p>
-
-          {uploadResult.payment_amount && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10">
-              <span className="text-sm font-medium">Approved Amount</span>
-              <span className="text-lg font-semibold text-green-700">
-                AED {uploadResult.payment_amount.toLocaleString()}
-              </span>
-            </div>
-          )}
-
-          {uploadResult.case_id && (
-            <p className="text-xs text-muted-foreground">Reference: {uploadResult.case_id}</p>
-          )}
-
-          <Button className="w-full" onClick={() => { onComplete?.(childName); }}>
-            Done
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Uploading state
-  if (status === "uploading") {
-    return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Uploading Documents</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col items-center py-8">
-            <Loader2 className="size-10 animate-spin text-pink" />
-            <p className="mt-4 text-sm font-medium">{stage || "Processing..."}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              This may take up to a minute while we verify your documents
-            </p>
-          </div>
-          <Progress value={undefined} className="h-1" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Count how many documents still need to be uploaded
-  const missingCount = caseData?.case.required_documents.filter((doc) => !doc.received).length ?? 0;
-  const hasIssues = uploadResult && uploadResult.issues.length > 0;
-
-  // Main upload interface
+  // Main upload interface with progress sidebar
   return (
-    <Card className="w-full max-w-2xl mx-auto max-h-[85vh] flex flex-col">
-      <CardHeader className="pb-3 shrink-0">
+    <Card className="w-full max-w-3xl mx-auto max-h-[85vh] flex flex-col">
+      <CardHeader className="pb-3 shrink-0 border-b">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <CardTitle className="text-base font-semibold">
-              Upload School Verification Documents
+              School Verification Documents
             </CardTitle>
 
-            {/* Child selector - only show if multiple children */}
-            {allCases.length > 1 ? (
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Child:</span>
-                <div className="relative">
-                  <select
-                    value={caseData?.case.case_id || ""}
-                    onChange={handleChildChange}
-                    className="appearance-none bg-muted text-sm font-medium pl-3 pr-8 py-1.5 rounded-md border-0 focus:ring-2 focus:ring-pink cursor-pointer"
-                  >
-                    {allCases.map((c) => (
-                      <option key={c.case_id} value={c.case_id}>
-                        {c.dependent_name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+            {/* Child selector and info */}
+            <div className="mt-2 flex items-center gap-3 flex-wrap">
+              {allCases.length > 1 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Child:</span>
+                  <div className="relative">
+                    <select
+                      value={caseData?.case.case_id || ""}
+                      onChange={handleChildChange}
+                      disabled={isUploading}
+                      className="appearance-none bg-muted text-sm font-medium pl-3 pr-8 py-1.5 rounded-md border-0 focus:ring-2 focus:ring-pink cursor-pointer disabled:opacity-50"
+                    >
+                      {allCases.map((c) => (
+                        <option key={c.case_id} value={c.case_id}>
+                          {c.dependent_name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  </div>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  • {caseData?.case.academic_year}
-                </span>
-              </div>
-            ) : caseData ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                For {caseData.case.dependent_name} • {caseData.case.academic_year}
-              </p>
-            ) : null}
+              ) : caseData ? (
+                <span className="text-sm font-medium">{caseData.case.dependent_name}</span>
+              ) : null}
+
+              {caseData && (
+                <>
+                  <span className="text-xs text-muted-foreground">
+                    {caseData.case.academic_year}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Due: {caseData.case.submission_deadline}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleClose}>
+          <Button variant="ghost" size="icon" onClick={handleClose} disabled={isUploading}>
             <X className="size-4" />
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 overflow-y-auto flex-1">
-        {/* Required documents checklist */}
-        {caseData && caseData.case.required_documents.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Required Documents
-              {allDocumentsReceived && (
-                <span className="ml-2 text-green-600 normal-case">— All received</span>
-              )}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {caseData.case.required_documents.map((doc) => (
-                <div
-                  key={doc.kind}
-                  className={`flex items-center gap-2 p-2 rounded-md text-xs ${
-                    doc.received
-                      ? "bg-green-500/10 text-green-700"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {doc.received ? (
-                    <CheckCircle2 className="size-3.5 shrink-0" />
-                  ) : (
-                    <Clock className="size-3.5 shrink-0" />
-                  )}
-                  <span className="truncate">{doc.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Success message when all documents received (but not auto-approved) */}
-        {allDocumentsReceived && !uploadResult && (
-          <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
-            <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-green-700">Everything we need is here</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                All required documents have been received. You can close this window.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Upload result with issues - show what needs to be fixed */}
-        {uploadResult && uploadResult.status !== "success" && (
-          <div className={`space-y-3 p-3 rounded-lg border ${
-            hasIssues
-              ? "border-amber-500/30 bg-amber-500/5"
-              : "border-green-500/30 bg-green-500/5"
-          }`}>
-            <div className="flex items-start gap-2">
-              {hasIssues ? (
-                <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
-              ) : (
-                <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
-              )}
-              <div>
-                <p className={`text-sm font-medium ${hasIssues ? "text-amber-700" : "text-green-700"}`}>
-                  {uploadResult.title}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Main content area */}
+        <CardContent className="flex-1 space-y-4 overflow-y-auto p-4">
+          {/* Required documents checklist */}
+          {caseData && caseData.case.required_documents.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  What your claim needs
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{uploadResult.message}</p>
+                <span className="text-xs text-muted-foreground">
+                  {receivedCount} of {totalCount} received
+                </span>
+              </div>
+              <div className="border rounded-lg divide-y">
+                {caseData.case.required_documents.map((doc) => (
+                  <div
+                    key={doc.kind}
+                    className="flex items-center gap-3 p-3"
+                  >
+                    {doc.received ? (
+                      <CheckCircle2 className="size-4 text-green-500 shrink-0" />
+                    ) : (
+                      <Clock className="size-4 text-muted-foreground/50 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${doc.received ? "text-foreground" : "text-muted-foreground"}`}>
+                        {doc.label}
+                      </p>
+                      {doc.file_name && (
+                        <p className="text-xs text-muted-foreground truncate">{doc.file_name}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
+          )}
 
-            {uploadResult.issues.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-700">Issues to fix:</p>
-                <ul className="space-y-1 pl-4">
-                  {uploadResult.issues.map((issue, i) => (
-                    <li key={i} className="text-xs text-amber-700 list-disc">
-                      {issue}
-                    </li>
-                  ))}
-                </ul>
+          {/* Success message when all documents received */}
+          {allDocumentsReceived && !hasIssues && (
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
+              <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-700">Everything we need is here</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Received {new Date().toLocaleDateString()} · reference {caseData?.case.case_id}
+                </p>
               </div>
-            )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                Send another
+              </Button>
+            </div>
+          )}
 
-            {uploadResult.missing_documents.length > 0 && (
-              <div className="pt-2 border-t border-amber-500/20">
-                <p className="text-xs font-medium text-amber-700">Still needed:</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {uploadResult.missing_documents.map((doc) => (
-                    <Badge key={doc} variant="outline" className="text-[10px] border-amber-500/40">
-                      {doc}
-                    </Badge>
-                  ))}
+          {/* Issues to fix */}
+          {uploadResult && hasIssues && (
+            <div className="space-y-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-700">
+                    {uploadResult.issues.length === 1 ? "One thing to fix" : `${uploadResult.issues.length} things to fix`}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    You can sort these out now — no need to wait for HC Services.
+                  </p>
                 </div>
               </div>
-            )}
+              <div className="space-y-2 pt-2">
+                {uploadResult.issues.map((issue, i) => (
+                  <div key={i} className="text-sm text-amber-700">
+                    <p className="font-medium">{issue}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-            {uploadResult.can_reupload && uploadResult.reupload_message && (
-              <p className="text-xs text-muted-foreground pt-2 border-t border-current/10">
-                {uploadResult.reupload_message}
-              </p>
-            )}
-          </div>
-        )}
+          {/* Unrecognized files - can be removed */}
+          {unrecognizedFiles.length > 0 && (
+            <div className="space-y-2 p-3 rounded-lg border border-rose-500/30 bg-rose-500/5">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="size-4 text-rose-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-rose-700">
+                    We could not place {unrecognizedFiles.length === 1 ? "one of your files" : `${unrecognizedFiles.length} of your files`}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {unrecognizedFiles.length === 1 ? "It is" : "They are"} not one of the documents this claim needs, so {unrecognizedFiles.length === 1 ? "it does" : "they do"} not count towards the list above.
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-1 pt-2">
+                {unrecognizedFiles.map((file) => (
+                  <div
+                    key={file.document_id}
+                    className="flex items-center justify-between p-2 rounded-md bg-background"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="size-4 text-rose-500 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{file.file_name}</p>
+                        {file.detected_type && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Looks like: {file.detected_type}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 text-xs"
+                      onClick={() => removeServerDocument(file.document_id)}
+                      disabled={isRemoving === file.document_id}
+                    >
+                      {isRemoving === file.document_id ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Trash2 className="size-3 mr-1" />
+                          Remove
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {/* Error display */}
-        {error && (
-          <div className="flex items-start gap-2 p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-            <XCircle className="size-4 text-destructive mt-0.5 shrink-0" />
-            <p className="text-xs text-destructive whitespace-pre-line">{error}</p>
-          </div>
-        )}
+          {/* Error display */}
+          {error && (
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+              <XCircle className="size-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs text-destructive whitespace-pre-line">{error}</p>
+            </div>
+          )}
 
-        {/* Drop zone - only show if documents are missing or there are issues to fix */}
-        {(!allDocumentsReceived || hasIssues) && (
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:border-pink/50 hover:bg-pink/5 transition-colors"
-          >
-            <Upload className="size-8 text-muted-foreground/50" />
-            <p className="mt-2 text-sm font-medium">
-              {hasIssues ? "Upload corrected document(s)" : "Drop files here or click to browse"}
+          {/* Upload area - always visible */}
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              PDF, JPG or PNG, up to 10 MB each. Arabic documents are fine, and the order does not matter — each one is recognised from what is printed on it.
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">PDF, PNG, or JPEG up to 10MB each</p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
+
+            {/* Drop zone */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onClick={() => !isUploading && fileInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg transition-colors ${
+                isUploading
+                  ? "border-muted-foreground/20 bg-muted/50 cursor-not-allowed"
+                  : "border-muted-foreground/25 cursor-pointer hover:border-pink/50 hover:bg-pink/5"
+              }`}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="size-8 text-pink animate-spin" />
+                  <p className="mt-2 text-sm font-medium">{stage || "Processing..."}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    This may take up to a minute while we verify your documents
+                  </p>
+                  <Progress value={undefined} className="h-1 w-full max-w-xs mt-3" />
+                </>
+              ) : (
+                <>
+                  <Upload className="size-8 text-muted-foreground/50" />
+                  <p className="mt-2 text-sm font-medium">
+                    Drop files here or click to browse
+                  </p>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading}
+              />
+            </div>
+          </div>
+
+          {/* Selected files pending upload */}
+          {selectedFiles.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Ready to upload ({selectedFiles.length})
+              </p>
+              <div className="space-y-1">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between p-2 rounded-md bg-muted"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText className="size-4 text-pink shrink-0" />
+                      <span className="text-xs truncate">{file.name}</span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        ({(file.size / 1024).toFixed(0)} KB)
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(index);
+                      }}
+                      disabled={isUploading}
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+
+        {/* Progress sidebar */}
+        {caseData && (
+          <div className="w-48 shrink-0 border-l bg-muted/30 p-4 overflow-y-auto">
+            <ProgressTracker
+              caseStatus={caseData.case.case_status}
+              paymentStatus={caseData.case.payment_status}
+              allDocsReceived={allDocumentsReceived}
+              receivedCount={receivedCount}
+              totalCount={totalCount}
             />
           </div>
         )}
-
-        {/* Selected files */}
-        {selectedFiles.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Selected Files ({selectedFiles.length})
-            </p>
-            <div className="space-y-1">
-              {selectedFiles.map((file, index) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="flex items-center justify-between p-2 rounded-md bg-muted"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="size-4 text-pink shrink-0" />
-                    <span className="text-xs truncate">{file.name}</span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      ({(file.size / 1024).toFixed(0)} KB)
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFile(index);
-                    }}
-                  >
-                    <X className="size-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
+      </div>
 
       {/* Fixed footer with action buttons */}
-      <div className="shrink-0 p-4 pt-2 border-t bg-card space-y-2">
+      <div className="shrink-0 p-4 pt-3 border-t bg-card">
         <div className="flex gap-2">
-          {allDocumentsReceived && !hasIssues ? (
-            // All done - show single "Done" button
+          <Button variant="outline" className="flex-1" onClick={handleClose} disabled={isUploading}>
+            {allDocumentsReceived && !hasIssues ? "Close" : "Cancel"}
+          </Button>
+          {selectedFiles.length > 0 && (
             <Button
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={() => {
-                const childName = caseData?.case.dependent_name || "your child";
-                onComplete?.(childName);
-              }}
+              className="flex-1 bg-pink hover:bg-pink/90"
+              disabled={isUploading}
+              onClick={handleUpload}
             >
-              <CheckCircle2 className="size-4 mr-2" />
-              Done
+              {isUploading ? (
+                <>
+                  <Loader2 className="size-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="size-4 mr-2" />
+                  Upload ({selectedFiles.length})
+                </>
+              )}
             </Button>
-          ) : (
-            // Still need uploads
-            <>
-              <Button variant="outline" className="flex-1" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-pink hover:bg-pink/90"
-                disabled={selectedFiles.length === 0}
-                onClick={handleUpload}
-              >
-                <Upload className="size-4 mr-2" />
-                Upload {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ""}
-              </Button>
-            </>
           )}
         </div>
-
-        {/* Deadline reminder */}
-        {caseData && !allDocumentsReceived && (
-          <p className="text-[10px] text-center text-muted-foreground">
-            Submission deadline: {caseData.case.submission_deadline}
-          </p>
-        )}
       </div>
     </Card>
   );

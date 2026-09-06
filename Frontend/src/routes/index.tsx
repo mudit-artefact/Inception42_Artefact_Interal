@@ -110,6 +110,7 @@ function ConciergePage() {
             onDismissError={concierge.dismissError}
             onFeedback={concierge.setFeedback}
             isAwaitingClarification={concierge.isAwaitingClarification}
+            employeeId={employeeId}
           />
         </main>
 

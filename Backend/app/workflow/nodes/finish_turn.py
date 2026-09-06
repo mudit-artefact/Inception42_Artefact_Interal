@@ -56,11 +56,16 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
         "confirm the status",
         "confirmation",
         # Status check questions
+        "status of my",
+        "my documents status",
+        "documents submission",
+        "submission status",
         "are documents reviewed",
         "are my documents reviewed",
         "documents reviewed",
         "is my verification",
         "what is the status",
+        "what's the status",
         "check status",
         "check the status",
         "verification status",
@@ -73,20 +78,22 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
         "is it approved",
         "when will",
         "how long",
+        "where is my",
+        "track my",
     ]
     is_status_check = any(indicator in question for indicator in status_indicators)
 
     if is_status_check:
         # User is asking about document status - give helpful response
+        # Still return document_upload intent so the UI shows the button
         response = """\
-To check the current status of your school verification documents, please click the **Upload Documents** button below.
+I can show you the status of your school verification documents. Click the button below to view:
 
-This will show you:
-• Which documents have been received
-• Any issues that need to be fixed
-• The current review status of your case
+• **Documents received** — which files we have on record
+• **Verification progress** — Documents → Checks → Decision → Payment
+• **Any issues** — what needs to be fixed before approval
 
-If your documents are under review, our team typically completes the review within 2-3 business days. Once approved, the payment will be processed through payroll.\
+Our team typically reviews documents within 2-3 business days. Once approved, payment is processed through payroll.\
 """
         return {
             "final_answer": response,

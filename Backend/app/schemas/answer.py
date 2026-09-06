@@ -1,8 +1,27 @@
 """What the assistant returns for one asked question."""
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+
+class ChartDataPoint(BaseModel):
+    """One data point in a chart."""
+
+    label: str
+    value: float
+    value2: Optional[float] = None  # Second value for grouped charts
+
+
+class ChartData(BaseModel):
+    """Chart visualization data for numeric comparisons."""
+
+    chart_type: Literal["horizontal_bar", "grouped_bar", "stacked_bar", "nested_bar", "progress", "line"]
+    title: str
+    data: list[ChartDataPoint] = []
+    series_names: list[str] = []  # e.g., ["Entitled", "Used"]
+    unit: Optional[str] = None
+    max_value: Optional[float] = None  # For progress charts
 
 
 class SourceCitation(BaseModel):
@@ -47,3 +66,6 @@ class AnswerResponse(BaseModel):
     original_question: Optional[str] = None
     clarifying_question: Optional[str] = None
     is_awaiting_clarification: bool = False
+
+    # Optional chart visualization for numeric breakdowns
+    chart: Optional[ChartData] = None

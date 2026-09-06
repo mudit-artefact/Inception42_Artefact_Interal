@@ -37,6 +37,7 @@ def generate_answer(state: ConversationState) -> dict:
     logger.info(
         f"Drafted an answer of {len(drafted.answer)} characters "
         f"({tokens_used} tokens, {len(drafted.calculations)} figures worked out)"
+        f"{', with chart' if drafted.chart else ''}"
     )
     return {
         "draft_answer": drafted.answer,
@@ -46,6 +47,8 @@ def generate_answer(state: ConversationState) -> dict:
             calculation.model_dump() for calculation in drafted.calculations
         ],
         "tokens_used": tokens_used,
+        # Chart visualization data, when applicable
+        "chart": drafted.chart.model_dump() if drafted.chart else None,
     }
 
 
