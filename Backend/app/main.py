@@ -33,26 +33,27 @@ ALLOWED_BROWSER_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-
 ]
 
 
 def create_application() -> FastAPI:
     """Build the application, ready to serve."""
     application = FastAPI(
-        title="Bayan HR — Policy & Leave Concierge API",
+        title="Dalīl — Policy & Leave Assistant API",
         description=(
-            "A bilingual English and Arabic HR assistant for HC Services staff. Answers "
-            "from the company's policy documents and the employee's own HR record, and "
-            "declines rather than guessing when the evidence does not support an answer."
+            "A bilingual English and Arabic HR assistant for HC Services staff. "
+            "Answers from the company's policy documents and the employee's own HR record in Omni HR."
         ),
-        version="1.0.0",
+        version="2.0.0",
         lifespan=application_lifespan,
     )
+
 
     application.add_middleware(
         CORSMiddleware,

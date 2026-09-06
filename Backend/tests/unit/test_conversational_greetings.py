@@ -82,8 +82,8 @@ def test_initial_turn_greeting_has_menu():
         "remembered_turns": [],
     }
     res = generate_greeting(state)
-    assert "Hello Fatima! 👋" in res["final_answer"]
-    assert "Annual and sick leave policies" in res["final_answer"]
+    assert "Hello Fatima! Hi, I am Dalil." in res["final_answer"]
+    assert "Annual and sick leave policies" not in res["final_answer"]
 
 
 def test_understand_query_fast_conversational_override():

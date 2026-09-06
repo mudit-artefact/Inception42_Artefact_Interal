@@ -80,3 +80,4 @@ def _prepare_conversation_workflow(application: FastAPI):
         application.state.conversation_workflow = None
         logger.error(f"The conversation workflow could not be built: {error}")
         return None
+

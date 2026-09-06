@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # ── HCS-11 Document Verification Integration ─────────────────
     hcs11_backend_url: str = Field(
-        default="http://localhost:8001",
+        default="http://localhost:8000",
         alias="HCS11_BACKEND_URL",
     )
     hcs11_timeout_seconds: int = Field(

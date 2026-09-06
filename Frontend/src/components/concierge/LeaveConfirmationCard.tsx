@@ -43,7 +43,7 @@ export function LeaveConfirmationCard({
       }`}>
         <div className={`flex items-center gap-2 font-medium ${isPending ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>
           {isPending ? <Clock className="size-5 shrink-0 text-amber-500" /> : <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />}
-          <span className="font-semibold">Leave Request #{receipt.request_id} Logged</span>
+          <span className="font-semibold">Leave Request Logged</span>
           <Badge variant="outline" className={`ml-auto text-[10px] ${
             isPending
               ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"

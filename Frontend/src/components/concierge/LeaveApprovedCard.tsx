@@ -44,7 +44,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
       `DTSTART;VALUE=DATE:${startFormatted}`,
       `DTEND;VALUE=DATE:${endFormatted}`,
       `SUMMARY:${leave_type} - ${employee_name}`,
-      `DESCRIPTION:Approved ${leave_type} (${days_requested} working days) approved by ${approver_name}.\\nRequest ID: #${request_id}`,
+      `DESCRIPTION:Approved ${leave_type} (${days_requested} working days) approved by ${approver_name}.`,
       "STATUS:CONFIRMED",
       "TRANSP:OPAQUE",
       "END:VEVENT",
@@ -55,7 +55,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `leave-request-${request_id}.ics`);
+    link.setAttribute("download", `leave-request.ics`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -66,15 +66,15 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
   const getMailtoUrl = () => {
     const subject = encodeURIComponent(`Approved Leave Notification: ${employee_name} (${start_date} to ${end_date})`);
     const body = encodeURIComponent(
-      `Dear ${approver_name} and HR Operations Team,\n\n` +
-      `This is to confirm that my ${leave_type} request (#${request_id}) for ${days_requested} working days ` +
+      `Dear ${approver_name},\n\n` +
+      `This is to confirm that my ${leave_type} request for ${days_requested} working days ` +
       `(from ${start_date} to ${end_date}) has been approved.\n\n` +
       `I have updated my calendar and out-of-office status accordingly.\n\n` +
       `Best regards,\n` +
       `${employee_name}\n` +
       `Health Corporate Services (HCS)`
     );
-    return `mailto:${manager_email}?cc=hr@hcservices.ae,people@hcservices.ae&subject=${subject}&body=${body}`;
+    return `mailto:${manager_email}?subject=${subject}&body=${body}`;
   };
 
   return (
@@ -82,7 +82,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
       <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-100/50 dark:bg-emerald-900/30 px-3.5 py-2">
         <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
         <span className="font-display text-xs font-semibold text-emerald-900 dark:text-emerald-200">
-          Leave Request #{request_id} Approved
+          Leave Request Approved
         </span>
       </div>
 
@@ -104,7 +104,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Would you like to mark this on your calendar or send a formal notification email to your manager and HR?
+          Would you like to mark this on your calendar or send a formal notification email to your manager?
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -125,7 +125,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
               className="h-8 gap-1.5 text-xs border-border hover:bg-muted"
             >
               <Mail className="size-3.5" />
-              Email Manager & HR
+              Email Manager
             </Button>
           </a>
         </div>

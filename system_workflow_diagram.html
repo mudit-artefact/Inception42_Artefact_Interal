@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DalīlHR (HCS-01) & HCS-11 — Visual Backend Architecture & Workflow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a12;
+      --card-bg: #0f172a;
+      --card-border: #1e293b;
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.3);
+      --pink: #ec4899;
+      --emerald: #10b981;
+      --blue: #38bdf8;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      padding: 24px;
+    }
+
+    .container { max-width: 1440px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 30px 36px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .header-left h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, #a5b4fc, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .header-left p { font-size: 14.5px; color: var(--text-muted); }
+
+    .header-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .badge {
+      padding: 7px 16px;
+      border-radius: 9999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+    }
+
+    .badge-primary { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc; }
+    .badge-pink { background: rgba(236, 72, 153, 0.15); border-color: rgba(236, 72, 153, 0.4); color: #f472b6; }
+    .badge-emerald { background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34d399; }
+
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: currentColor; box-shadow: 0 0 10px currentColor;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 10px; margin-bottom: 24px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 14px; overflow-x: auto;
+    }
+
+    .tab-btn {
+      background: #0f172a; border: 1px solid var(--card-border);
+      color: var(--text-muted); padding: 11px 20px;
+      font-size: 14px; font-weight: 700; border-radius: 12px;
+      cursor: pointer; transition: all 0.2s ease; white-space: nowrap;
+    }
+
+    .tab-btn:hover { background: #1e293b; color: #fff; }
+    .tab-btn.active {
+      background: var(--primary); color: #fff;
+      border-color: var(--primary); box-shadow: 0 4px 16px var(--primary-glow);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.3s ease; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* =========================================================================
+       VISUAL DIAGRAM 1: ARCHITECTURE CARDS & CONNECTORS
+       ========================================================================= */
+    .arch-canvas {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      align-items: center;
+      position: relative;
+    }
+
+    .arch-layer {
+      width: 100%;
+      border-radius: 16px;
+      padding: 22px 28px;
+      position: relative;
+      border: 1px solid;
+    }
+
+    .layer-client {
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .layer-services {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+      width: 100%;
+    }
+
+    @media (max-width: 960px) {
+      .layer-services { grid-template-columns: 1fr; }
+    }
+
+    .service-box {
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid;
+      background: #0b1120;
+    }
+
+    .service-hcs01 {
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.08);
+    }
+
+    .service-hcs11 {
+      border-color: rgba(236, 72, 153, 0.4);
+      box-shadow: 0 0 30px rgba(236, 72, 153, 0.08);
+    }
+
+    .layer-data {
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border-color: rgba(16, 185, 129, 0.3);
+      width: 100%;
+    }
+
+    .node-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .node-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 14px 16px;
+      transition: all 0.2s;
+    }
+
+    .node-item:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .node-item h5 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .node-item p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .flow-arrow-down {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: -6px 0;
+    }
+
+    .flow-arrow-down svg { width: 24px; height: 24px; }
+
+    /* =========================================================================
+       VISUAL DIAGRAM 2: LANGGRAPH INTERACTIVE FLOWCHART
+       ========================================================================= */
+    .workflow-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: relative;
+    }
+
+    .step-card {
+      background: #0b1120;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      transition: all 0.25s;
+    }
+
+    .step-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+
+    .step-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .step-num-emerald { background: var(--emerald); box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+    .step-num-pink { background: var(--pink); box-shadow: 0 0 15px rgba(236, 72, 153, 0.4); }
+    .step-num-amber { background: var(--amber); box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+
+    .step-body { flex: 1; }
+    .step-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-desc { font-size: 13.5px; color: var(--text-muted); }
+
+    .branches-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .branch-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 14px;
+      border-left: 4px solid;
+    }
+
+    .branch-emerald { border-left-color: var(--emerald); }
+    .branch-blue { border-left-color: var(--blue); }
+    .branch-pink { border-left-color: var(--pink); }
+    .branch-amber { border-left-color: var(--amber); }
+
+    .branch-card h6 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .branch-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* =========================================================================
+       VISUAL DIAGRAM 3: HCS-11 SEQUENCE PIPELINE
+       ========================================================================= */
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      position: relative;
+    }
+
+    .pipe-step {
+      background: #0b1120;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pipe-step.active-pipe {
+      border-color: var(--pink);
+      box-shadow: 0 0 20px rgba(236, 72, 153, 0.2);
+    }
+
+    .pipe-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--pink);
+      background: rgba(236, 72, 153, 0.12);
+      padding: 3px 8px;
+      border-radius: 6px;
+      width: fit-content;
+    }
+
+    .pipe-step h5 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .pipe-step p {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Rules Checklist */
+    .rules-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .rule-item {
+      font-size: 11.5px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .stat-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 18px 22px;
+    }
+
+    .stat-box h4 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    .stat-box p { font-size: 13.5px; color: #cbd5e1; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13.5px; }
+    th, td { padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--card-border); }
+    th { background: rgba(255, 255, 255, 0.04); color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11.5px; font-weight: 700; }
+    .tag-blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .tag-pink { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+    .tag-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .tag-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+    .action-bar {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13.5px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .btn-outline { background: transparent; border-color: var(--card-border); color: var(--text-main); }
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.08); border-color: #64748b; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #4f46e5; box-shadow: 0 4px 16px var(--primary-glow); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <h1>🧠 DalīlHR (HCS-01) & HCS-11 Visual Workflow</h1>
+      <p>Executive Backend Architecture · LangGraph State Machine · Multimodal Document AI · Deterministic SQL Grounding</p>
+    </div>
+    <div class="header-badges">
+      <div class="badge badge-primary"><span class="pulse-dot"></span> DalīlHR Orchestrator (Port 8000)</div>
+      <div class="badge badge-pink"><span class="pulse-dot"></span> HCS-11 Verification (Port 8001)</div>
+      <div class="badge badge-emerald"><span class="pulse-dot"></span> React Web Portal (Port 8080)</div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('tab-arch')">🏛️ 1. System Architecture Map</button>
+    <button class="tab-btn" onclick="switchTab('tab-langgraph')">⚡ 2. LangGraph Execution Flow</button>
+    <button class="tab-btn" onclick="switchTab('tab-hcs11')">📑 3. HCS-11 Document AI Pipeline</button>
+    <button class="tab-btn" onclick="switchTab('tab-matrix')">🎯 4. Intent & Triggers Matrix</button>
+    <button class="tab-btn" onclick="switchTab('tab-summary')">💼 5. Executive Value Report</button>
+  </div>
+
+  <!-- TAB 1: Architecture -->
+  <div id="tab-arch" class="tab-pane active">
+    <div class="card">
+      <div class="card-title">🌐 Decoupled Multi-Tier System Architecture</div>
+      
+      <div class="arch-canvas">
+        <!-- Layer 1: Client UI -->
+        <div class="arch-layer layer-client">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="color: var(--blue); font-size: 15px; font-weight: 800;">1. FRONTEND CLIENT LAYER (React 18 + TanStack • Port 8080)</h4>
+            <span class="tag tag-blue">Web Browser</span>
+          </div>
+          <div class="node-grid">
+            <div class="node-item">
+              <h5>💬 Bilingual Chat Panel</h5>
+              <p>Renders live answers, markdown, audio playback & source drawers.</p>
+            </div>
+            <div class="node-item">
+              <h5>📤 HCS-11 Upload Modal</h5>
+              <p>Child dependent selector, document checklist & OCR tracker.</p>
+            </div>
+            <div class="node-item">
+              <h5>📅 Calendar & Action Cards</h5>
+              <p>Leave date pickers, balance pills & 1-click manager approvals.</p>
+            </div>
+            <div class="node-item">
+              <h5>🔔 Notification Center</h5>
+              <p>Manager approvals, calendar .ics sync & urgent HR alerts.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow-down">
+          <span>REST API / Server-Sent Events (SSE) Streaming</span>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        </div>
+
+        <!-- Layer 2: Decoupled Services -->
+        <div class="layer-services">
+          <!-- HCS-01 -->
+          <div class="service-box service-hcs01">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h4 style="color: #a5b4fc; font-size: 15px; font-weight: 800;">🤖 2A. DalīlHR Orchestrator (:8000)</h4>
+              <span class="tag tag-blue">FastAPI Core</span>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">Primary conversational agent, intent extraction & SQL grounding engine.</p>
+            <div class="node-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="node-item">
+                <h5>🔄 LangGraph Engine</h5>
+                <p>11-node state graph orchestrating intent, clarification & synthesis.</p>
+              </div>
+              <div class="node-item">
+                <h5>💾 SQLite Checkpointer</h5>
+                <p>Preserves multi-turn state & clarification pauses across restarts.</p>
+              </div>
+              <div class="node-item">
+                <h5>📊 Deterministic SQL ORM</h5>
+                <p>Direct relational queries for exact balances & manager lineage.</p>
+              </div>
+              <div class="node-item">
+                <h5>🔍 Multimodal Vector RAG</h5>
+                <p>121 Qdrant semantic passages with page deep-links.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- HCS-11 -->
+          <div class="service-box service-hcs11">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <h4 style="color: #f472b6; font-size: 15px; font-weight: 800;">📑 2B. HCS-11 Verification (:8001)</h4>
+              <span class="tag tag-pink">Microservice</span>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">Autonomous compliance & proof-of-schooling document verification engine.</p>
+            <div class="node-grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="node-item">
+                <h5>👁️ Multimodal OCR/Vision</h5>
+                <p>Extracts tuition fees, student name & school metadata.</p>
+              </div>
+              <div class="node-item">
+                <h5>⚖️ Compliance Rule Engine</h5>
+                <p>Validates age limits, KHDA/ADEK tiers & duplicates.</p>
+              </div>
+              <div class="node-item">
+                <h5>📁 Case Database</h5>
+                <p>State store tracking cases, audits & reimbursement approvals.</p>
+              </div>
+              <div class="node-item">
+                <h5>👔 HR Reviewer Queue</h5>
+                <p>Pushes flagged discrepancies to HR specialists.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow-down">
+          <span>Deterministic SQL Lookups & Authoritative Policy Match</span>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        </div>
+
+        <!-- Layer 3: Data Sources -->
+        <div class="arch-layer layer-data">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="color: var(--emerald); font-size: 15px; font-weight: 800;">3. AUTHORITATIVE GROUNDING DATA LAYER</h4>
+            <span class="tag tag-emerald">Zero-Hallucination Sources</span>
+          </div>
+          <div class="node-grid">
+            <div class="node-item">
+              <h5>🗄️ Relational Database (omni_hr.db)</h5>
+              <p>Employees, leave ledger, manager transitions & probation records.</p>
+            </div>
+            <div class="node-item">
+              <h5>📚 Policy PDF Library</h5>
+              <p>Official HR PDFs: Annual Leave, Sick Leave, Remote Work & Education.</p>
+            </div>
+            <div class="node-item">
+              <h5>🏫 Accredited School Master Data</h5>
+              <p>KHDA/ADEK verified schools, grade age charts & fee allowance caps.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: LangGraph Execution Flow -->
+  <div id="tab-langgraph" class="tab-pane">
+    <div class="card">
+      <div class="card-title">⚡ LangGraph 11-Step Conversational State Graph</div>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+        Every employee question is executed as an immutable state trajectory across 11 specialized nodes:
+      </p>
+
+      <div class="workflow-timeline">
+        <!-- Step 1 -->
+        <div class="step-card">
+          <div class="step-num">01</div>
+          <div class="step-body">
+            <div class="step-title">load_employee_facts <span class="tag tag-blue">SQL Ingestion</span></div>
+            <div class="step-desc">Connects to <code>omni_hr.db</code> via SQLAlchemy 2.0 ORM. Injects authenticated employee facts: total leave entitlement, remaining balance, probation status, and current line manager.</div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-card">
+          <div class="step-num">02</div>
+          <div class="step-body">
+            <div class="step-title">understand_query <span class="tag tag-blue">Structured Extraction</span></div>
+            <div class="step-desc">Classifies intent (Greeting, Policy, SQL balance, Leave action, School document), detects language (Arabic/English), extracts temporal anchors (e.g. "next Monday"), and flags missing parameters.</div>
+          </div>
+        </div>
+
+        <!-- Step 3: Branching Decision -->
+        <div class="step-card" style="border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.05);">
+          <div class="step-num step-num-amber">03</div>
+          <div class="step-body">
+            <div class="step-title">Intent Decision Gate <span class="tag tag-amber">Dynamic Routing</span></div>
+            <div class="step-desc">Routes the conversation execution to specialized sub-pipelines based on intent:</div>
+            <div class="branches-grid">
+              <div class="branch-card branch-emerald">
+                <h6>⚡ Greeting Fast Path</h6>
+                <p>Instant personalized welcome with employee's name + 5 capability bullets + unified Quick Actions.</p>
+              </div>
+              <div class="branch-card branch-amber">
+                <h6>❓ Clarification Pause</h6>
+                <p>Prompts user for missing dates/types. Saves turn state to SQLite checkpointer.</p>
+              </div>
+              <div class="branch-card branch-blue">
+                <h6>📚 Policy & Balance RAG</h6>
+                <p>Runs SQL Tool + Qdrant Vector search for hybrid policy analysis.</p>
+              </div>
+              <div class="branch-card branch-pink">
+                <h6>📑 School Verification (HCS-11)</h6>
+                <p>Calls Port 8001 microservice for child tuition cases & upload modal.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-card">
+          <div class="step-num">04</div>
+          <div class="step-body">
+            <div class="step-title">gather_evidence <span class="tag tag-blue">Hybrid RAG + SQL</span></div>
+            <div class="step-desc">Executes deterministic SQL queries for personal balance numbers AND vector similarity search against 121 policy passages with page coordinates.</div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step-card">
+          <div class="step-num">05</div>
+          <div class="step-body">
+            <div class="step-title">generate_answer & validate_answer <span class="tag tag-emerald">Synthesis & Guardrails</span></div>
+            <div class="step-desc">Synthesizes bilingual natural-language response. Validates against anti-hallucination guardrails and attaches verifiable citations (<code>[Policy Name, Page #]</code>).</div>
+          </div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="step-card">
+          <div class="step-num step-num-emerald">06</div>
+          <div class="step-body">
+            <div class="step-title">finish_turn <span class="tag tag-emerald">Frontend Delivery</span></div>
+            <div class="step-desc">Packages response markdown, structured interactive cards (Calendar pickers, Manager approval cards, Document upload triggers), and streams via SSE to the web client.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: HCS-11 Pipeline -->
+  <div id="tab-hcs11" class="tab-pane">
+    <div class="card">
+      <div class="card-title">📑 HCS-11 Proof-of-Schooling Verification Pipeline (Port 8001)</div>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+        Automated Document AI compliance pipeline validating UAE education allowance claims:
+      </p>
+
+      <div class="pipeline-grid">
+        <div class="pipe-step">
+          <div class="pipe-badge">Step 1</div>
+          <h5>📤 Upload & Ingestion</h5>
+          <p>Employee uploads school certificate, fee invoice, or payment receipt via the React modal.</p>
+        </div>
+
+        <div class="pipe-step active-pipe">
+          <div class="pipe-badge">Step 2</div>
+          <h5>👁️ Vision / OCR Extraction</h5>
+          <p>Document AI reads image/PDF and extracts structured JSON:</p>
+          <div class="rules-list">
+            <div class="rule-item">🏫 School Name</div>
+            <div class="rule-item">👦 Student Name</div>
+            <div class="rule-item">📅 Academic Year</div>
+            <div class="rule-item">💰 Tuition Fee Amount</div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-badge">Step 3</div>
+          <h5>⚖️ 4 Compliance Rules</h5>
+          <p>Automated evaluation against company policy & master registries:</p>
+          <div class="rules-list">
+            <div class="rule-item">✅ Child Age: 4 to 18 Years</div>
+            <div class="rule-item">✅ UAE Accredited School</div>
+            <div class="rule-item">✅ Within Cap (AED 25k)</div>
+            <div class="rule-item">✅ No Duplicate Year</div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-badge">Step 4</div>
+          <h5>🎯 Auto-Approval vs Review</h5>
+          <p><strong>100% Match:</strong> Auto-validates & queues reimbursement.<br/><br/><strong>Discrepancy:</strong> Routes to HR reviewer queue with highlighted issue.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Intent & Trigger Matrix -->
+  <div id="tab-matrix" class="tab-pane">
+    <div class="card">
+      <div class="card-title">🎯 Intent Classification & Routing Matrix</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Intent Type</th>
+            <th>Sample Prompts (EN / AR)</th>
+            <th>LangGraph Node</th>
+            <th>Backend Engine</th>
+            <th>UI Output / Action Card</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-emerald">GREETING</span></td>
+            <td><code>hi</code>, <code>hello</code>, <code>مرحبا</code>, <code>صباح الخير</code></td>
+            <td><code>finish_turn</code></td>
+            <td>FastPath Template + SQL Name</td>
+            <td>Personalized greeting with 5 bullets + 2-row Quick Actions</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">HR_POLICY</span></td>
+            <td><em>“What is the sick leave policy?”</em>, <em>“Remote work rules”</em></td>
+            <td><code>gather_evidence</code> ➔ <code>generate_answer</code></td>
+            <td>Vector RAG (Qdrant + PyMuPDF)</td>
+            <td>Bilingual policy answer with PDF deep citations (<code>#page=2</code>)</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">EMPLOYEE_RECORD</span></td>
+            <td><em>“How many leave days do I have?”</em>, <em>“Who is my manager?”</em></td>
+            <td><code>gather_evidence</code></td>
+            <td>Deterministic SQL ORM (<code>omni_hr.db</code>)</td>
+            <td>Exact numerical balance card with 0% hallucination</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-amber">LEAVE_ACTION</span></td>
+            <td><em>“I want to apply for leave”</em>, <em>“Approve leave request”</em></td>
+            <td><code>handle_leave_action</code></td>
+            <td>SQLAlchemy Leave Service</td>
+            <td>Interactive Calendar Picker & Manager Approval cards</td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-pink">SCHOOL_VERIFICATION</span></td>
+            <td><em>“School certificate for Zayed”</em>, <em>“Upload school document”</em></td>
+            <td><code>handle_school_verification</code></td>
+            <td>HCS-11 HTTP RPC (Port 8001)</td>
+            <td>Child Selector pills & Document Upload Modal</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 5: Executive Value Report -->
+  <div id="tab-summary" class="tab-pane">
+    <div class="card">
+      <div class="card-title">💼 Key Management Takeaways</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <h4 style="color: var(--emerald);">1. Zero Hallucination Guarantee</h4>
+          <p>Personal HR records (remaining leaves, probation status, manager transitions) are never generated by LLM guesswork; they are queried deterministically from the SQL database.</p>
+        </div>
+        <div class="stat-box">
+          <h4 style="color: var(--blue);">2. Verifiable Policy Citations</h4>
+          <p>Every policy statement links directly to specific PDF policy pages, allowing employees and HR auditors to click and view the official clauses instantly.</p>
+        </div>
+        <div class="stat-box">
+          <h4 style="color: var(--pink);">3. Automated Compliance & Fraud Prevention</h4>
+          <p>HCS-11 automatically validates child ages (4–18), UAE school accreditation, tuition fee caps, and duplicate submissions before triggering HR reimbursement.</p>
+        </div>
+        <div class="stat-box">
+          <h4 style="color: var(--primary);">4. Microservice Resilience</h4>
+          <p>DalīlHR (Port 8000) and HCS-11 (Port 8001) operate as independent decoupled services. They can be scaled, updated, or tested independently without downtime.</p>
+        </div>
+      </div>
+      
+      <div class="action-bar">
+        <a href="http://localhost:8080" target="_blank" class="btn btn-outline">🌐 Open Web Portal (:8080)</a>
+        <a href="http://localhost:8000/docs" target="_blank" class="btn btn-primary">📖 DalīlHR API Docs (:8000)</a>
+        <a href="http://localhost:8001/docs" target="_blank" class="btn btn-outline">📑 HCS-11 Verify Docs (:8001)</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+    
+    event.currentTarget.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+  }
+</script>
+
+</body>
+</html>

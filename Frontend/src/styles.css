@@ -274,3 +274,35 @@
   font-weight: 600;
 }
 
+/* 10-second periodic 3D rotation & glow animation for DalīlHR */
+@keyframes brand-periodic-rotate {
+  0%, 82%, 100% {
+    transform: perspective(600px) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 0 0px transparent);
+  }
+  86% {
+    transform: perspective(600px) rotateY(90deg) scale(1.06);
+  }
+  90% {
+    transform: perspective(600px) rotateY(180deg) scale(1.1);
+    filter: drop-shadow(0 0 12px oklch(0.62 0.21 350 / 40%));
+  }
+  94% {
+    transform: perspective(600px) rotateY(270deg) scale(1.06);
+  }
+  97% {
+    transform: perspective(600px) rotateY(360deg) scale(1.02);
+  }
+  99% {
+    transform: perspective(600px) rotateY(360deg) scale(1);
+  }
+}
+
+.animate-brand-spin {
+  display: inline-block;
+  animation: brand-periodic-rotate 10s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+

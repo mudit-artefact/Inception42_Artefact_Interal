@@ -126,7 +126,7 @@ def test_manager_approval_dispatches_notification_to_employee(temporary_database
 
         app_notif = next((n for n in alia_notifs if n["event_type"] == "LEAVE_APPROVED"), None)
         assert app_notif is not None
-        assert f"Leave Request #{req.id} Approved" in app_notif["title"]
+        assert "Leave Request Approved" in app_notif["title"]
         assert "Maitha Al Mazrouei" in app_notif["message"]
     finally:
         session.close()
@@ -170,7 +170,7 @@ def test_manager_rejection_dispatches_notification_to_employee(temporary_databas
 
         rej_notif = next((n for n in alia_notifs if n["event_type"] == "LEAVE_REJECTED"), None)
         assert rej_notif is not None
-        assert f"Leave Request #{req.id} Declined" in rej_notif["title"]
+        assert "Leave Request Declined" in rej_notif["title"]
         assert "Team critical project delivery deadline" in rej_notif["message"]
     finally:
         session.close()

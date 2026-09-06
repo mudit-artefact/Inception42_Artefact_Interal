@@ -177,23 +177,16 @@ def generate_greeting(state: ConversationState) -> dict:
 
     # 5. First-turn standard welcome greeting
     is_islamic_greeting = bool(ISLAMIC_GREETING_PATTERN.search(question))
-    if is_arabic_script or is_islamic_greeting:
+    if is_islamic_greeting:
         if lang == "ar":
-            opening = f"وعليكم السلام {employee_name}! 👋".strip()
-            body_lang = "ar"
+            full_greeting = f"وعليكم السلام {employee_name}! أنا دليل. كيف يمكنني مساعدتك اليوم؟"
         else:
-            opening = f"Wa 'alaykum as-salam {employee_name}! 👋"
-            body_lang = "en"
+            full_greeting = f"Wa 'alaykum as-salam {employee_name}! Hi, I am Dalil. How can I help you today?"
     else:
         if lang == "ar":
-            opening = f"مرحباً {employee_name}! 👋".strip()
-            body_lang = "ar"
+            full_greeting = f"مرحباً {employee_name}! أنا دليل. كيف يمكنني مساعدتك اليوم؟"
         else:
-            opening = f"Hello {employee_name}! 👋"
-            body_lang = "en"
-
-    greeting_body = GREETING_BODY.get(body_lang, GREETING_BODY["en"])
-    full_greeting = f"{opening}\n\n{greeting_body}"
+            full_greeting = f"Hello {employee_name}! Hi, I am Dalil. How can I help you today?"
 
     return {
         "final_answer": _clean_and_format_markdown(full_greeting),

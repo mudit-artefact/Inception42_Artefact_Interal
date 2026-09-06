@@ -64,7 +64,7 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
     const icsContent = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Bayan HR//Leave Calendar//EN",
+      "PRODID:-//Dalīl//Leave Calendar//EN",
       "BEGIN:VEVENT",
       `SUMMARY:${leaveType} (Approved)`,
       `DESCRIPTION:${notif.message}`,
@@ -206,13 +206,13 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
                                 onClick={() => {
                                   const subject = encodeURIComponent("Approved Leave Notification");
                                   const body = encodeURIComponent(
-                                    `Hi HR Team,\n\nPlease note my approved leave:\n${n.message}\n\nThank you.`
+                                    `Hi Team,\n\nPlease note my approved leave:\n${n.message}\n\nThank you.`
                                   );
-                                  window.open(`mailto:hr@hcservices.ae?subject=${subject}&body=${body}`);
+                                  window.open(`mailto:team@hcservices.ae?subject=${subject}&body=${body}`);
                                 }}
                               >
                                 <Mail className="size-3" />
-                                Email HR
+                                Email
                               </Button>
                             </>
                           )}

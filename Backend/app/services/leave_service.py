@@ -665,7 +665,7 @@ def approve_leave_request(
                 recipient_id=req.employee_id,
                 sender_id=manager_id,
                 event_type="LEAVE_APPROVED",
-                title=f"Leave Request #{req.id} Approved 🎉",
+                title="Leave Request Approved 🎉",
                 message=(
                     f"Your request for {req.days_requested} working days of {req.leave_type} "
                     f"({req.start_date} to {req.end_date}) has been approved by {approver_display}."
@@ -746,7 +746,7 @@ def reject_leave_request(
                 recipient_id=req.employee_id,
                 sender_id=manager_id,
                 event_type="LEAVE_REJECTED",
-                title=f"Leave Request #{req.id} Declined",
+                title="Leave Request Declined",
                 message=(
                     f"Your request for {req.days_requested} days of {req.leave_type} "
                     f"was declined by {approver_display}.{reason_text}"

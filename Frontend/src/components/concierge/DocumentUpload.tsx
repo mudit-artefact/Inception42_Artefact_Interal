@@ -95,10 +95,10 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
   // Loading state
   if (status === "loading_cases") {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 text-foreground border border-border shadow-2xl rounded-2xl">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="size-8 animate-spin text-pink" />
-          <p className="mt-3 text-sm text-muted-foreground">Loading your verification cases...</p>
+          <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">Loading your verification cases...</p>
         </CardContent>
       </Card>
     );
@@ -107,8 +107,8 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
   // No case found
   if (status === "no_case") {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="pb-3">
+      <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 text-foreground border border-border shadow-2xl rounded-2xl">
+        <CardHeader className="pb-3 border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold">Document Verification</CardTitle>
             <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -118,7 +118,7 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center py-8">
           <AlertTriangle className="size-10 text-amber-500" />
-          <p className="mt-3 text-sm text-center text-muted-foreground">
+          <p className="mt-3 text-sm text-center text-slate-600 dark:text-slate-300">
             No active verification case found for this academic year.
             <br />
             Please contact HC Services if you believe this is an error.
@@ -136,37 +136,46 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
     const childName = caseData?.case.dependent_name || "your child";
 
     return (
-      <Card className="w-full max-w-2xl mx-auto border-green-500/30 bg-green-500/5">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="size-5 text-green-500" />
-              <CardTitle className="text-base font-semibold text-green-700">
+      <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 border border-emerald-500/40 shadow-2xl rounded-2xl overflow-hidden">
+        <div className="bg-emerald-50 dark:bg-emerald-950/50 border-b border-emerald-500/20 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="size-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-bold text-emerald-950 dark:text-emerald-200">
                 {uploadResult.title}
               </CardTitle>
+              <p className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                Document verification completed
+              </p>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <X className="size-4" />
-            </Button>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">{uploadResult.message}</p>
+          <Button variant="ghost" size="icon" className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100" onClick={handleClose}>
+            <X className="size-4" />
+          </Button>
+        </div>
+        <CardContent className="p-6 space-y-5">
+          <p className="text-sm font-medium text-slate-800 dark:text-slate-100 leading-relaxed">
+            {uploadResult.message}
+          </p>
 
           {uploadResult.payment_amount && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10">
-              <span className="text-sm font-medium">Approved Amount</span>
-              <span className="text-lg font-semibold text-green-700">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-300/60 dark:border-emerald-800/60 shadow-xs">
+              <span className="text-sm font-semibold text-emerald-950 dark:text-emerald-200">Approved Amount</span>
+              <span className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
                 AED {uploadResult.payment_amount.toLocaleString()}
               </span>
             </div>
           )}
 
           {uploadResult.case_id && (
-            <p className="text-xs text-muted-foreground">Reference: {uploadResult.case_id}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Reference: <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">{uploadResult.case_id}</span>
+            </p>
           )}
 
-          <Button className="w-full" onClick={() => { onComplete?.(childName); }}>
+          <Button className="w-full h-10 font-semibold bg-pink hover:bg-pink/90 text-white rounded-xl shadow-md cursor-pointer transition-all" onClick={() => { onComplete?.(childName); }}>
             Done
           </Button>
         </CardContent>
@@ -177,19 +186,19 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
   // Uploading state
   if (status === "uploading") {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Uploading Documents</CardTitle>
+      <Card className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 text-foreground border border-border shadow-2xl rounded-2xl overflow-hidden">
+        <CardHeader className="pb-3 border-b border-border">
+          <CardTitle className="text-base font-semibold">Uploading & Verifying Documents</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col items-center py-8">
+        <CardContent className="space-y-4 py-8">
+          <div className="flex flex-col items-center py-4">
             <Loader2 className="size-10 animate-spin text-pink" />
-            <p className="mt-4 text-sm font-medium">{stage || "Processing..."}</p>
+            <p className="mt-4 text-sm font-semibold text-foreground">{stage || "Processing..."}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              This may take up to a minute while we verify your documents
+              Securely validating submitted documents against education allowance criteria
             </p>
           </div>
-          <Progress value={undefined} className="h-1" />
+          <Progress value={undefined} className="h-1.5" />
         </CardContent>
       </Card>
     );
@@ -201,8 +210,8 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
   // Main upload interface
   return (
-    <Card className="w-full max-w-2xl mx-auto max-h-[85vh] flex flex-col">
-      <CardHeader className="pb-3 shrink-0">
+    <Card className="w-full max-w-2xl mx-auto max-h-[85vh] flex flex-col bg-white dark:bg-zinc-900 text-foreground border border-border shadow-2xl rounded-2xl overflow-hidden">
+      <CardHeader className="pb-3 shrink-0 border-b border-border bg-slate-50/50 dark:bg-zinc-900/50">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <CardTitle className="text-base font-semibold">
@@ -257,16 +266,16 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
               {caseData.case.required_documents.map((doc) => (
                 <div
                   key={doc.kind}
-                  className={`flex items-center gap-2 p-2 rounded-md text-xs ${
+                  className={`flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium ${
                     doc.received
-                      ? "bg-green-500/10 text-green-700"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/40"
+                      : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-zinc-700/60"
                   }`}
                 >
                   {doc.received ? (
-                    <CheckCircle2 className="size-3.5 shrink-0" />
+                    <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   ) : (
-                    <Clock className="size-3.5 shrink-0" />
+                    <Clock className="size-3.5 shrink-0 text-slate-400" />
                   )}
                   <span className="truncate">{doc.label}</span>
                 </div>
@@ -277,16 +286,16 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
         {/* Success message when all documents received (but not auto-approved) */}
         {allDocumentsReceived && !uploadResult && (
-          <div className="p-3 rounded-lg border border-green-500/30 bg-green-500/5 space-y-2">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
+          <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/30 space-y-2.5">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-green-700">
+                <p className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
                   {caseData?.case.case_status === "Approved"
                     ? "Approved for Education Allowance"
                     : "Everything we need is here"}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mt-0.5">
                   {caseData?.case.approved_amount_aed
                     ? `AED ${caseData.case.approved_amount_aed.toLocaleString()} ready for payroll processing.`
                     : "All required documents have been received for this academic cycle."}
@@ -299,10 +308,10 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs gap-1.5 border-pink/30 text-pink hover:bg-pink/10 cursor-pointer"
+                  className="h-8 text-xs gap-1.5 border-pink/30 text-pink hover:bg-pink/10 cursor-pointer font-semibold"
                   onClick={() => setForceShowUpload(true)}
                 >
-                  <Upload className="size-3" />
+                  <Upload className="size-3.5" />
                   Upload Replacement or New Document
                 </Button>
               </div>
@@ -312,31 +321,31 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
         {/* Upload result with issues - show what needs to be fixed */}
         {uploadResult && uploadResult.status !== "success" && (
-          <div className={`space-y-3 p-3 rounded-lg border ${
+          <div className={`space-y-3 p-4 rounded-xl border ${
             hasIssues
-              ? "border-amber-500/30 bg-amber-500/5"
-              : "border-green-500/30 bg-green-500/5"
+              ? "border-amber-500/40 bg-amber-50/80 dark:bg-amber-950/40"
+              : "border-emerald-500/40 bg-emerald-50/80 dark:bg-emerald-950/40"
           }`}>
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-3">
               {hasIssues ? (
-                <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
+                <AlertTriangle className="size-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
               ) : (
-                <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
+                <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               )}
               <div>
-                <p className={`text-sm font-medium ${hasIssues ? "text-amber-700" : "text-green-700"}`}>
+                <p className={`text-sm font-bold ${hasIssues ? "text-amber-950 dark:text-amber-200" : "text-emerald-950 dark:text-emerald-200"}`}>
                   {uploadResult.title}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{uploadResult.message}</p>
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mt-1">{uploadResult.message}</p>
               </div>
             </div>
 
             {uploadResult.issues.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-amber-700">Issues to fix:</p>
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs font-bold text-amber-900 dark:text-amber-200">Issues to fix:</p>
                 <ul className="space-y-1 pl-4">
                   {uploadResult.issues.map((issue, i) => (
-                    <li key={i} className="text-xs text-amber-700 list-disc">
+                    <li key={i} className="text-xs font-medium text-amber-900 dark:text-amber-300 list-disc">
                       {issue}
                     </li>
                   ))}
@@ -346,10 +355,10 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
 
             {uploadResult.missing_documents.length > 0 && (
               <div className="pt-2 border-t border-amber-500/20">
-                <p className="text-xs font-medium text-amber-700">Still needed:</p>
-                <div className="flex flex-wrap gap-1 mt-1">
+                <p className="text-xs font-bold text-amber-900 dark:text-amber-200">Still needed:</p>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {uploadResult.missing_documents.map((doc) => (
-                    <Badge key={doc} variant="outline" className="text-[10px] border-amber-500/40">
+                    <Badge key={doc} variant="outline" className="text-[11px] font-semibold border-amber-500/50 bg-amber-100/50 text-amber-900 dark:text-amber-200">
                       {doc}
                     </Badge>
                   ))}
@@ -358,7 +367,7 @@ export function DocumentUpload({ employeeId, onClose, onComplete }: DocumentUplo
             )}
 
             {uploadResult.can_reupload && uploadResult.reupload_message && (
-              <p className="text-xs text-muted-foreground pt-2 border-t border-current/10">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 pt-2 border-t border-current/10">
                 {uploadResult.reupload_message}
               </p>
             )}

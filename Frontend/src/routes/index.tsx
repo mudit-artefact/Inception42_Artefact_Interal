@@ -12,9 +12,9 @@ import { useActiveEmployee } from "@/hooks/useActiveEmployee";
 import { useConcierge } from "@/hooks/useConcierge";
 import { InceptionLogo } from "@/components/common/InceptionLogo";
 
-const TITLE = "Bayan HR";
+const TITLE = "Dalīl";
 const DESCRIPTION =
-  "Ask HR policy and leave questions and get cited answers from the approved Bayan HR policy library, with your live leave balance alongside.";
+  "Ask HR policy and leave questions and get cited answers from the approved Dalīl policy library, with your live leave balance alongside.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -84,7 +84,7 @@ function ConciergePage() {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="hidden lg:inline-flex text-muted-foreground hover:text-foreground cursor-pointer"
+          className="hidden lg:inline-flex text-muted-foreground hover:text-foreground cursor-pointer -ml-1"
           onClick={() => setSidebarOpen((prev) => !prev)}
           title={sidebarOpen ? "Close history sidebar" : "Open history sidebar"}
           aria-label={sidebarOpen ? "Close history sidebar" : "Open history sidebar"}
@@ -92,10 +92,16 @@ function ConciergePage() {
           <PanelLeft aria-hidden="true" className="size-4" />
         </Button>
 
-        <InceptionLogo className="h-7 w-auto shrink-0" />
-        <div className="min-w-0 flex-1">
-          <h1 className="font-display text-sm font-semibold tracking-tight">{TITLE}</h1>
+        <div className="flex items-center gap-2">
+          <InceptionLogo className="h-6.5 w-auto shrink-0" />
+          <div className="animate-brand-spin cursor-default select-none">
+            <h1 className="font-display text-base sm:text-lg font-black tracking-tight bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent hover:scale-105 transition-transform">
+              {TITLE}
+            </h1>
+          </div>
         </div>
+
+        <div className="min-w-0 flex-1" />
 
         <div className="flex items-center gap-2">
           <NotificationCenter
@@ -120,7 +126,7 @@ function ConciergePage() {
           </aside>
         )}
 
-        <main className="flex min-w-0 flex-1 flex-col bg-card">
+        <main className="flex min-w-0 flex-1 flex-col bg-card overflow-hidden">
           <ChatPanel
             messages={concierge.active?.messages ?? []}
             status={concierge.status}
