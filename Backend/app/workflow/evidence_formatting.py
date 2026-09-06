@@ -197,12 +197,16 @@ def _balance_rows(facts: EmployeeFacts, leave_type: str) -> list[str]:
     rows = ["  Broken down:"]
     for balance in sorted(matching, key=lambda b: (-b.year, b.leave_type)):
         year_tag = " (Current Active Leave Year 2026)" if balance.year == 2026 else f" ({balance.year} Historical record - only reference if employee specifically asks about past years)"
+        total_available = balance.entitled_days + (balance.carry_over_days or 0)
         detail = (
             f"    - {balance.year} {balance.leave_type}{year_tag}: {balance.entitled_days} entitled, "
             f"{balance.used_days} used, {balance.remaining_days} remaining"
         )
         if balance.carry_over_days and balance.carry_over_days > 0:
-            detail += f", {balance.carry_over_days} carried over"
+            detail += (
+                f", {balance.carry_over_days} carried over "
+                f"({total_available} total entitled/available days including carry-over)"
+            )
         if balance.pay_rate_pct is not None:
             detail += f", paid at {balance.pay_rate_pct}%"
         if balance.accrued_days and balance.accrued_days != balance.entitled_days:

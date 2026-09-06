@@ -16,10 +16,32 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
 
   if (!sources || sources.length === 0) return null;
 
+  const isOmniDbSource = (s: PolicySource) => {
+    const src = (s.source || "").toLowerCase();
+    const title = (s.title || "").toLowerCase();
+    const type = (s.source_type || "").toLowerCase();
+    return (
+      type === "database" ||
+      type === "sql" ||
+      type === "employee_record" ||
+      Boolean(s.table_name) ||
+      src.includes("omni") ||
+      src.includes("database") ||
+      src.includes("sql") ||
+      title.includes("omni") ||
+      title.includes("employee record")
+    );
+  };
+
+  // Filter for policy document sources (exclude internal Omni DB SQL records)
+  const policySources = sources.filter((s) => !isOmniDbSource(s));
+
+  // If Omni DB is the only verified source, no need to show verified sources box
+  if (policySources.length === 0) return null;
+
   // Limit verified sources in the UI to the top 5
   const displaySources = sources.slice(0, 5);
   const dbSources = displaySources.filter((s) => s.source_type === "database");
-  const policySources = displaySources.filter((s) => s.source_type !== "database");
   const hasVisualDiagrams = displaySources.some((s) => s.has_image);
 
   return (

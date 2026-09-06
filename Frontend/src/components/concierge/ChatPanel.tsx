@@ -62,19 +62,30 @@ function formatMessageContent(content: string): string {
   if (!content) return "";
   let formatted = content;
 
-  // 1. Convert inline or unicode bullet symbols (•, ●, ▪) into proper multi-line Markdown lists (* )
-  formatted = formatted.replace(/([:\.]\s*)[•●▪]\s*/g, "$1\n\n* ");
-  formatted = formatted.replace(/(?<!\n)\s*[•●▪]\s*/g, "\n* ");
-  formatted = formatted.replace(/^[•●▪]\s*/gm, "* ");
+  // 1. Reconnect broken headings or dangling parentheses like "Annual Leave (\n26." -> "Annual Leave (2026)"
+  formatted = formatted.replace(
+    /([^\n(]+?)\s*\(\s*\n+(\d{2,4})\.?\)?/g,
+    (_, heading, num) => {
+      const cleanHeading = heading.trim();
+      const year = num.length === 2 ? `20${num}` : num;
+      return `${cleanHeading} (${year})\n`;
+    }
+  );
+  // 2. Remove dangling open parenthesis at end of line
+  formatted = formatted.replace(/\(\s*$/gm, "");
 
-  // 2. Convert inline numbered lists (e.g. "... text: 1. Item 2. Item 3. Item") into multi-line numbered lists
-  formatted = formatted.replace(/([:\.]\s*)(1[\.\)]\s+)/g, "$1\n\n$2");
-  formatted = formatted.replace(/(?<!\n)\s*(\d+[\.\)]\s+)/g, "\n$1");
+  // 3. Convert unicode bullet symbols (•, ●, ▪) into proper markdown list items (* )
+  formatted = formatted.replace(/^[\u2022\u25CF\u25AA•●▪]\s*/gm, "* ");
+  formatted = formatted.replace(/([:\.]\s*)[\u2022\u25CF\u25AA•●▪]\s*/g, "$1\n\n* ");
+  formatted = formatted.replace(/(?<=[^\n])[^\S\n]+[\u2022\u25CF\u25AA•●▪]\s*/g, "\n* ");
 
-  // 3. Ensure a blank line before any list that starts right after a paragraph
-  formatted = formatted.replace(/([^\n])\n(\d+[\.\)]\s+|\*\s+|-\s+)/g, "$1\n\n$2");
+  // 4. Ensure a blank line before any markdown bullet list that immediately follows a paragraph
+  formatted = formatted.replace(/([^\n])\n(\*\s+|-\s+)/g, "$1\n\n$2");
 
-  // 4. Normalize excess blank lines
+  // 5. Ensure headings (### Heading) have clean line breaks before and after
+  formatted = formatted.replace(/([^\n])\n(#{1,4}\s+)/g, "$1\n\n$2");
+
+  // 6. Normalize excess blank lines (max 2 consecutive newlines)
   formatted = formatted.replace(/\n{3,}/g, "\n\n");
   return formatted.trim();
 }

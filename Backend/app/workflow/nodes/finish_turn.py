@@ -196,22 +196,27 @@ def generate_greeting(state: ConversationState) -> dict:
 
 
 def _clean_and_format_markdown(text: str) -> str:
-    """Format and normalize markdown to ensure clean lists (numbered & bulleted), spacing, and headings."""
+    """Format and normalize markdown to ensure clean lists, spacing, and headings."""
     if not text:
         return ""
 
     import re
-    # 1. Convert inline bullet points (• or ● or ▪) into clean multi-line markdown bullets (* )
-    formatted = re.sub(r'([:\.]\s*)[•●▪]\s*', r'\1\n\n* ', text)
-    formatted = re.sub(r'(?<!\n)\s*[•●▪]\s*', r'\n* ', formatted)
+    # 1. Reconnect broken headings or dangling parentheses like "Annual Leave (\n2026." -> "### Annual Leave (2026)"
+    formatted = re.sub(
+        r'(#{1,4}\s+[^\n(]+|\*\*[^\n*()]+\*\*|[A-Za-z\s]+)\(\s*\n+(\d{4})\.?\)?',
+        r'\1 (\2)',
+        text,
+    )
+    formatted = re.sub(r'\(\s*\n+(\d{2,4})\.?\)?', r'(\1)', formatted)
+    formatted = re.sub(r'^(\d{4})\.\s*$', r'**Year \1**', formatted, flags=re.MULTILINE)
+
+    # 2. Convert inline bullet points (• or ● or ▪) into clean multi-line markdown bullets (* )
     formatted = re.sub(r'^[•●▪]\s*', r'* ', formatted, flags=re.MULTILINE)
+    formatted = re.sub(r'([:\.]\s*)[•●▪]\s*', r'\1\n\n* ', formatted)
+    formatted = re.sub(r'(?<=[^\n])\s+[•●▪]\s*', r'\n* ', formatted)
 
-    # 2. Convert inline numbered lists (e.g. "... reply: 1. Item 2. Item 3. Item") into multi-line numbered lists
-    formatted = re.sub(r'([:\.]\s*)(1[\.\)]\s+)', r'\1\n\n\2', formatted)
-    formatted = re.sub(r'(?<!\n)\s*(\d+[\.\)]\s+)', r'\n\1', formatted)
-
-    # 3. Ensure a blank line before any list block starting right after paragraph text
-    formatted = re.sub(r'([^\n])\n(\d+[\.\)]\s+|\*\s+|-\s+)', r'\1\n\n\2', formatted)
+    # 3. Ensure a blank line before any markdown list block starting right after paragraph text
+    formatted = re.sub(r'([^\n])\n(\*\s+|-\s+)', r'\1\n\n\2', formatted)
 
     # 4. Ensure headings (### Heading) have clean line breaks before and after
     formatted = re.sub(r'([^\n])\n(#{1,4}\s+)', r'\1\n\n\2', formatted)
@@ -380,8 +385,15 @@ def _citations_for(state: ConversationState) -> list[dict]:
     if intent in action_intents or state.get("action_payload"):
         return []
 
-    citations = []
+    policy_citations = [
+        citation.model_dump()
+        for citation in build_policy_citations(state.get("policy_passages") or [])
+    ]
 
+    if not policy_citations and intent == QuestionIntent.ABOUT_THE_LAST_ANSWER:
+        return list(state.get("citations") or [])
+
+    citations = []
     hr_data = state.get("hr_data_facts") or {}
     if hr_data.get("fields"):
         facts = EmployeeFacts.from_dictionary(state["employee_facts"])
@@ -391,17 +403,8 @@ def _citations_for(state: ConversationState) -> list[dict]:
             ).model_dump()
         )
 
-    citations.extend(
-        citation.model_dump()
-        for citation in build_policy_citations(state.get("policy_passages") or [])
-    )
-    if citations:
-        return citations
-
-    if intent == QuestionIntent.ABOUT_THE_LAST_ANSWER:
-        return list(state.get("citations") or [])
-
-    return []
+    citations.extend(policy_citations)
+    return citations
 
 
 def _infer_fallback_reason(state: ConversationState) -> str:
