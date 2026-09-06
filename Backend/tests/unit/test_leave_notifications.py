@@ -190,3 +190,48 @@ def test_mark_all_notifications_as_read(temporary_database):
         assert unread_after == 0
     finally:
         session.close()
+
+
+def test_cancel_leave_request_deletes_manager_notification(temporary_database):
+    """When an employee cancels their leave request, any pending manager notification disappears."""
+    from app.services.leave_service import commit_leave_request, cancel_leave_request, LeaveValidationResult
+    session = temporary_database()
+    try:
+        # Clear prior notifications for Maitha (manager)
+        session.query(Notification).filter(Notification.recipient_id == "EMP003").delete()
+        session.commit()
+
+        # Alia submits leave
+        val = LeaveValidationResult(
+            is_valid=True,
+            violations=[],
+            leave_type="Annual leave",
+            start_date="2026-10-05",
+            end_date="2026-10-07",
+            working_days=3,
+            balance_before=15.0,
+            balance_after=12.0,
+            notice_days_provided=30,
+            notice_days_required=2,
+            notice_compliant=True,
+            approver_name="Maitha Al Mazrouei",
+        )
+        receipt = commit_leave_request("EMP001", val, session=session)
+        req_id = receipt["request_id"]
+
+        # Verify manager received the notification
+        manager_notifs = list_employee_notifications("EMP003", session=session)
+        matching = [n for n in manager_notifs if n["action_payload"].get("request_id") == req_id]
+        assert len(matching) == 1
+
+        # Now employee cancels the request
+        cancel_res = cancel_leave_request("EMP001", req_id, session=session)
+        assert cancel_res["success"] is True
+
+        # Verify manager notification disappeared
+        manager_notifs_after = list_employee_notifications("EMP003", session=session)
+        matching_after = [n for n in manager_notifs_after if n["action_payload"].get("request_id") == req_id]
+        assert len(matching_after) == 0
+    finally:
+        session.close()
+

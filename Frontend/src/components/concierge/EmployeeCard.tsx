@@ -74,11 +74,6 @@ export function EmployeeCard({ employee, policyLinks = [] }: EmployeeCardProps) 
                   aria-label={`${b.type}: ${b.remaining} of ${available} ${b.unit} remaining`}
                   className="mt-2 h-1.5"
                 />
-                {b.carry_over > 0 ? (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Includes {b.carry_over} {b.unit} carried over
-                  </p>
-                ) : null}
               </div>
             );
           })

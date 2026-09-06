@@ -159,6 +159,45 @@ def mark_all_notifications_as_read(
             session.close()
 
 
+def delete_notifications_for_request(
+    request_id: int,
+    session: Optional[Session] = None,
+) -> int:
+    """
+    When an employee cancels their leave request, remove any pending manager notifications
+    associated with this request so that the manager is not notified and the notification disappears.
+    """
+    close_session = False
+    if session is None:
+        session = SessionLocal()
+        close_session = True
+
+    try:
+        notifs = session.query(Notification).filter(
+            Notification.event_type.in_(["LEAVE_REQUESTED", "LEAVE_SUBMITTED"])
+        ).all()
+        count = 0
+        for n in notifs:
+            if n.action_payload:
+                try:
+                    p = json.loads(n.action_payload)
+                    if p.get("request_id") == request_id:
+                        session.delete(n)
+                        count += 1
+                except Exception:
+                    pass
+        session.commit()
+        logger.info(f"Deleted {count} notification(s) for cancelled leave request #{request_id}")
+        return count
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error deleting notifications for request #{request_id}: {e}", exc_info=True)
+        return 0
+    finally:
+        if close_session:
+            session.close()
+
+
 def _format_notification(n: Notification) -> dict[str, Any]:
     payload = {}
     if n.action_payload:

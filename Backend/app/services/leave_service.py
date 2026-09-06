@@ -970,6 +970,13 @@ def cancel_leave_request(employee_id: str, request_id: int, session: Optional[Se
         req.status = "Cancelled"
         session.commit()
 
+        # Delete manager notifications for this cancelled request so the notification disappears and manager is not notified
+        try:
+            from app.services.notification_service import delete_notifications_for_request
+            delete_notifications_for_request(request_id=req.id, session=session)
+        except Exception as notif_del_err:
+            logger.warning(f"Could not delete notifications for cancelled request #{req.id}: {notif_del_err}")
+
         return {
             "success": True,
             "request_id": req.id,
