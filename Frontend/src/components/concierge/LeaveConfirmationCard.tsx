@@ -26,7 +26,6 @@ export function LeaveConfirmationCard({
     balance_before,
     balance_after,
     approver_name,
-    notice_compliant,
     requires_medical_certificate,
     receipt,
     violations,
@@ -109,7 +108,6 @@ export function LeaveConfirmationCard({
             </div>
             <div>
               <span className="font-semibold text-foreground text-xs">{leave_type} Application</span>
-              <span className="block text-[10px] text-muted-foreground">Deterministic Pre-Flight Verified</span>
             </div>
           </div>
           <Badge variant="outline" className="border-pink/40 bg-pink/10 text-pink text-[10px]">
@@ -132,7 +130,7 @@ export function LeaveConfirmationCard({
             <span className="text-[10px] uppercase font-semibold text-muted-foreground block">Working Days</span>
             <div className="font-medium text-foreground mt-0.5 flex items-center gap-1.5">
               <Clock className="size-3.5 text-pink" />
-              <span>{working_days} Days Deducted</span>
+              <span>{working_days} {working_days === 1 ? "day" : "days"}</span>
             </div>
           </div>
         </div>
@@ -148,15 +146,9 @@ export function LeaveConfirmationCard({
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">{balance_after} Days</span>
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-border/40 text-muted-foreground">
-            <span>Routing to Line Manager:</span>
+            <span>Line Manager:</span>
             <span className="font-medium text-foreground">{approver_name}</span>
           </div>
-          {notice_compliant ? (
-            <div className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 pt-0.5">
-              <CheckCircle2 className="size-3" />
-              <span>Notice period compliant (HC-PC-001 §1.4)</span>
-            </div>
-          ) : null}
           {requires_medical_certificate ? (
             <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 pt-0.5">
               <AlertCircle className="size-3" />
