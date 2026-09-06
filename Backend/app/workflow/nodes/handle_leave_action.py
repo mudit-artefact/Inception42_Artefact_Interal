@@ -168,16 +168,13 @@ def handle_leave_application(state: ConversationState) -> dict:
 
     # Step E: Valid! Prepare Human-in-the-Loop Confirmation Card and Pause
     confirmation_question = (
-        f"Please confirm your {validation.leave_type} request for **{validation.working_days} working days** "
-        f"(from **{validation.start_date}** to **{validation.end_date}**). "
-        f"This will be routed to your Line Manager (**{validation.approver_name}**) for review and approval."
+        f"Please review and confirm your {validation.leave_type} request below:"
         if lang == "en"
-        else (
-            f"يرجى تأكيد طلب {validation.leave_type} لمدة **{validation.working_days} أيام عمل** "
-            f"(من **{validation.start_date}** إلى **{validation.end_date}**). "
-            f"سيتم إرسال الطلب إلى مديرك المباشر (**{validation.approver_name}**) للمراجعة والاعتماد."
-        )
+        else f"يرجى مراجعة وتأكيد طلب {validation.leave_type} أدناه:"
     )
+
+    bal_before_val = int(validation.balance_before) if float(validation.balance_before).is_integer() else validation.balance_before
+    bal_after_val = int(validation.balance_after) if float(validation.balance_after).is_integer() else validation.balance_after
 
     action_payload = {
         "action_type": "CONFIRM_LEAVE_APPLICATION",
@@ -185,8 +182,8 @@ def handle_leave_application(state: ConversationState) -> dict:
         "start_date": validation.start_date,
         "end_date": validation.end_date,
         "working_days": validation.working_days,
-        "balance_before": validation.balance_before,
-        "balance_after": validation.balance_after,
+        "balance_before": bal_before_val,
+        "balance_after": bal_after_val,
         "approver_name": validation.approver_name,
         "notice_compliant": validation.notice_compliant,
         "requires_medical_certificate": validation.requires_medical_certificate,
@@ -228,6 +225,9 @@ def handle_leave_application(state: ConversationState) -> dict:
             reason=draft.reason,
         )
 
+        cur_bal_display = int(receipt['current_balance']) if isinstance(receipt['current_balance'], (int, float)) and float(receipt['current_balance']).is_integer() else receipt['current_balance']
+        proj_bal_display = int(receipt['projected_balance']) if isinstance(receipt['projected_balance'], (int, float)) and float(receipt['projected_balance']).is_integer() else receipt['projected_balance']
+
         if lang == "ar":
             success_msg = (
                 f"✅ **تم إرسال طلب الإجازة بنجاح وهو بانتظار اعتماد المدير!**\n\n"
@@ -235,7 +235,7 @@ def handle_leave_application(state: ConversationState) -> dict:
                 f"• **الفترة:** من {receipt['start_date']} إلى {receipt['end_date']} ({receipt['days_requested']} أيام عمل)\n"
                 f"• **الحالة:** قيد المراجعة والاعتماد ({receipt['status']})\n"
                 f"• **المدير المباشر:** {receipt['approver_name']}\n"
-                f"• **الرصيد المتبقي الحالي:** {receipt['current_balance']} يوم\n\n"
+                f"• **الرصيد المتبقي الحالي:** {cur_bal_display} يوم\n\n"
                 f"تم إرسال طلب اعتماد رسمي إلى مديرك المباشر. فور اعتماده، سيصلك إشعار لتسجيل الإجازة بالتقويم."
             )
         else:
@@ -245,7 +245,7 @@ def handle_leave_application(state: ConversationState) -> dict:
                 f"• **Dates:** {receipt['start_date']} to {receipt['end_date']} ({receipt['days_requested']} working days)\n"
                 f"• **Status:** Pending Approval\n"
                 f"• **Approver:** {receipt['approver_name']} (Line Manager)\n"
-                f"• **Current Balance:** {receipt['current_balance']} days (will become {receipt['projected_balance']} upon approval)\n\n"
+                f"• **Current Balance:** {cur_bal_display} days (will become {proj_bal_display} upon approval)\n\n"
                 f"Your request has been forwarded to your line manager for review. Once approved, you will be notified and can download your calendar invite (.ics)."
             )
 
@@ -260,10 +260,10 @@ def handle_leave_application(state: ConversationState) -> dict:
                 {
                     "source": "omni_hr.db / leave_requests",
                     "table_name": "leave_requests",
-                    "section": f"Request #{receipt['request_id']}",
+                    "section": "Leave Request",
                     "score": 1.0,
                     "language": lang,
-                    "snippet": f"Created pending request #{receipt['request_id']} for {receipt['approver_name']} approval.",
+                    "snippet": f"Submitted {validation.leave_type} ({validation.working_days} days) for manager review.",
                 }
             ],
         }

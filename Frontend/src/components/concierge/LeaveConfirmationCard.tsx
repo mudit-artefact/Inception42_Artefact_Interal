@@ -10,6 +10,13 @@ interface LeaveConfirmationCardProps {
   isLatestAssistantMessage?: boolean | undefined;
 }
 
+function formatDays(val: number | string | undefined | null): string {
+  if (val === undefined || val === null) return "0";
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return String(val);
+  return Number.isInteger(num) ? num.toString() : num.toFixed(1);
+}
+
 export function LeaveConfirmationCard({
   payload,
   onConfirm,
@@ -139,11 +146,11 @@ export function LeaveConfirmationCard({
         <div className="mt-2.5 rounded-lg bg-muted/40 p-2.5 text-xs space-y-1.5 border border-border/40">
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Current Balance:</span>
-            <span className="font-semibold text-foreground">{balance_before} Days</span>
+            <span className="font-semibold text-foreground">{formatDays(balance_before)} Days</span>
           </div>
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Projected Balance:</span>
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{balance_after} Days</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatDays(balance_after)} Days</span>
           </div>
           <div className="flex items-center justify-between pt-1 border-t border-border/40 text-muted-foreground">
             <span>Line Manager:</span>

@@ -35,7 +35,7 @@ export function ManagerApprovalCard({ pendingApprovals, onAction }: ManagerAppro
                 <Clock className="size-3.5" />
               </span>
               <span className="font-display text-xs font-semibold text-foreground">
-                Pending Approval · Request #{item.request_id}
+                Pending Approval
               </span>
             </div>
             <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
