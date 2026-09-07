@@ -124,10 +124,9 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
       ? `${details.managerName} (${details.managerEmail})`
       : details.managerName;
     const body = encodeURIComponent(
-      `I will be on leave ${details.timeText}${details.days ? ` (${details.days} of ${details.leaveType})` : ""}.\n\n` +
+      `I will be on leave ${details.timeText}.\n\n` +
       `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
-      `Approved by ${details.managerName}.\n` +
-      `Health Corporate Services (HCS) Leave Concierge.`
+      `Thanks`
     );
     const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${details.startDate}T09:00:00&enddt=${details.endDate}T18:00:00&allday=true`;
     window.open(url, "_blank", "noopener,noreferrer");
@@ -140,7 +139,7 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
     const managerContact = details.managerEmail
       ? `${details.managerName} (${details.managerEmail})`
       : details.managerName;
-    const desc = `I will be on leave ${details.timeText}${details.days ? ` (${details.days} of ${details.leaveType})` : ""}. For queries, please reach out to my manager, ${managerContact}.`;
+    const desc = `I will be on leave ${details.timeText}. For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}. Thanks`;
     const icsContent = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
@@ -294,9 +293,9 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                                     : details.managerName;
                                   const body = encodeURIComponent(
                                     `Hi Team,\n\n` +
-                                    `I will be on leave ${details.timeText}${details.days ? ` (${details.days} of ${details.leaveType})` : ""}.\n\n` +
+                                    `I will be on leave ${details.timeText}\n\n` +
                                     `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
-                                    `Thank you.`
+                                    `Thanks`
                                   );
                                   window.open(`mailto:team@hcservices.ae?subject=${subject}&body=${body}`);
                                 }}

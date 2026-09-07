@@ -29,14 +29,12 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
   // 1. Direct Microsoft Teams / Outlook 365 Web Calendar Compose Link
   const openTeamsCalendar = () => {
     const timeText = start_date === end_date ? `on ${start_date}` : `from ${start_date} to ${end_date}`;
-    const title = encodeURIComponent(`${leave_type} (Out of Office) - ${employee_name}`);
+    const title = encodeURIComponent(`${leave_type} (Out of Office)`);
     const managerContact = manager_email ? `${approver_name} (${manager_email})` : approver_name;
-    const daysText = `${days_requested} working day${days_requested === 1 ? "" : "s"}`;
     const body = encodeURIComponent(
-      `I will be on leave ${timeText} (${daysText} of ${leave_type}).\n\n` +
+      `I will be on leave ${timeText}.\n\n` +
       `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
-      `Approved by ${approver_name}.\n` +
-      `Health Corporate Services (HCS) Leave Concierge.`
+      `Thanks`
     );
     const teamsCalendarUrl = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${start_date}T09:00:00&enddt=${end_date}T18:00:00&allday=true`;
     window.open(teamsCalendarUrl, "_blank", "noopener,noreferrer");
@@ -48,8 +46,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
     const endFormatted = end_date.replace(/-/g, "");
     const timeText = start_date === end_date ? `on ${start_date}` : `from ${start_date} to ${end_date}`;
     const managerContact = manager_email ? `${approver_name} (${manager_email})` : approver_name;
-    const daysText = `${days_requested} working day${days_requested === 1 ? "" : "s"}`;
-    const desc = `I will be on leave ${timeText} (${daysText} of ${leave_type}). For any queries, please reach out to my manager, ${managerContact}.`;
+    const desc = `I will be on leave ${timeText}. For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}. Thanks`;
 
     const icsData = [
       "BEGIN:VCALENDAR",
@@ -62,7 +59,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
       `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
       `DTSTART;VALUE=DATE:${startFormatted}`,
       `DTEND;VALUE=DATE:${endFormatted}`,
-      `SUMMARY:${leave_type} (Out of Office) - ${employee_name}`,
+      `SUMMARY:${leave_type} (Out of Office)`,
       `DESCRIPTION:${desc}`,
       "STATUS:CONFIRMED",
       "TRANSP:OPAQUE",
@@ -88,16 +85,13 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
   const getMailtoUrl = () => {
     const timeText = start_date === end_date ? `on ${start_date}` : `from ${start_date} to ${end_date}`;
     const timeframe = start_date === end_date ? start_date : `${start_date} to ${end_date}`;
-    const subject = encodeURIComponent(`Out of Office: ${employee_name} (${timeframe})`);
+    const subject = encodeURIComponent(`Out of Office: ${timeframe}`);
     const managerContact = manager_email ? `${approver_name} (${manager_email})` : approver_name;
-    const daysText = `${days_requested} working day${days_requested === 1 ? "" : "s"}`;
     const body = encodeURIComponent(
       `Hi Team,\n\n` +
-      `I will be on leave ${timeText} (${daysText} of ${leave_type}).\n\n` +
+      `I will be on leave ${timeText}\n\n` +
       `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
-      `Thank you,\n` +
-      `${employee_name}\n` +
-      `Health Corporate Services (HCS)`
+      `Thanks`
     );
     return `mailto:team@hcservices.ae?subject=${subject}&body=${body}`;
   };
