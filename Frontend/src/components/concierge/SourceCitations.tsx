@@ -147,12 +147,6 @@ export function SourceCitations({ sources }: { sources: PolicySource[] }) {
                           </Badge>
                         ) : null}
 
-                        {source.score ? (
-                          <Badge variant="secondary" className="text-[10px] font-normal text-muted-foreground">
-                            {Math.round(source.score * 100)}% match
-                          </Badge>
-                        ) : null}
-
                         {source.pdf_url ? (
                           <a
                             href={pdfPageHref}

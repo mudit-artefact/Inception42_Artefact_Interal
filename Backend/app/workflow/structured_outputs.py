@@ -75,6 +75,82 @@ class Calculation(BaseModel):
     how: str = Field(default="", description="The sum in words, e.g. '34 - 15'")
 
 
+class ChartDataPoint(BaseModel):
+    """One data point in a chart."""
+
+    label: str = Field(description="The category label (e.g., 'Annual Leave', 'January')")
+    value: float = Field(description="The numeric value for this data point")
+    value2: float | None = Field(
+        default=None,
+        description="Second value for grouped charts (e.g., 'Used' when value is 'Entitled')"
+    )
+
+
+class ChartDataSet(BaseModel):
+    """Alternative dataset for dropdown switching between leave types."""
+
+    label: str = Field(description="Leave type name (e.g., 'Annual Leave', 'Sick Leave')")
+    data: list[ChartDataPoint] = Field(default_factory=list, description="Data points for this leave type")
+    title: str | None = Field(default=None, description="Optional title override for this dataset")
+
+
+class ChartData(BaseModel):
+    """
+    Visualization data for numeric comparisons.
+
+    Include chart data ONLY when:
+    - The numbers DIRECTLY answer the question asked
+    - There are 2+ comparable numeric values forming a meaningful comparison
+    - Visualization genuinely adds value beyond the text answer
+
+    Do NOT include charts for:
+    - Process/how-to questions ("How do I submit leave?")
+    - Policy explanations without personal data
+    - Single-value answers ("You have 12 days left")
+    - Numbers mentioned incidentally but not central to the answer
+    """
+
+    chart_type: str = Field(
+        description=(
+            "nested_bar | horizontal_bar | grouped_bar | stacked_bar | progress | line. "
+            "Use nested_bar for balance questions (Total vs Remaining as overlapping bars). "
+            "Use grouped_bar for side-by-side comparison (2025 vs 2026)."
+        )
+    )
+    title: str = Field(description="Short title (e.g., 'Leave Balance by Type')")
+    data: list[ChartDataPoint] = Field(
+        default_factory=list,
+        description=(
+            "Data points. For grouped_bar/stacked_bar: each point needs label, value (1st metric), "
+            "value2 (2nd metric). E.g., for Annual Leave: label='Annual', value=24 (entitled), value2=12 (used)."
+        )
+    )
+    series_names: list[str] = Field(
+        default_factory=list,
+        description=(
+            "REQUIRED for grouped_bar/stacked_bar: exactly 2 names. "
+            "First name = what 'value' represents, second = what 'value2' represents. "
+            "E.g., ['Entitled', 'Used']"
+        )
+    )
+    unit: str | None = Field(
+        default=None,
+        description="Unit label for the values (e.g., 'days', 'AED', 'employees')"
+    )
+    max_value: float | None = Field(
+        default=None,
+        description="For progress charts: the maximum/total value (e.g., 24 for '12 of 24 days')"
+    )
+    datasets: list[ChartDataSet] | None = Field(
+        default=None,
+        description=(
+            "For single-leave-type charts (line, progress): include OTHER leave types here "
+            "so user can switch via dropdown. E.g., if main data shows Annual Leave usage, "
+            "include Sick Leave data in datasets. Only for line/progress charts showing one leave type."
+        )
+    )
+
+
 class AnswerWithWorking(BaseModel):
     """Step 5: the reply, and any figures it had to work out to write it."""
 
@@ -84,6 +160,13 @@ class AnswerWithWorking(BaseModel):
         description=(
             "One entry per figure worked out rather than copied from the evidence. "
             "Empty when every figure in the answer was quoted directly."
+        ),
+    )
+    chart: ChartData | None = Field(
+        default=None,
+        description=(
+            "Optional chart visualization when the answer contains 2+ numeric values forming "
+            "a meaningful breakdown or comparison. Include ONLY when visualization adds value."
         ),
     )
 

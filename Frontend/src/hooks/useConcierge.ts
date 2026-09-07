@@ -182,6 +182,7 @@ export function useConcierge(employeeId: string) {
           original_question: res.original_question,
           action_payload: res.action_payload,
           is_action_required: res.is_action_required,
+          chart: res.chart ?? null,
         };
 
 

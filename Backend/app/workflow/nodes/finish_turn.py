@@ -245,13 +245,20 @@ def finalize_verified_answer(state: ConversationState) -> dict:
 
     clean_answer = _clean_and_format_markdown(state.get("draft_answer", ""))
 
-    return {
+    result = {
         "final_answer": clean_answer,
         "citations": _citations_for(state),
         "answer_status": (
             AnswerStatus.PARTIAL if unanswered else AnswerStatus.VERIFIED
         ).value,
     }
+
+    # Include chart visualization if one was generated
+    chart_data = state.get("chart_data")
+    if chart_data:
+        result["chart_data"] = chart_data
+
+    return result
 
 
 def build_safe_fallback(state: ConversationState) -> dict:

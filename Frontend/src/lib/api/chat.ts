@@ -68,6 +68,7 @@ export async function sendChatMessage(
       clarifying_question: data.clarifying_question,
       action_payload: data.action_payload,
       is_action_required: data.is_action_required ?? false,
+      chart: data.chart ?? null,
     };
 
   } catch (err) {
@@ -192,6 +193,7 @@ function normaliseChatResponse(data: any, conversationId: string | null): ChatRe
     clarifying_question: data.clarifying_question,
     action_payload: data.action_payload,
     is_action_required: data.is_action_required ?? false,
+    chart: data.chart ?? null,
   };
 }
 

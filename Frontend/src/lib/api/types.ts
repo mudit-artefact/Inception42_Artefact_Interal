@@ -17,19 +17,30 @@ export interface PolicySource {
 }
 
 export interface ChartDataPoint {
-  name: string;
+  label: string;
   value: number;
-  [key: string]: unknown;
+  value2?: number;  // Second value for grouped/nested charts
 }
 
-export interface ChartPayload {
-  title?: string | undefined;
-  type?: "bar" | "pie" | "line" | undefined;
+export interface ChartDataSet {
+  label: string;  // e.g., "Annual Leave", "Sick Leave"
   data: ChartDataPoint[];
-  xAxisKey?: string | undefined;
-  dataKey?: string | undefined;
-  unit?: string | undefined;
+  title?: string;  // Optional override title for this dataset
 }
+
+export interface ChartData {
+  chart_type: "horizontal_bar" | "grouped_bar" | "stacked_bar" | "nested_bar" | "progress" | "line";
+  title: string;
+  data: ChartDataPoint[];
+  series_names: string[];  // e.g., ["Entitled", "Remaining"]
+  unit?: string;
+  max_value?: number;  // For progress charts
+  // Optional: alternative datasets for dropdown switching (e.g., different leave types)
+  datasets?: ChartDataSet[];
+}
+
+// Legacy type alias for backward compatibility
+export type ChartPayload = ChartData;
 
 export interface ChatRequest {
   message?: string | undefined;
@@ -73,7 +84,7 @@ export interface ChatResponse {
   // Agentic Action handling
   action_payload?: ActionPayload | null | undefined;
   is_action_required?: boolean | undefined;
-  chart?: ChartPayload | undefined;
+  chart?: ChartData | null;
 }
 
 export interface ChatMessage {
@@ -93,7 +104,7 @@ export interface ChatMessage {
   // Agentic Action handling
   action_payload?: ActionPayload | null | undefined;
   is_action_required?: boolean | undefined;
-  chart?: ChartPayload | undefined;
+  chart?: ChartData | null;
 }
 
 export interface Conversation {

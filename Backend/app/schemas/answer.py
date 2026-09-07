@@ -1,8 +1,37 @@
 """What the assistant returns for one asked question."""
 
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
+
+
+class ChartDataPoint(BaseModel):
+    """One data point in a chart."""
+
+    label: str
+    value: float
+    value2: Optional[float] = None  # Second value for grouped charts
+
+
+class ChartDataSet(BaseModel):
+    """Alternative dataset for dropdown switching (e.g., different leave types)."""
+
+    label: str  # e.g., "Annual Leave", "Sick Leave"
+    data: list[ChartDataPoint] = []
+    title: Optional[str] = None  # Optional override title
+
+
+class ChartData(BaseModel):
+    """Chart visualization data for numeric comparisons."""
+
+    chart_type: Literal["horizontal_bar", "grouped_bar", "stacked_bar", "nested_bar", "progress", "line"]
+    title: str
+    data: list[ChartDataPoint] = []
+    series_names: list[str] = []  # e.g., ["Entitled", "Used"]
+    unit: Optional[str] = None
+    max_value: Optional[float] = None  # For progress charts
+    # Optional: alternative datasets for dropdown (different leave types)
+    datasets: Optional[list[ChartDataSet]] = None
 
 
 class SourceCitation(BaseModel):
@@ -52,3 +81,5 @@ class AnswerResponse(BaseModel):
     action_payload: Optional[dict] = None
     is_action_required: bool = False
 
+    # Optional chart visualization for numeric breakdowns
+    chart: Optional[ChartData] = None

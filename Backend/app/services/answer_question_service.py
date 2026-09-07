@@ -19,7 +19,7 @@ from app.core.conversation_identifier import (
 )
 from app.core.language_detection import detect_language
 from app.domain.enums import QuestionIntent
-from app.schemas.answer import AnswerResponse, SourceCitation
+from app.schemas.answer import AnswerResponse, ChartData, ChartDataPoint, ChartDataSet, SourceCitation
 from app.workflow.conversation_state import thread_name_for
 from app.workflow.stage_names import describe_stage, opening_stage
 
@@ -367,6 +367,36 @@ def _present(
 
     citations = [] if is_action_query else result.get("citations", [])
 
+    # Build chart data if present
+    chart = None
+    chart_data = result.get("chart_data")
+    if chart_data and not is_action_query:
+        try:
+            # Build datasets for dropdown if present
+            datasets = None
+            if chart_data.get("datasets"):
+                datasets = [
+                    ChartDataSet(
+                        label=ds.get("label", ""),
+                        data=[ChartDataPoint(**pt) for pt in ds.get("data", [])],
+                        title=ds.get("title"),
+                    )
+                    for ds in chart_data["datasets"]
+                ]
+
+            chart = ChartData(
+                chart_type=chart_data.get("chart_type", "horizontal_bar"),
+                title=chart_data.get("title", ""),
+                data=[ChartDataPoint(**point) for point in chart_data.get("data", [])],
+                series_names=chart_data.get("series_names", []),
+                unit=chart_data.get("unit"),
+                max_value=chart_data.get("max_value"),
+                datasets=datasets,
+            )
+        except Exception as e:
+            logger.warning(f"Failed to build chart data: {e}")
+            chart = None
+
     return AnswerResponse(
         answer=result.get("final_answer", ""),
         sources=[SourceCitation(**citation) for citation in citations],
@@ -386,6 +416,7 @@ def _present(
         is_awaiting_clarification=False,
         action_payload=result.get("action_payload"),
         is_action_required=bool(result.get("is_action_required", False)),
+        chart=chart,
     )
 
 

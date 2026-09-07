@@ -54,7 +54,15 @@ export interface CaseSummary {
   submitted_on: string | null;
   payment_status: string;
   awaiting_review: boolean;
-  approved_amount_aed?: number | null;
+}
+
+export interface MatchCheck {
+  code: string;
+  result: "pass" | "fail" | "skip" | "review" | "missing" | "not_comparable";
+  document_value: string | null;
+  master_value: string | null;
+  detail: string;
+  document_id: string | null;  // Which document this check applies to
 }
 
 export interface CaseDetail extends CaseSummary {
@@ -77,6 +85,7 @@ export interface CaseDetail extends CaseSummary {
     title: string;
     what_to_do: string;
   }>;
+  match_checks: MatchCheck[];
 }
 
 export interface CaseDetailResponse {
@@ -263,9 +272,8 @@ export async function uploadDocumentsWithProgress(
         };
         handlers.onComplete?.(result);
       } else if (name === "error") {
-        const err = String(payload.detail || "Upload failed");
-        errorMessage = err;
-        handlers.onError?.(err);
+        errorMessage = String(payload.detail || "Upload failed");
+        handlers.onError?.(errorMessage);
       }
     }
   }

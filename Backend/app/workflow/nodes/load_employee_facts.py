@@ -49,6 +49,7 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "draft_answer": "",
     "declared_calculations": [],
     "tokens_used": 0,
+    "chart_data": None,  # Reset chart data for each new question
     "answer_verdict": "",
     "unsupported_claims": [],
     "validation_reason": "",

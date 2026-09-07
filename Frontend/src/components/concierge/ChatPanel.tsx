@@ -6,6 +6,7 @@ import {
   Clock,
   CornerDownLeft,
   FileText,
+  GraduationCap,
   Paperclip,
   Plus,
   RotateCcw,
@@ -29,6 +30,7 @@ import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataChart } from "@/components/concierge/DataChart";
+import { DocumentUpload } from "@/components/concierge/DocumentUpload";
 import { LeaveConfirmationCard } from "@/components/concierge/LeaveConfirmationCard";
 import { LeaveCalendarPicker } from "@/components/concierge/LeaveCalendarPicker";
 import { LeaveApprovedCard } from "@/components/concierge/LeaveApprovedCard";
@@ -102,6 +104,7 @@ export function ChatPanel({
   const isEmpty = messages.length === 0;
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (
@@ -514,6 +517,23 @@ export function ChatPanel({
                       <div className="text-[10px] text-muted-foreground">Attach medical certificates or verification documents</div>
                     </div>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      setShowDocumentUpload(true);
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-pink-500/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-pink-500/15 text-pink-600 dark:text-pink-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <GraduationCap className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">Upload School Documents</div>
+                      <div className="text-[10px] text-muted-foreground">Submit HCS-11 school verification documents</div>
+                    </div>
+                  </button>
                 </div>
               </PopoverContent>
             </Popover>
@@ -581,6 +601,16 @@ export function ChatPanel({
           </form>
         </div>
       </div>
+
+      {/* Document Upload Modal */}
+      {showDocumentUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <DocumentUpload
+            employeeId={employeeId}
+            onClose={() => setShowDocumentUpload(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

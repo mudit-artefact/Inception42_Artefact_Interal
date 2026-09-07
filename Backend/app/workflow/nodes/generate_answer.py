@@ -37,8 +37,9 @@ def generate_answer(state: ConversationState) -> dict:
     logger.info(
         f"Drafted an answer of {len(drafted.answer)} characters "
         f"({tokens_used} tokens, {len(drafted.calculations)} figures worked out)"
+        + (f", with chart: {drafted.chart.chart_type}" if drafted.chart else "")
     )
-    return {
+    result = {
         "draft_answer": drafted.answer,
         # Read by the check that follows, which uses them to tell a figure the assistant
         # worked out from one it invented. Nothing else reads them.
@@ -47,6 +48,12 @@ def generate_answer(state: ConversationState) -> dict:
         ],
         "tokens_used": tokens_used,
     }
+
+    # Include chart data if the LLM generated one
+    if drafted.chart:
+        result["chart_data"] = drafted.chart.model_dump()
+
+    return result
 
 
 def _what_is_being_asked(state: ConversationState) -> str:
