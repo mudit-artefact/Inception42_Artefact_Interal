@@ -35,12 +35,6 @@ export const DEFAULT_HR_FAQS: FAQItem[] = [
     icon: RotateCcw,
     colorClass: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
   },
-  {
-    id: "sick-certificate",
-    question: "When do I need to submit a medical certificate?",
-    icon: FileCheck2,
-    colorClass: "text-rose-600 dark:text-rose-400 bg-rose-500/10",
-  },
 ];
 
 interface SuggestedQuestionsProps {
@@ -58,7 +52,7 @@ export function SuggestedQuestions({
 }: SuggestedQuestionsProps) {
   const items: FAQItem[] =
     questions && questions.length > 0
-      ? questions.slice(0, 4).map((q, idx) => {
+      ? questions.slice(0, 3).map((q, idx) => {
           const matchingDefault = DEFAULT_HR_FAQS.find(
             (d) => d.question.toLowerCase() === q.toLowerCase()
           );
@@ -73,15 +67,15 @@ export function SuggestedQuestions({
       : DEFAULT_HR_FAQS;
 
   return (
-    <div className={cn("w-full space-y-3", className)}>
-      <div className="flex items-center gap-2 px-1">
-        <Sparkles className="size-3.5 text-primary" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          FAQs
+    <div className={cn("w-full space-y-2", className)}>
+      <div className="flex items-center gap-1.5 px-1">
+        <Sparkles className="size-3 text-primary" />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+          Popular Questions
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -90,24 +84,24 @@ export function SuggestedQuestions({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(item.question)}
-              className="group flex items-center justify-between gap-3.5 rounded-xl border border-border/70 bg-card/80 px-4 py-3.5 text-left transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer shadow-2xs"
+              className="group flex items-center justify-between gap-2.5 rounded-xl border border-border/70 bg-card/90 px-3.5 py-2.5 text-left transition-all duration-200 hover:border-primary/50 hover:bg-primary/5 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer shadow-2xs"
             >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="flex min-w-0 flex-1 items-center gap-2.5">
                 <div
                   className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105",
+                    "flex size-7 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105",
                     item.colorClass
                   )}
                 >
-                  <Icon className="size-4" />
+                  <Icon className="size-3.5" />
                 </div>
-                <span className="text-xs sm:text-sm font-medium leading-snug text-foreground group-hover:text-primary transition-colors break-words">
+                <span className="text-xs font-medium leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
                   {item.question}
                 </span>
               </div>
               <ArrowUpRight
                 aria-hidden="true"
-                className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary"
+                className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-primary"
               />
             </button>
           );

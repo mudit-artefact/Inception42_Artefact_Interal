@@ -38,6 +38,7 @@ import { ManagerApprovalCard } from "@/components/concierge/ManagerApprovalCard"
 import { MessageFeedback } from "@/components/concierge/MessageFeedback";
 import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
+import { AgenticCapabilities } from "@/components/concierge/AgenticCapabilities";
 import { SUGGESTED_QUESTIONS } from "@/lib/api/mock";
 import type { ChatStatus } from "@/hooks/useConcierge";
 import type { ChatStage } from "@/lib/api/chat";
@@ -127,18 +128,25 @@ export function ChatPanel({
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-8">
           {isEmpty ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center animate-in fade-in-50 duration-500">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-display">
-                Hi, I'm Dalīl, your Everyday Agent!
-              </h2>
-              <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                How can I help you today?
-              </p>
+            <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-center animate-in fade-in-50 duration-500 max-w-5xl mx-auto w-full">
+              <div className="space-y-2 mb-7">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-1">
+                  <Sparkles className="size-3.5" />
+                  <span>Enterprise Autonomous Agentic Platform</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground font-display">
+                  Hi, I'm Dalīl, your Everyday Agent!
+                </h2>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
+                  Select an autonomous agentic capability below, or ask any HR, leave, and policy question.
+                </p>
+              </div>
 
-              {/* Frequently Asked Questions */}
-              <div className="mt-8 w-full max-w-4xl text-left">
-                <SuggestedQuestions
-                  onSelect={(q) => onSend(q)}
+              {/* Middle: 4 Agentic Capability Boxes */}
+              <div className="w-full text-left">
+                <AgenticCapabilities
+                  onSelectCapability={(prompt) => onSend(prompt)}
+                  onOpenSchoolUpload={() => setShowDocumentUpload(true)}
                   disabled={busy}
                 />
               </div>
@@ -363,6 +371,16 @@ export function ChatPanel({
 
       <div className="border-t bg-card/80 backdrop-blur-md px-4 py-3 shrink-0 sm:px-8">
         <div className="mx-auto w-full max-w-5xl">
+          {/* FAQs just above chatbot input */}
+          {isEmpty && (
+            <div className="mb-3">
+              <SuggestedQuestions
+                onSelect={(q) => onSend(q)}
+                disabled={busy}
+              />
+            </div>
+          )}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
