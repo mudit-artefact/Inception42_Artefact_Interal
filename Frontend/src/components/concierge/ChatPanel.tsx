@@ -128,22 +128,18 @@ export function ChatPanel({
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-8">
           {isEmpty ? (
-            <div className="flex flex-col items-center justify-center py-6 sm:py-8 text-center animate-in fade-in-50 duration-500 max-w-5xl mx-auto w-full">
-              <div className="space-y-2 mb-7">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-semibold text-primary mb-1">
-                  <Sparkles className="size-3.5" />
-                  <span>Enterprise Autonomous Agentic Platform</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground font-display">
+            <div className="flex flex-col items-center justify-center py-8 text-center animate-in fade-in-50 duration-500 max-w-4xl mx-auto w-full">
+              <div className="space-y-1.5 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-display">
                   Hi, I'm Dalīl, your Everyday Agent!
                 </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground max-w-lg mx-auto">
-                  Select an autonomous agentic capability below, or ask any HR, leave, and policy question.
+                <p className="text-sm text-muted-foreground">
+                  How can I help you today?
                 </p>
               </div>
 
-              {/* Middle: 4 Agentic Capability Boxes */}
-              <div className="w-full text-left">
+              {/* Middle: 4 Clean Agentic Capability Boxes */}
+              <div className="w-full">
                 <AgenticCapabilities
                   onSelectCapability={(prompt) => onSend(prompt)}
                   onOpenSchoolUpload={() => setShowDocumentUpload(true)}
