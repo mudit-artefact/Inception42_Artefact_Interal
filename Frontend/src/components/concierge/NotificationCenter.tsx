@@ -77,6 +77,36 @@ function getLeaveNotificationDetails(notif: AppNotification, fallbackEmployee?: 
   };
 }
 
+function normalizeDate(dateStr?: string | null): Date | null {
+  if (!dateStr) return null;
+  let normalized = dateStr.trim();
+  // If stored as naive UTC "YYYY-MM-DD HH:MM:SS", convert to ISO "YYYY-MM-DDTHH:MM:SSZ"
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}$/.test(normalized)) {
+    normalized = normalized.replace(/\s+/, "T") + "Z";
+  } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(normalized)) {
+    normalized = normalized + "Z";
+  }
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatNotificationTime(dateStr?: string | null): string {
+  const d = normalizeDate(dateStr);
+  if (!d) return "";
+
+  const today = new Date();
+  const isSameDay = d.toDateString() === today.toDateString();
+
+  return isSameDay
+    ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function getFullNotificationTime(dateStr?: string | null): string {
+  const d = normalizeDate(dateStr);
+  return d ? d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+}
+
 export function NotificationCenter({ employeeId, employee, onActionClick }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -245,8 +275,11 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                           <p className="text-xs font-semibold leading-none truncate text-foreground">
                             {n.title}
                           </p>
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            {n.created_at ? n.created_at.split(" ")[1]?.slice(0, 5) : ""}
+                          <span
+                            className="text-[10px] text-muted-foreground whitespace-nowrap"
+                            title={getFullNotificationTime(n.created_at)}
+                          >
+                            {formatNotificationTime(n.created_at)}
                           </span>
                         </div>
 

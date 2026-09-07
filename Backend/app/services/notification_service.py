@@ -216,5 +216,5 @@ def _format_notification(n: Notification) -> dict[str, Any]:
         "action_url": n.action_url or "",
         "action_payload": payload,
         "is_read": bool(n.is_read),
-        "created_at": n.created_at.strftime("%Y-%m-%d %H:%M:%S") if n.created_at else "",
+        "created_at": n.created_at.strftime("%Y-%m-%dT%H:%M:%SZ") if n.created_at else "",
     }
