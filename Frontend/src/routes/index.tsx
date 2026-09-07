@@ -3,7 +3,6 @@ import { PanelLeft } from "lucide-react";
 import { useState } from "react";
 import { ChatPanel } from "@/components/concierge/ChatPanel";
 import { ConversationHistory } from "@/components/concierge/ConversationHistory";
-import { EmployeeCard } from "@/components/concierge/EmployeeCard";
 import { NotificationCenter } from "@/components/concierge/NotificationCenter";
 import { UserSwitcher } from "@/components/concierge/UserSwitcher";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function ConciergePage() {
-  const { employee, employees, employeeId, selectEmployee } = useActiveEmployee();
+  const { employees, employeeId, selectEmployee } = useActiveEmployee();
   const concierge = useConcierge(employeeId);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -44,7 +43,7 @@ function ConciergePage() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[300px] p-0">
-            <SheetTitle className="sr-only">Conversations and employee details</SheetTitle>
+            <SheetTitle className="sr-only">Conversations</SheetTitle>
             <div className="flex h-full min-h-0 flex-col">
               <div className="border-b p-2">
                 <UserSwitcher
@@ -54,7 +53,7 @@ function ConciergePage() {
                   className="w-full justify-start"
                 />
               </div>
-              <div className="min-h-0 flex-1 border-b">
+              <div className="min-h-0 flex-1">
                 <ConversationHistory
                   conversations={concierge.conversations}
                   activeId={concierge.activeId}
@@ -72,9 +71,6 @@ function ConciergePage() {
                     setMobileNavOpen(false);
                   }}
                 />
-              </div>
-              <div className="max-h-[55%] overflow-y-auto p-3">
-                <EmployeeCard employee={employee} policyLinks={employee.policyLinks} />
               </div>
             </div>
           </SheetContent>
@@ -140,10 +136,6 @@ function ConciergePage() {
             employeeId={employeeId}
           />
         </main>
-
-        <aside className="hidden w-[300px] shrink-0 overflow-y-auto border-l bg-sidebar p-4 xl:block">
-          <EmployeeCard employee={employee} policyLinks={employee.policyLinks} />
-        </aside>
       </div>
     </div>
   );

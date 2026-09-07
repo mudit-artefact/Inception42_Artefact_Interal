@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import {
   AlertTriangle,
-  BarChart2,
   CalendarPlus,
   CheckCircle2,
   Clock,
@@ -12,15 +11,13 @@ import {
   RotateCcw,
   Sparkles,
   UploadCloud,
-  UserCheck,
   X,
 } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
   Conversation,
@@ -43,7 +40,6 @@ import { SUGGESTED_QUESTIONS } from "@/lib/api/mock";
 import type { ChatStatus } from "@/hooks/useConcierge";
 import type { ChatStage } from "@/lib/api/chat";
 import type { ChatMessage } from "@/lib/api/types";
-import { InceptionLogo } from "@/components/common/InceptionLogo";
 
 interface ChatPanelProps {
   stage?: ChatStage | null;
@@ -105,6 +101,7 @@ export function ChatPanel({
   const busy = status === "submitted" && stage !== null;
   const isEmpty = messages.length === 0;
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (
@@ -124,77 +121,23 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      <Conversation className="flex-1 min-h-0 overflow-y-auto">
-        <ConversationContent className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
+      <Conversation className="flex-1 min-h-0">
+        <ConversationContent className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-8">
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center py-10 text-center animate-in fade-in-50 duration-500">
-              <div className="mb-3 flex items-center justify-center">
-                <InceptionLogo className="h-10 sm:h-12 w-auto" />
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display uppercase">
-                AI Policy & Leave Concierge Agent
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-display">
+                Hi, I'm Dalīl, your Everyday Agent!
               </h2>
-              <p className="mt-1.5 max-w-md text-xs sm:text-sm text-muted-foreground">
-                Your intelligent agent for HR policies, live leave balances, and team approvals
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                How can I help you today?
               </p>
 
-              {/* Action shortcuts matching prompt style with 4 pastel card tones */}
-              <div className="mt-7 grid w-full max-w-xl grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
-                <button
-                  type="button"
-                  onClick={() => onSend("I want to apply for leave")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10 hover:border-indigo-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
-                >
-                  <div className="p-2 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 group-hover:scale-105 transition-transform">
-                    <CalendarPlus className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Submit a leave request</div>
-                    <div className="text-[11px] text-muted-foreground">Apply for annual, sick, or remote</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSend("What leave requests do I need to approve?")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 hover:bg-sky-500/10 hover:border-sky-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
-                >
-                  <div className="p-2 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 group-hover:scale-105 transition-transform">
-                    <CheckCircle2 className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Approve leave requests</div>
-                    <div className="text-[11px] text-muted-foreground">Review pending team approvals</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSend("How many annual leave days do I have left this year?")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
-                >
-                  <div className="p-2 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform">
-                    <BarChart2 className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Check live leave balances</div>
-                    <div className="text-[11px] text-muted-foreground">Deterministic balance tracking</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSend("What is the sick leave policy with pay entitlement?")}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 hover:border-rose-500/40 text-foreground transition-all duration-200 group cursor-pointer shadow-2xs"
-                >
-                  <div className="p-2 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 group-hover:scale-105 transition-transform">
-                    <FileText className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Search HR policies & rules</div>
-                    <div className="text-[11px] text-muted-foreground">Citations grounded in official policy</div>
-                  </div>
-                </button>
+              {/* Frequently Asked Questions */}
+              <div className="mt-8 w-full max-w-4xl text-left">
+                <SuggestedQuestions
+                  onSelect={(q) => onSend(q)}
+                  disabled={busy}
+                />
               </div>
             </div>
           ) : null}
@@ -255,34 +198,41 @@ export function ChatPanel({
                 {/* Proactive Greeting Action Pills */}
                 {m.role === "assistant" && m.intent === "greeting" ? (
                   <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/40">
-                    <span className="text-[10px] text-muted-foreground font-medium mr-1">Quick Actions:</span>
+                    <span className="text-[10px] text-muted-foreground font-medium mr-1">Suggested HR FAQs:</span>
                     <button
                       type="button"
-                      onClick={() => onSend("How many annual leave days do I have left this year?")}
-                      className="px-2.5 py-1 rounded-full text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-medium transition-colors cursor-pointer border border-emerald-500/20"
+                      onClick={() => onSend("Can I take work from home?")}
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-medium transition-colors cursor-pointer border border-indigo-500/20"
                     >
-                      🌴 Check Leave Balance
+                      🏡 Work From Home
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSend("Who is my current line manager and when did they change?")}
+                      onClick={() => onSend("Who is my line manager?")}
                       className="px-2.5 py-1 rounded-full text-[11px] bg-sky-500/10 hover:bg-sky-500/20 text-sky-700 dark:text-sky-300 font-medium transition-colors cursor-pointer border border-sky-500/20"
                     >
                       👔 Line Manager Info
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSend("I want to apply for leave")}
-                      className="px-2.5 py-1 rounded-full text-[11px] bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-medium transition-colors cursor-pointer border border-indigo-500/20"
+                      onClick={() => onSend("Can I carry over unused leave into next year?")}
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-medium transition-colors cursor-pointer border border-emerald-500/20"
                     >
-                      🌴 Apply for Leave
+                      🌴 Carry-Over Rules
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSend("What is the sick leave policy with pay entitlement?")}
+                      onClick={() => onSend("What are the core working hours and attendance policy?")}
+                      className="px-2.5 py-1 rounded-full text-[11px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-medium transition-colors cursor-pointer border border-amber-500/20"
+                    >
+                      🕒 Working Hours
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSend("When do I need to submit a medical certificate for sick leave?")}
                       className="px-2.5 py-1 rounded-full text-[11px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 font-medium transition-colors cursor-pointer border border-rose-500/20"
                     >
-                      📋 Sick Leave Policy
+                      📋 Medical Certificate
                     </button>
                   </div>
                 ) : null}
@@ -436,8 +386,8 @@ export function ChatPanel({
         <ConversationScrollButton />
       </Conversation>
 
-      <div className="border-t bg-card/80 backdrop-blur-md px-4 py-3 shrink-0">
-        <div className="mx-auto w-full max-w-4xl">
+      <div className="border-t bg-card/80 backdrop-blur-md px-4 py-3 shrink-0 sm:px-8">
+        <div className="mx-auto w-full max-w-5xl">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -469,76 +419,104 @@ export function ChatPanel({
             />
 
             {/* The Plus (+) Button on the Left */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Popover open={actionsOpen} onOpenChange={setActionsOpen}>
+              <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="flex size-8.5 shrink-0 items-center justify-center rounded-full bg-muted/70 text-foreground hover:bg-primary/15 hover:text-primary transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 border border-border/60"
+                  className={cn(
+                    "flex size-8.5 shrink-0 items-center justify-center rounded-full transition-all duration-200 cursor-pointer shadow-2xs hover:scale-105 active:scale-95 border",
+                    actionsOpen
+                      ? "bg-primary text-primary-foreground border-primary rotate-45"
+                      : "bg-muted/70 text-foreground hover:bg-primary/15 hover:text-primary border-border/60"
+                  )}
                   title="Quick Actions (+)"
                   aria-label="Quick Actions"
                 >
                   <Plus className="size-4.5 stroke-[2.5]" />
                 </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
+              </PopoverTrigger>
+              <PopoverContent
                 align="start"
                 side="top"
-                sideOffset={12}
-                className="w-80 p-1.5 shadow-2xl border-border/80 bg-popover/95 backdrop-blur-md rounded-2xl animate-in fade-in-50 zoom-in-95 z-50"
+                sideOffset={14}
+                className="w-80 p-2 shadow-2xl border border-border bg-card text-card-foreground rounded-2xl z-50 animate-in fade-in-50 zoom-in-95"
               >
-                <DropdownMenuItem
-                  onClick={() => onSend("I want to apply for leave")}
-                  className="flex items-start gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-primary/10 transition-colors"
-                >
-                  <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5">
-                    <CalendarPlus className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Submit Leave Request</div>
-                    <div className="text-[10px] text-muted-foreground">Apply for annual, sick, or remote work</div>
-                  </div>
-                </DropdownMenuItem>
+                <div className="px-2 py-1.5 mb-1 border-b border-border/50">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Quick Actions
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      onSend("I want to apply for leave");
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-primary/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5 group-hover:scale-105 transition-transform">
+                      <CalendarPlus className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">Submit Leave Request</div>
+                      <div className="text-[10px] text-muted-foreground">Apply for annual, sick, or remote work</div>
+                    </div>
+                  </button>
 
-                <DropdownMenuItem
-                  onClick={() => onSend("What leave requests do I need to approve?")}
-                  className="flex items-start gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-blue-500/10 transition-colors"
-                >
-                  <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 mt-0.5">
-                    <CheckCircle2 className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Approve Leave Requests</div>
-                    <div className="text-[10px] text-muted-foreground">Review pending team approvals as manager</div>
-                  </div>
-                </DropdownMenuItem>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      onSend("What leave requests do I need to approve?");
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-blue-500/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <CheckCircle2 className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">Approve Leave Requests</div>
+                      <div className="text-[10px] text-muted-foreground">Review pending team approvals as manager</div>
+                    </div>
+                  </button>
 
-                <DropdownMenuItem
-                  onClick={() => onSend("Requested leaves? (Does my leaves approved by my manager)")}
-                  className="flex items-start gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-emerald-500/10 transition-colors"
-                >
-                  <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mt-0.5">
-                    <Clock className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">My Leave Request Status</div>
-                    <div className="text-[10px] text-muted-foreground">Check manager approval status on your requests</div>
-                  </div>
-                </DropdownMenuItem>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      onSend("Requested leaves? (Does my leaves approved by my manager)");
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-emerald-500/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <Clock className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">My Leave Request Status</div>
+                      <div className="text-[10px] text-muted-foreground">Check manager approval status on your requests</div>
+                    </div>
+                  </button>
 
-                <DropdownMenuItem
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-start gap-2.5 p-2 rounded-xl cursor-pointer hover:bg-amber-500/10 transition-colors"
-                >
-                  <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 mt-0.5">
-                    <UploadCloud className="size-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground">Upload a File</div>
-                    <div className="text-[10px] text-muted-foreground">Attach medical certificates or verification documents</div>
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-amber-500/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <UploadCloud className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">Upload a File</div>
+                      <div className="text-[10px] text-muted-foreground">Attach medical certificates or verification documents</div>
+                    </div>
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             {/* Attached File Chip (if file is selected) */}
             {attachedFile ? (

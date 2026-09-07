@@ -303,14 +303,59 @@ export function getMockEmployee(id: string | null | undefined): MockPersona {
 export const POLICY_LINKS: PolicySource[] = MOCK_EMPLOYEE.policyLinks;
 
 export const SUGGESTED_QUESTIONS: string[] = [
-  "Has my leave request been approved?",
-  "How do I apply for annual leave?",
-  "How many annual leave days do I have left?",
+  "Can I take work from home?",
+  "Who is my line manager?",
   "Can I carry over unused leave into next year?",
+  "What are the core working hours and attendance policy?",
+  "When do I need to submit a medical certificate for sick leave?",
+  "How does the child education allowance policy work?",
 ];
 
 
 const MOCK_ANSWERS: { match: RegExp; answer: string; sources: PolicySource[] }[] = [
+  {
+    match: /work from home|wfh|remote work|telecommut/i,
+    answer:
+      "🏡 **Remote Work & Flexible Working Policy:**\n\n" +
+      "Under our Flexible & Remote Working Policy (HR-POL-036), employees in eligible roles (Class A - location independent) may work remotely for **up to 2 days per week** with prior manager alignment.\n\n" +
+      "- Core availability hours must be maintained (09:00 - 15:00).\n" +
+      "- Remote work outside the UAE requires explicit approval from HR and your Executive Director.",
+    sources: [
+      { title: "Flexible & Remote Working", section: "HR-POL-036 Section 1", url: "#", snippet: "Eligible staff may telecommute up to 2 working days per week…", score: 0.96 },
+    ],
+  },
+  {
+    match: /line manager|who is my manager|my supervisor|reporting line/i,
+    answer:
+      "👔 **Your Line Manager & Reporting Line:**\n\n" +
+      "According to Omni HR records, your direct line manager is **Maitha Al Mazrouei** (Executive Director, Executive Leadership).\n\n" +
+      "All formal leave requests, performance appraisals, and delegation of authority workflows are routed directly to Maitha for review.",
+    sources: [
+      { title: "Delegation of Authority", section: "GOV-POL-003 Section 1.2", url: "#", snippet: "Line manager relationships determine approval routing in Omni HR.", score: 0.95 },
+    ],
+  },
+  {
+    match: /core working hours|working hours|attendance|office hours|schedule/i,
+    answer:
+      "⏰ **Working Hours & Attendance Policy:**\n\n" +
+      "- **Standard Hours:** 08:30 – 17:30 (Monday to Thursday), 08:30 – 12:30 (Friday).\n" +
+      "- **Core Availability Band:** 09:00 – 15:00 where all staff must be reachable for collaborative meetings and client deliverables.\n" +
+      "- Flexible starting bands are available between 08:00 and 09:30 with manager agreement.",
+    sources: [
+      { title: "Working Hours & Attendance", section: "HR-POL-005 Section 2", url: "#", snippet: "Core collaboration hours are 09:00 to 15:00 daily.", score: 0.92 },
+    ],
+  },
+  {
+    match: /education|school|tuition|child allowance/i,
+    answer:
+      "🎓 **Child Education Allowance Policy:**\n\n" +
+      "Eligible employees (Grades 6 and above) receive educational support for up to 3 dependent children registered in accredited UAE schools:\n\n" +
+      "- Up to **AED 35,000 per child per academic year**.\n" +
+      "- Direct school invoice submission or reimbursement upon presenting certified proof of enrollment and receipts.",
+    sources: [
+      { title: "Employee Benefits & Education Allowance", section: "HR-BEN-009 Section 3.1", url: "#", snippet: "Education assistance covers tuition for recognized elementary and secondary schools.", score: 0.93 },
+    ],
+  },
   {
     match: /has my leave( request)? been approved|is my leave approved|requested leaves|does my leaves? approved|status of my leave/i,
     answer:

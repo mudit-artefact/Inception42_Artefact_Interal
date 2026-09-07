@@ -464,7 +464,7 @@ def handle_leave_status(state: ConversationState) -> dict:
                     f"🎉 **Yes! Your Leave Request has been Approved!**\n\n"
                     f"Your {latest_request.leave_type} from **{latest_request.start_date}** to **{latest_request.end_date}** "
                     f"({latest_request.days_requested} working days) was approved by your manager, **{latest_request.approver_name}**.\n\n"
-                    f"Would you like to mark this on your calendar or email your manager?\n"
+                    f"Would you like to mark this on your calendar or email your team?\n"
                 )
 
         elif latest_request and latest_request.status == "Pending":

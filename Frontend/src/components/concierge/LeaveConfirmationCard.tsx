@@ -45,7 +45,7 @@ export function LeaveConfirmationCard({
       <div className="mt-3 overflow-hidden rounded-xl border border-primary/25 bg-primary/5 dark:border-primary/20 dark:bg-primary/10 p-4 text-sm shadow-xs transition-all">
         <div className="flex items-center gap-2 font-medium text-primary">
           {isPending ? <Clock className="size-5 shrink-0 text-primary" /> : <CheckCircle2 className="size-5 shrink-0 text-primary" />}
-          <span className="font-semibold text-foreground">Leave Request Logged</span>
+          <span className="font-semibold text-foreground">Leave Request Sent</span>
           <Badge variant="outline" className="ml-auto text-[10px] border-primary/30 bg-primary/10 text-primary font-medium">
             {receipt.status || (isPending ? "Pending Approval" : "Approved")}
           </Badge>
@@ -106,9 +106,6 @@ export function LeaveConfirmationCard({
               <span className="font-semibold text-foreground text-xs">{leave_type} Application</span>
             </div>
           </div>
-          <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary text-[10px] font-medium">
-            Confirmation Required
-          </Badge>
         </div>
 
         {/* Date Details */}

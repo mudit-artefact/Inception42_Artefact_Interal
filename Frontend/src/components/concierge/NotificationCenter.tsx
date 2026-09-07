@@ -56,6 +56,17 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
     setUnreadCount(0);
   };
 
+  const openTeamsCalendar = (notif: AppNotification) => {
+    const payload = notif.action_payload || {};
+    const start = payload.start_date || "2026-06-01";
+    const end = payload.end_date || "2026-06-05";
+    const leaveType = payload.leave_type || "Annual Leave";
+    const title = encodeURIComponent(`${leaveType} (Out of Office)`);
+    const body = encodeURIComponent(`${notif.message}\n\nHealth Corporate Services (HCS) Leave Concierge.`);
+    const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${start}T09:00:00&enddt=${end}T18:00:00&allday=true`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const downloadCalendarInvite = (notif: AppNotification) => {
     const payload = notif.action_payload || {};
     const start = (payload.start_date || "2026-06-01").replace(/-/g, "");
@@ -66,11 +77,15 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
       "VERSION:2.0",
       "PRODID:-//Dalīl//Leave Calendar//EN",
       "BEGIN:VEVENT",
-      `SUMMARY:${leaveType} (Approved)`,
+      `SUMMARY:${leaveType} (Out of Office)`,
       `DESCRIPTION:${notif.message}`,
       `DTSTART;VALUE=DATE:${start}`,
       `DTEND;VALUE=DATE:${end}`,
       "STATUS:CONFIRMED",
+      "TRANSP:OPAQUE",
+      "X-MICROSOFT-CDO-BUSYSTATUS:OOF",
+      "X-MICROSOFT-CDO-INTENDEDSTATUS:OOF",
+      "X-MICROSOFT-CDO-ALLDAYEVENT:TRUE",
       "END:VEVENT",
       "END:VCALENDAR",
     ].join("\r\n");
@@ -172,7 +187,7 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
                         </p>
 
                         {/* Quick action triggers */}
-                        <div className="mt-2.5 flex items-center gap-2">
+                        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                           {isLeaveReq && onActionClick && (
                             <Button
                               variant="secondary"
@@ -191,18 +206,17 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
                           {isApproved && (
                             <>
                               <Button
-                                variant="outline"
                                 size="sm"
-                                className="h-6 px-2 text-[11px] gap-1 cursor-pointer"
-                                onClick={() => downloadCalendarInvite(n)}
+                                className="h-6 px-2 text-[11px] gap-1 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+                                onClick={() => openTeamsCalendar(n)}
                               >
                                 <Calendar className="size-3" />
-                                Add to Calendar
+                                Calendar
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 px-2 text-[11px] gap-1 cursor-pointer text-muted-foreground"
+                                className="h-6 px-2 text-[11px] gap-1 cursor-pointer text-muted-foreground hover:text-foreground"
                                 onClick={() => {
                                   const subject = encodeURIComponent("Approved Leave Notification");
                                   const body = encodeURIComponent(

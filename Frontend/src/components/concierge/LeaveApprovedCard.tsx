@@ -1,4 +1,4 @@
-import { CalendarCheck, Mail, Download, CheckCircle2 } from "lucide-react";
+import { Calendar, Mail, Download, CheckCircle2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface LeaveApprovedCardProps {
@@ -26,10 +26,19 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
     manager_email = "fatima.qubaisi@hcservices.ae",
   } = approvedLeave;
 
-  // 1. Download .ics iCalendar event
+  // 1. Direct Microsoft Teams / Outlook 365 Web Calendar Compose Link
+  const openTeamsCalendar = () => {
+    const title = encodeURIComponent(`${leave_type} (Out of Office) - ${employee_name}`);
+    const body = encodeURIComponent(
+      `Approved ${leave_type} (${days_requested} working days) approved by ${approver_name}.\n\nHealth Corporate Services (HCS) Leave Concierge.`
+    );
+    const teamsCalendarUrl = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${start_date}T09:00:00&enddt=${end_date}T18:00:00&allday=true`;
+    window.open(teamsCalendarUrl, "_blank", "noopener,noreferrer");
+  };
+
+  // 2. Download .ics iCalendar event (with Microsoft Teams Out-of-Office metadata)
   const downloadIcs = () => {
     const startFormatted = start_date.replace(/-/g, "");
-    // In iCal, end date for all-day events is exclusive, so add 1 day or use exact date
     const endFormatted = end_date.replace(/-/g, "");
 
     const icsData = [
@@ -43,10 +52,13 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
       `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
       `DTSTART;VALUE=DATE:${startFormatted}`,
       `DTEND;VALUE=DATE:${endFormatted}`,
-      `SUMMARY:${leave_type} - ${employee_name}`,
+      `SUMMARY:${leave_type} (Out of Office) - ${employee_name}`,
       `DESCRIPTION:Approved ${leave_type} (${days_requested} working days) approved by ${approver_name}.`,
       "STATUS:CONFIRMED",
       "TRANSP:OPAQUE",
+      "X-MICROSOFT-CDO-BUSYSTATUS:OOF",
+      "X-MICROSOFT-CDO-INTENDEDSTATUS:OOF",
+      "X-MICROSOFT-CDO-ALLDAYEVENT:TRUE",
       "END:VEVENT",
       "END:VCALENDAR",
     ].join("\r\n");
@@ -55,14 +67,14 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `leave-request.ics`);
+    link.setAttribute("download", `leave-${start_date}-to-${end_date}.ics`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  // 2. Open pre-composed mailto
+  // 3. Open pre-composed mailto
   const getMailtoUrl = () => {
     const subject = encodeURIComponent(`Approved Leave Notification: ${employee_name} (${start_date} to ${end_date})`);
     const body = encodeURIComponent(
@@ -104,28 +116,28 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Would you like to mark this on your calendar or send a formal notification email to your manager?
+          Would you like to mark this Out-of-Office on your Teams / Outlook calendar or notify your team?
         </p>
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button
             size="sm"
-            variant="outline"
-            onClick={downloadIcs}
-            className="h-8 gap-1.5 text-xs border-emerald-600/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30"
+            onClick={openTeamsCalendar}
+            className="h-8 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer"
           >
-            <Download className="size-3.5" />
-            Add to Calendar (.ics)
+            <Calendar className="size-3.5" />
+            Calendar
+            <ExternalLink className="size-3 opacity-70" />
           </Button>
 
           <a href={getMailtoUrl()} target="_blank" rel="noopener noreferrer">
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5 text-xs border-border hover:bg-muted"
+              className="h-8 gap-1.5 text-xs border-border hover:bg-muted cursor-pointer"
             >
               <Mail className="size-3.5" />
-              Email Manager
+              Email
             </Button>
           </a>
         </div>
