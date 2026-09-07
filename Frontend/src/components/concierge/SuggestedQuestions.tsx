@@ -71,7 +71,7 @@ export function SuggestedQuestions({
       <div className="flex items-center gap-1.5 px-1">
         <Sparkles className="size-3 text-primary" />
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-          Popular Questions
+          FAQs
         </span>
       </div>
 
