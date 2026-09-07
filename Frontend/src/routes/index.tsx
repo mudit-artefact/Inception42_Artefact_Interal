@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function ConciergePage() {
-  const { employees, employeeId, selectEmployee } = useActiveEmployee();
+  const { employees, employeeId, selectEmployee, employee } = useActiveEmployee();
   const concierge = useConcierge(employeeId);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -76,16 +76,14 @@ function ConciergePage() {
           </SheetContent>
         </Sheet>
 
-        {/* Desktop Sidebar Toggle Button */}
         <Button
           variant="ghost"
           size="icon-sm"
-          className="hidden lg:inline-flex text-muted-foreground hover:text-foreground cursor-pointer -ml-1"
+          className="hidden lg:flex cursor-pointer text-muted-foreground hover:text-foreground"
           onClick={() => setSidebarOpen((prev) => !prev)}
-          title={sidebarOpen ? "Close history sidebar" : "Open history sidebar"}
-          aria-label={sidebarOpen ? "Close history sidebar" : "Open history sidebar"}
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
-          <PanelLeft aria-hidden="true" className="size-4" />
+          <PanelLeft className="size-4" />
         </Button>
 
         <div className="flex items-center gap-2.5">
@@ -102,6 +100,7 @@ function ConciergePage() {
         <div className="flex items-center gap-2">
           <NotificationCenter
             employeeId={employeeId}
+            employee={employee}
             onActionClick={(prompt) => concierge.send(prompt)}
           />
           <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />

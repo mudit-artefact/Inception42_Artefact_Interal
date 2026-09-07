@@ -57,6 +57,12 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "citations": [],
     "answer_status": "",
     "fallback_reason": None,
+    # Action & Leave / School Verification state
+    "action_payload": None,
+    "is_action_required": False,
+    "leave_draft": None,
+    "leave_validation": None,
+    "leave_action_status": None,
     # `remembered_turns` and `previous_reply` are deliberately NOT here, and must never
     # be added.
     #

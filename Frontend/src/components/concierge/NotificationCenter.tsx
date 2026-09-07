@@ -10,13 +10,74 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from "@/lib/api/notifications";
+import type { EmployeeProfile } from "@/lib/api/types";
 
 interface NotificationCenterProps {
   employeeId: string;
+  employee?: EmployeeProfile | undefined;
   onActionClick?: (prompt: string) => void;
 }
 
-export function NotificationCenter({ employeeId, onActionClick }: NotificationCenterProps) {
+function getLeaveNotificationDetails(notif: AppNotification, fallbackEmployee?: EmployeeProfile) {
+  const payload = notif.action_payload || {};
+  let startDate: string | undefined = payload.start_date;
+  let endDate: string | undefined = payload.end_date;
+  let leaveType: string | undefined = payload.leave_type;
+  let days: string | number | undefined = payload.days_requested;
+  let managerName: string | undefined = payload.manager_name || payload.approver_name;
+  let managerEmail: string | undefined = payload.manager_email;
+  let employeeName: string | undefined = payload.employee_name || fallbackEmployee?.name;
+
+  if (!startDate || !endDate || !leaveType || !managerName) {
+    const msg = notif.message || "";
+    const dateMatch = msg.match(/\((\d{4}-\d{2}-\d{2})\s*(?:to|-)\s*(\d{4}-\d{2}-\d{2})\)/i);
+    if (dateMatch) {
+      startDate = startDate || dateMatch[1];
+      endDate = endDate || dateMatch[2];
+    }
+    const daysMatch = msg.match(/(\d+(?:\.\d+)?)\s*working days?/i);
+    if (daysMatch) {
+      days = days || daysMatch[1];
+    }
+    const typeMatch = msg.match(/working days? of ([^()]+?)\s*\(/i);
+    if (typeMatch) {
+      leaveType = leaveType || typeMatch[1].trim();
+    }
+    const approverMatch = msg.match(/approved by\s+([^.]+)/i);
+    if (approverMatch) {
+      managerName = managerName || approverMatch[1].trim();
+    }
+  }
+
+  if (!managerName && fallbackEmployee?.manager) {
+    managerName = fallbackEmployee.manager;
+  }
+
+  const cleanDays = days ? `${days} working day${Number(days) === 1 ? "" : "s"}` : "";
+  const timeframe = startDate && endDate
+    ? startDate === endDate
+      ? startDate
+      : `${startDate} to ${endDate}`
+    : startDate || "this upcoming period";
+
+  const timeText = startDate && endDate && startDate !== endDate
+    ? `from ${startDate} to ${endDate}`
+    : (startDate ? `on ${startDate}` : "during this period");
+
+  return {
+    startDate: startDate || "2026-06-01",
+    endDate: endDate || startDate || "2026-06-05",
+    timeframe,
+    timeText,
+    leaveType: leaveType || "Annual Leave",
+    days: cleanDays,
+    managerName: managerName || "my manager",
+    managerEmail: managerEmail || "",
+    employeeName: employeeName || "Employee",
+  };
+}
+
+export function NotificationCenter({ employeeId, employee, onActionClick }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -57,28 +118,36 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
   };
 
   const openTeamsCalendar = (notif: AppNotification) => {
-    const payload = notif.action_payload || {};
-    const start = payload.start_date || "2026-06-01";
-    const end = payload.end_date || "2026-06-05";
-    const leaveType = payload.leave_type || "Annual Leave";
-    const title = encodeURIComponent(`${leaveType} (Out of Office)`);
-    const body = encodeURIComponent(`${notif.message}\n\nHealth Corporate Services (HCS) Leave Concierge.`);
-    const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${start}T09:00:00&enddt=${end}T18:00:00&allday=true`;
+    const details = getLeaveNotificationDetails(notif, employee);
+    const title = encodeURIComponent(`${details.leaveType} (Out of Office)`);
+    const managerContact = details.managerEmail
+      ? `${details.managerName} (${details.managerEmail})`
+      : details.managerName;
+    const body = encodeURIComponent(
+      `I will be on leave ${details.timeText}${details.days ? ` (${details.days} of ${details.leaveType})` : ""}.\n\n` +
+      `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
+      `Approved by ${details.managerName}.\n` +
+      `Health Corporate Services (HCS) Leave Concierge.`
+    );
+    const url = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${details.startDate}T09:00:00&enddt=${details.endDate}T18:00:00&allday=true`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const downloadCalendarInvite = (notif: AppNotification) => {
-    const payload = notif.action_payload || {};
-    const start = (payload.start_date || "2026-06-01").replace(/-/g, "");
-    const end = (payload.end_date || "2026-06-05").replace(/-/g, "");
-    const leaveType = payload.leave_type || "Annual Leave";
+    const details = getLeaveNotificationDetails(notif, employee);
+    const start = details.startDate.replace(/-/g, "");
+    const end = details.endDate.replace(/-/g, "");
+    const managerContact = details.managerEmail
+      ? `${details.managerName} (${details.managerEmail})`
+      : details.managerName;
+    const desc = `I will be on leave ${details.timeText}${details.days ? ` (${details.days} of ${details.leaveType})` : ""}. For queries, please reach out to my manager, ${managerContact}.`;
     const icsContent = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
       "PRODID:-//Dalīl//Leave Calendar//EN",
       "BEGIN:VEVENT",
-      `SUMMARY:${leaveType} (Out of Office)`,
-      `DESCRIPTION:${notif.message}`,
+      `SUMMARY:${details.leaveType} (Out of Office)`,
+      `DESCRIPTION:${desc}`,
       `DTSTART;VALUE=DATE:${start}`,
       `DTEND;VALUE=DATE:${end}`,
       "STATUS:CONFIRMED",
@@ -218,9 +287,16 @@ export function NotificationCenter({ employeeId, onActionClick }: NotificationCe
                                 size="sm"
                                 className="h-6 px-2 text-[11px] gap-1 cursor-pointer text-muted-foreground hover:text-foreground"
                                 onClick={() => {
-                                  const subject = encodeURIComponent("Approved Leave Notification");
+                                  const details = getLeaveNotificationDetails(n, employee);
+                                  const subject = encodeURIComponent(`Out of Office: ${details.timeframe}`);
+                                  const managerContact = details.managerEmail
+                                    ? `${details.managerName} (${details.managerEmail})`
+                                    : details.managerName;
                                   const body = encodeURIComponent(
-                                    `Hi Team,\n\nPlease note my approved leave:\n${n.message}\n\nThank you.`
+                                    `Hi Team,\n\n` +
+                                    `I will be on leave ${details.timeText}${details.days ? ` (${details.days} of ${details.leaveType})` : ""}.\n\n` +
+                                    `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
+                                    `Thank you.`
                                   );
                                   window.open(`mailto:team@hcservices.ae?subject=${subject}&body=${body}`);
                                 }}

@@ -28,9 +28,15 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
 
   // 1. Direct Microsoft Teams / Outlook 365 Web Calendar Compose Link
   const openTeamsCalendar = () => {
+    const timeText = start_date === end_date ? `on ${start_date}` : `from ${start_date} to ${end_date}`;
     const title = encodeURIComponent(`${leave_type} (Out of Office) - ${employee_name}`);
+    const managerContact = manager_email ? `${approver_name} (${manager_email})` : approver_name;
+    const daysText = `${days_requested} working day${days_requested === 1 ? "" : "s"}`;
     const body = encodeURIComponent(
-      `Approved ${leave_type} (${days_requested} working days) approved by ${approver_name}.\n\nHealth Corporate Services (HCS) Leave Concierge.`
+      `I will be on leave ${timeText} (${daysText} of ${leave_type}).\n\n` +
+      `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
+      `Approved by ${approver_name}.\n` +
+      `Health Corporate Services (HCS) Leave Concierge.`
     );
     const teamsCalendarUrl = `https://outlook.office.com/calendar/0/deeplink/compose?subject=${title}&body=${body}&startdt=${start_date}T09:00:00&enddt=${end_date}T18:00:00&allday=true`;
     window.open(teamsCalendarUrl, "_blank", "noopener,noreferrer");
@@ -40,6 +46,10 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
   const downloadIcs = () => {
     const startFormatted = start_date.replace(/-/g, "");
     const endFormatted = end_date.replace(/-/g, "");
+    const timeText = start_date === end_date ? `on ${start_date}` : `from ${start_date} to ${end_date}`;
+    const managerContact = manager_email ? `${approver_name} (${manager_email})` : approver_name;
+    const daysText = `${days_requested} working day${days_requested === 1 ? "" : "s"}`;
+    const desc = `I will be on leave ${timeText} (${daysText} of ${leave_type}). For any queries, please reach out to my manager, ${managerContact}.`;
 
     const icsData = [
       "BEGIN:VCALENDAR",
@@ -53,7 +63,7 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
       `DTSTART;VALUE=DATE:${startFormatted}`,
       `DTEND;VALUE=DATE:${endFormatted}`,
       `SUMMARY:${leave_type} (Out of Office) - ${employee_name}`,
-      `DESCRIPTION:Approved ${leave_type} (${days_requested} working days) approved by ${approver_name}.`,
+      `DESCRIPTION:${desc}`,
       "STATUS:CONFIRMED",
       "TRANSP:OPAQUE",
       "X-MICROSOFT-CDO-BUSYSTATUS:OOF",
@@ -76,17 +86,20 @@ export function LeaveApprovedCard({ approvedLeave }: LeaveApprovedCardProps) {
 
   // 3. Open pre-composed mailto
   const getMailtoUrl = () => {
-    const subject = encodeURIComponent(`Approved Leave Notification: ${employee_name} (${start_date} to ${end_date})`);
+    const timeText = start_date === end_date ? `on ${start_date}` : `from ${start_date} to ${end_date}`;
+    const timeframe = start_date === end_date ? start_date : `${start_date} to ${end_date}`;
+    const subject = encodeURIComponent(`Out of Office: ${employee_name} (${timeframe})`);
+    const managerContact = manager_email ? `${approver_name} (${manager_email})` : approver_name;
+    const daysText = `${days_requested} working day${days_requested === 1 ? "" : "s"}`;
     const body = encodeURIComponent(
-      `Dear ${approver_name},\n\n` +
-      `This is to confirm that my ${leave_type} request for ${days_requested} working days ` +
-      `(from ${start_date} to ${end_date}) has been approved.\n\n` +
-      `I have updated my calendar and out-of-office status accordingly.\n\n` +
-      `Best regards,\n` +
+      `Hi Team,\n\n` +
+      `I will be on leave ${timeText} (${daysText} of ${leave_type}).\n\n` +
+      `For any queries or urgent matters during my absence, please reach out to my manager, ${managerContact}.\n\n` +
+      `Thank you,\n` +
       `${employee_name}\n` +
       `Health Corporate Services (HCS)`
     );
-    return `mailto:${manager_email}?subject=${subject}&body=${body}`;
+    return `mailto:team@hcservices.ae?subject=${subject}&body=${body}`;
   };
 
   return (

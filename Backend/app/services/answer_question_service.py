@@ -138,6 +138,17 @@ def stream_answer(
     yield "done", _present(latest_state, conversation_id, requested_language, started_at)
 
 
+AFFIRMATIVE_REPLY = re.compile(
+    r"\b(confirm|yes|proceed|apply|submit|ok|okay|agree|approved|sure|نعم|تأكيد|موافق|تقديم)\b",
+    re.IGNORECASE,
+)
+
+NEGATIVE_REPLY = re.compile(
+    r"\b(cancel|no|stop|reject|abort|nevermind|don't|dont|لا|إلغاء|الغاء)\b",
+    re.IGNORECASE,
+)
+
+
 def _what_to_feed_the_graph(
     saved_state,
     conversation_id: str,
@@ -154,11 +165,35 @@ def _what_to_feed_the_graph(
     streaming endpoint would quietly start behaving differently from the one every test
     measures.
     """
-    if _is_waiting_for_an_answer(saved_state) and not _reads_as_a_new_question(employee_question):
-        logger.info(f"Resuming conversation {conversation_id} with the employee's reply")
-        return Command(resume=employee_question)
-
     if _is_waiting_for_an_answer(saved_state):
+        msg = (employee_question or "").strip()
+        # If the pause was waiting for an action confirmation (e.g. Leave Application Review):
+        if _is_action_confirmation_pause(saved_state):
+            is_affirmative = bool(AFFIRMATIVE_REPLY.search(msg))
+            is_negative = bool(NEGATIVE_REPLY.search(msg))
+            is_new_q = _reads_as_a_new_question(msg)
+
+            if (is_affirmative or is_negative) and not is_new_q:
+                logger.info(f"Resuming conversation {conversation_id} with action decision: '{msg}'")
+                return Command(resume=employee_question)
+            else:
+                logger.info(
+                    f"Conversation {conversation_id} was waiting for action confirmation, but received a new question/reply: "
+                    f"'{msg}'; abandoning the leave request pause"
+                )
+                return _new_turn(
+                    conversation_id=conversation_id,
+                    employee_question=employee_question,
+                    employee_id=employee_id,
+                    requested_language=requested_language,
+                    started_at=started_at,
+                )
+
+        # Standard text clarification pause:
+        if not _reads_as_a_new_question(employee_question):
+            logger.info(f"Resuming conversation {conversation_id} with the employee's reply")
+            return Command(resume=employee_question)
+
         logger.info(
             f"Conversation {conversation_id} was waiting for an answer and got a new "
             f"question instead; abandoning the pause"
@@ -211,9 +246,11 @@ def _belongs_to_somebody_else(saved_state, employee_id: str) -> bool:
 SHORTEST_NEW_QUESTION = 4
 ASKS_SOMETHING = re.compile(
     r"\?\s*$"
+    r"|^\s*(hey|hi|hello|dear|salam|marhaba|مرحبا|أهلا|اهلا)\b"
     r"|^\s*(what|when|who|whom|whose|how|why|which|where|can|could|do|does|did|is|are|am"
-    r"|was|were|will|would|should|shall|may|might|tell me|show me|give me|explain)\b"
-    r"|^\s*(هل|ما|ماذا|متى|من|كيف|لماذا|أي|كم|أين|اشرح|أعطني)\b",
+    r"|was|were|will|would|should|shall|may|might|tell me|show me|give me|explain|check|verify)\b"
+    r"|\b(remote work|work from home|wfh|policy|allowance|balance|vacation|salary|hours|working hours|leave policy)\b"
+    r"|^\s*(هل|ما|ماذا|متى|من|كيف|لماذا|أي|كم|أين|اشرح|أعطني|تحقق|كم رصيد|سياسة)\b",
     re.IGNORECASE,
 )
 
@@ -232,10 +269,14 @@ def _reads_as_a_new_question(message: str) -> bool:
     new question loses the pause and asks again; treating a new question as a reply loses
     the question itself.
     """
-    words = (message or "").split()
-    if len(words) < SHORTEST_NEW_QUESTION:
+    msg = (message or "").strip()
+    if not msg:
         return False
-    return ASKS_SOMETHING.search(message.strip()) is not None
+    # If the message matches question/greeting/policy query patterns:
+    if ASKS_SOMETHING.search(msg) is not None:
+        return True
+    words = msg.split()
+    return len(words) >= SHORTEST_NEW_QUESTION and "?" in msg
 
 
 def _is_waiting_for_an_answer(saved_state) -> bool:
@@ -243,6 +284,19 @@ def _is_waiting_for_an_answer(saved_state) -> bool:
     if saved_state is None:
         return False
     return bool(saved_state.tasks) and any(task.interrupts for task in saved_state.tasks)
+
+
+def _is_action_confirmation_pause(saved_state) -> bool:
+    """Whether this conversation paused to ask for Human-in-the-Loop action confirmation."""
+    if saved_state is None or not getattr(saved_state, "tasks", None):
+        return False
+    for task in saved_state.tasks:
+        for intr in getattr(task, "interrupts", []):
+            val = getattr(intr, "value", {}) or {}
+            payload = val.get("action_payload") or {}
+            if payload.get("action_type") == "CONFIRM_LEAVE_APPLICATION" or val.get("is_action_required"):
+                return True
+    return False
 
 
 def _new_turn(

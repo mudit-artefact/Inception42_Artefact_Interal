@@ -209,6 +209,20 @@ def handle_leave_application(state: ConversationState) -> dict:
             "citations": [],
         }
 
+    if not AFFIRMATIVE_REPLY.search(decision_text):
+        logger.info(f"Leave action resumed without affirmative confirmation: '{decision_text}'")
+        cancel_msg = (
+            "Your leave request was not submitted as it was not confirmed. Please let me know if you would like to submit a new request."
+            if lang == "en"
+            else "لم يتم إرسال طلب الإجازة لعدم التأكيد. يرجى إخباري إذا كنت ترغب في تقديم طلب جديد."
+        )
+        return {
+            "final_answer": cancel_msg,
+            "answer_status": AnswerStatus.ACTION_REJECTED.value,
+            "action_payload": {"action_type": "LEAVE_CANCELLED_BY_USER"},
+            "citations": [],
+        }
+
     # Step G: Confirmed! Submit Request as Pending to Manager
     try:
         receipt = commit_leave_request(
@@ -447,6 +461,7 @@ def handle_leave_status(state: ConversationState) -> dict:
                 "end_date": latest_request.end_date,
                 "days_requested": latest_request.days_requested,
                 "approver_name": latest_request.approver_name,
+                "manager_name": latest_request.approver_name,
                 "employee_name": emp.name if emp else employee_id,
                 "manager_email": emp.manager_email if emp else "manager@hcservices.ae",
                 "status": "Approved",

@@ -661,6 +661,7 @@ def approve_leave_request(
         try:
             from app.services.notification_service import create_notification
             approver_display = manager.name if manager else req.approver_name
+            approver_email = manager.email if manager else (applicant.manager_email if applicant else "")
             create_notification(
                 recipient_id=req.employee_id,
                 sender_id=manager_id,
@@ -674,6 +675,9 @@ def approve_leave_request(
                     "request_id": req.id,
                     "status": "Approved",
                     "approver_name": approver_display,
+                    "manager_name": approver_display,
+                    "manager_email": approver_email,
+                    "employee_name": applicant.name if applicant else req.employee_id,
                     "leave_type": req.leave_type,
                     "start_date": req.start_date,
                     "end_date": req.end_date,
