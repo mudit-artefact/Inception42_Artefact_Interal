@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DalīlHR — Knowledge Base & Policy Sources Catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070a12;
+      --card-bg: #0f172a;
+      --card-border: #1e293b;
+      --primary: #6366f1;
+      --primary-glow: rgba(99, 102, 241, 0.3);
+      --emerald: #10b981;
+      --blue: #38bdf8;
+      --amber: #f59e0b;
+      --pink: #ec4899;
+      --purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.6;
+      padding: 30px;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px 40px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .header-left h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, #a5b4fc, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .header-left p {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.35);
+      color: #c7d2fe;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    .controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-box {
+      flex: 1;
+      max-width: 480px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 18px 12px 42px;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .filter-btn {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      margin-bottom: 24px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    thead th {
+      background: rgba(30, 41, 59, 0.8);
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--card-border);
+      font-weight: 700;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(30, 41, 59, 0.6);
+      transition: background 0.15s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(99, 102, 241, 0.04);
+    }
+
+    tbody td {
+      padding: 18px 20px;
+      vertical-align: middle;
+    }
+
+    .code-badge {
+      display: inline-block;
+      font-family: 'Space Grotesk', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+    }
+
+    .policy-title {
+      font-weight: 600;
+      color: #f8fafc;
+      font-size: 15px;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .arabic-title {
+      color: #94a3b8;
+      font-size: 13px;
+      direction: rtl;
+      display: block;
+    }
+
+    .owner-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    .topics-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 480px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #cbd5e1;
+    }
+
+    .tag-blue { background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; }
+    .tag-emerald { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981; }
+    .tag-amber { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b; }
+    .tag-pink { background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); color: #ec4899; }
+    .tag-purple { background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #a855f7; }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-action:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .footer-bar {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <h1>📚 Knowledge Base & Policy Sources</h1>
+      <p>Official single source of truth policies indexed into Dalīl's Vector RAG & Page Citations</p>
+    </div>
+    <div class="header-badges">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        121 Vector Passages Indexed
+      </div>
+      <div class="badge">
+        9 Core Policies (EN + AR)
+      </div>
+      <div class="badge">
+        100% Verifiable PDF Citations
+      </div>
+    </div>
+  </header>
+
+  <!-- Search & Filter Controls -->
+  <div class="controls-bar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search policies by code, title, topic or keyword..." onkeyup="filterTable()">
+    </div>
+    <div class="filter-pills">
+      <button class="filter-btn active" onclick="setFilter('all', this)">All Sources (9)</button>
+      <button class="filter-btn" onclick="setFilter('leave', this)">Leave & Absence</button>
+      <button class="filter-btn" onclick="setFilter('employment', this)">Employment & Probation</button>
+      <button class="filter-btn" onclick="setFilter('financial', this)">Finance & Travel</button>
+    </div>
+  </div>
+
+  <!-- Policy Catalog Table Card -->
+  <div class="card">
+    <div class="table-container">
+      <table id="policyTable">
+        <thead>
+          <tr>
+            <th>Document Code</th>
+            <th>Policy Title & Arabic Edition</th>
+            <th>Department Owner</th>
+            <th>Key Provisions & Coverage</th>
+            <th>Indexed Format</th>
+            <th>Official PDF Citation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 01 Annual Leave -->
+          <tr data-category="leave">
+            <td><span class="code-badge">HC-PC-001</span></td>
+            <td>
+              <span class="policy-title">Annual Leave Policy</span>
+              <span class="arabic-title">سياسة الإجازات السنوية (HC-PC-001-AR)</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-emerald">30 Calendar Days Entitlement</span>
+                <span class="tag tag-blue">5-Day Carry-Over Cap</span>
+                <span class="tag tag-amber">4-Week Advance Notice</span>
+                <span class="tag">Public Holiday Overlaps</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/01_annual_leave_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 02 Sick Leave -->
+          <tr data-category="leave">
+            <td><span class="code-badge">HC-PC-002</span></td>
+            <td>
+              <span class="policy-title">Sick Leave Policy</span>
+              <span class="arabic-title">سياسة الإجازات المرضية (HC-PC-002-AR)</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-emerald">90-Day Rolling Cap</span>
+                <span class="tag tag-blue">15 Full / 45 Half / 30 Unpaid</span>
+                <span class="tag tag-pink">Medical Cert Required Day 3+</span>
+                <span class="tag tag-amber">Bradford Score Matrix</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/02_sick_leave_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 03 Probation -->
+          <tr data-category="employment">
+            <td><span class="code-badge">HC-PC-003</span></td>
+            <td>
+              <span class="policy-title">Probation Policy</span>
+              <span class="arabic-title">سياسة فترة التجربة (HC-PC-003-AR)</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-blue">6-Month Duration</span>
+                <span class="tag tag-emerald">30 / 90 / 180-Day Reviews</span>
+                <span class="tag tag-amber">Half-Pay Sick Leave</span>
+                <span class="tag">Max 3-Month Extension</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/03_probation_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 04 Remote Work -->
+          <tr data-category="employment">
+            <td><span class="code-badge">HC-PC-004</span></td>
+            <td>
+              <span class="policy-title">Remote Work & Flexible Working</span>
+              <span class="arabic-title">سياسة العمل المرن والعمل عن بُعد (HC-PC-004-AR)</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-blue">Role Classes A / B / C</span>
+                <span class="tag tag-emerald">Core Hours: 10:00 – 16:00</span>
+                <span class="tag tag-amber">AED 250 Internet Allowance</span>
+                <span class="tag tag-pink">Overseas Remote Work Approval</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/04_remote_work_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 05 Expense Claims -->
+          <tr data-category="financial">
+            <td><span class="code-badge">HC-PC-005</span></td>
+            <td>
+              <span class="policy-title">Expense Claims & Reimbursement</span>
+              <span class="arabic-title">سياسة المصروفات واستردادها (HC-PC-005-AR)</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>💰 Finance & P&C</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-blue">Travel Per Diem Caps</span>
+                <span class="tag tag-emerald">Flight Class by Grade (6+)</span>
+                <span class="tag tag-amber">Thresholds: AED 1,500 / 7,500</span>
+                <span class="tag">30-Day Claim Window</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/05_expense_claims_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 06 Disciplinary -->
+          <tr data-category="employment">
+            <td><span class="code-badge">HC-PC-006</span></td>
+            <td>
+              <span class="policy-title">Disciplinary Policy</span>
+              <span class="arabic-title">English Policy Edition</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-pink">Unauthorised Absence (§1.8)</span>
+                <span class="tag tag-amber">Gross Misconduct Definitions</span>
+                <span class="tag">Precautionary Suspension</span>
+                <span class="tag">Disciplinary Appeals</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/06_disciplinary_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 07 Definitions & Grades -->
+          <tr data-category="employment">
+            <td><span class="code-badge">HC-PC-007</span></td>
+            <td>
+              <span class="policy-title">Definitions, Grades & Structure</span>
+              <span class="arabic-title">Executive & Operational Framework</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-blue">Corporate Grades 1 to 8</span>
+                <span class="tag">Working Days vs Calendar Days</span>
+                <span class="tag">Rolling Year Computation</span>
+                <span class="tag">Standard HR Form Register</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/07_definitions_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 08 Capability -->
+          <tr data-category="employment">
+            <td><span class="code-badge">HC-PC-008</span></td>
+            <td>
+              <span class="policy-title">Capability & Performance Management</span>
+              <span class="arabic-title">Capability Assessment Procedures</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-amber">Medical Capability Reviews</span>
+                <span class="tag tag-blue">Performance Improvement Plans</span>
+                <span class="tag">Formal Review Periods</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/08_capability_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+          <!-- 09 Grievance -->
+          <tr data-category="employment">
+            <td><span class="code-badge">HC-PC-009</span></td>
+            <td>
+              <span class="policy-title">Grievance & Appeals Policy</span>
+              <span class="arabic-title">Formal Dispute Resolution</span>
+            </td>
+            <td>
+              <div class="owner-tag">
+                <span>🏢 People & Culture</span>
+              </div>
+            </td>
+            <td>
+              <div class="topics-wrap">
+                <span class="tag tag-emerald">Informal & Formal Stages</span>
+                <span class="tag tag-pink">Anti-Detriment Protection</span>
+                <span class="tag">14-Day Investigation Timeline</span>
+              </div>
+            </td>
+            <td><span class="tag tag-purple">Markdown + Qdrant</span></td>
+            <td>
+              <a href="http://localhost:8000/api/v1/hcs01/policies/pdf/09_grievance_policy.pdf" target="_blank" class="btn-action">
+                📄 Open PDF (:8000)
+              </a>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div>💡 Tip: Clicking any <strong>Open PDF</strong> link opens the official source document served by the Dalīl backend API with page citation support.</div>
+    <div><a href="d:\HCS_01\system_workflow_diagram.html" style="color: var(--primary); text-decoration: none;">➔ Back to System Workflow Architecture</a></div>
+  </div>
+</div>
+
+<script>
+  function filterTable() {
+    const input = document.getElementById('searchInput');
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById('policyTable');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < tr.length; i++) {
+      const text = tr[i].textContent || tr[i].innerText;
+      if (text.toLowerCase().indexOf(filter) > -1) {
+        tr[i].style.display = '';
+      } else {
+        tr[i].style.display = 'none';
+      }
+    }
+  }
+
+  function setFilter(category, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const table = document.getElementById('policyTable');
+    const tr = table.getElementsByTagName('tr');
+
+    for (let i = 1; i < tr.length; i++) {
+      const rowCategory = tr[i].getAttribute('data-category');
+      if (category === 'all' || rowCategory === category) {
+        tr[i].style.display = '';
+      } else {
+        tr[i].style.display = 'none';
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
