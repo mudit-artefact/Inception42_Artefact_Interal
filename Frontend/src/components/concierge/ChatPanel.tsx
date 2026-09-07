@@ -457,33 +457,16 @@ export function ChatPanel({
                     type="button"
                     onClick={() => {
                       setActionsOpen(false);
-                      onSend("What leave requests do I need to approve?");
+                      setShowDocumentUpload(true);
                     }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-blue-500/10 transition-colors group"
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-pink-500/10 transition-colors group"
                   >
-                    <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 mt-0.5 group-hover:scale-105 transition-transform">
-                      <CheckCircle2 className="size-4" />
+                    <div className="p-1.5 rounded-lg bg-pink-500/15 text-pink-600 dark:text-pink-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <GraduationCap className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">Approve Leave Requests</div>
-                      <div className="text-[10px] text-muted-foreground">Review pending team approvals as manager</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionsOpen(false);
-                      onSend("Requested leaves? (Does my leaves approved by my manager)");
-                    }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-emerald-500/10 transition-colors group"
-                  >
-                    <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 mt-0.5 group-hover:scale-105 transition-transform">
-                      <Clock className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">My Leave Request Status</div>
-                      <div className="text-[10px] text-muted-foreground">Check manager approval status on your requests</div>
+                      <div className="text-xs font-semibold text-foreground">Upload School Documents</div>
+                      <div className="text-[10px] text-muted-foreground">Submit HCS-11 school verification documents</div>
                     </div>
                   </button>
 
@@ -508,16 +491,16 @@ export function ChatPanel({
                     type="button"
                     onClick={() => {
                       setActionsOpen(false);
-                      setShowDocumentUpload(true);
+                      onSend("What leave requests do I need to approve?");
                     }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-pink-500/10 transition-colors group"
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-blue-500/10 transition-colors group"
                   >
-                    <div className="p-1.5 rounded-lg bg-pink-500/15 text-pink-600 dark:text-pink-400 mt-0.5 group-hover:scale-105 transition-transform">
-                      <GraduationCap className="size-4" />
+                    <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <CheckCircle2 className="size-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">Upload School Documents</div>
-                      <div className="text-[10px] text-muted-foreground">Submit HCS-11 school verification documents</div>
+                      <div className="text-xs font-semibold text-foreground">Approve Leave Requests</div>
+                      <div className="text-[10px] text-muted-foreground">Review pending team approvals as manager</div>
                     </div>
                   </button>
                 </div>
