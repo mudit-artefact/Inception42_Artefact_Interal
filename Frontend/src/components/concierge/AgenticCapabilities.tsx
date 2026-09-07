@@ -30,7 +30,7 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
   {
     id: "schooling",
     title: "Kids Schooling",
-    description: "Verify tuition and admission certificates",
+    description: "Verify children school documents",
     icon: GraduationCap,
     prompt: "I want to submit school certificates for child education benefits",
     colorClass: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
