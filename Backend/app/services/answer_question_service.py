@@ -167,8 +167,29 @@ def _what_to_feed_the_graph(
     """
     if _is_waiting_for_an_answer(saved_state):
         msg = (employee_question or "").strip()
-        # If the pause was waiting for an action confirmation (e.g. Leave Application Review):
-        if _is_action_confirmation_pause(saved_state):
+        waiting_for = _what_the_pause_is_waiting_for(saved_state)
+
+        # Asked to fill something in — dates, most often. Anything that is not the
+        # employee walking away from the question is the answer to it.
+        if waiting_for == WAITING_FOR_SOMETHING_TO_BE_FILLED_IN:
+            if msg and not _reads_as_a_new_question(msg):
+                logger.info(f"Resuming conversation {conversation_id} with: '{msg}'")
+                return Command(resume=employee_question)
+            logger.info(
+                f"Conversation {conversation_id} was waiting for something to be filled "
+                f"in and got a new question instead: '{msg}'; abandoning the pause"
+            )
+            return _new_turn(
+                conversation_id=conversation_id,
+                employee_question=employee_question,
+                employee_id=employee_id,
+                requested_language=requested_language,
+                started_at=started_at,
+            )
+
+        # Asked to confirm. Only a decision will do, and anything else leaves the request
+        # unsubmitted rather than guessing which way the employee meant it.
+        if waiting_for == WAITING_FOR_A_DECISION:
             is_affirmative = bool(AFFIRMATIVE_REPLY.search(msg))
             is_negative = bool(NEGATIVE_REPLY.search(msg))
             is_new_q = _reads_as_a_new_question(msg)
@@ -286,17 +307,36 @@ def _is_waiting_for_an_answer(saved_state) -> bool:
     return bool(saved_state.tasks) and any(task.interrupts for task in saved_state.tasks)
 
 
-def _is_action_confirmation_pause(saved_state) -> bool:
-    """Whether this conversation paused to ask for Human-in-the-Loop action confirmation."""
+# What a paused action is waiting to hear.
+WAITING_FOR_A_DECISION = "decision"
+WAITING_FOR_SOMETHING_TO_BE_FILLED_IN = "input"
+
+
+def _what_the_pause_is_waiting_for(saved_state) -> str | None:
+    """
+    Which kind of answer would resume this conversation, if any.
+
+    The two are not interchangeable. "Confirm this request?" wants yes or no, and reading
+    anything else as a yes is how a request nobody agreed to gets committed. "Which
+    dates?" wants dates, and there is no yes or no to give.
+
+    Both used to count as waiting for a decision, so the calendar only ever worked because
+    the web page quietly puts the word "apply" in the message it sends — which happens to
+    be on the list of words meaning yes. An employee who typed their dates instead of
+    using the calendar was told their reply was a new question, and the request they had
+    started was dropped without a word.
+    """
     if saved_state is None or not getattr(saved_state, "tasks", None):
-        return False
+        return None
     for task in saved_state.tasks:
-        for intr in getattr(task, "interrupts", []):
-            val = getattr(intr, "value", {}) or {}
-            payload = val.get("action_payload") or {}
-            if payload.get("action_type") == "CONFIRM_LEAVE_APPLICATION" or val.get("is_action_required"):
-                return True
-    return False
+        for paused in getattr(task, "interrupts", []):
+            value = getattr(paused, "value", {}) or {}
+            payload = value.get("action_payload") or {}
+            if payload.get("action_type") == "CONFIRM_LEAVE_APPLICATION":
+                return WAITING_FOR_A_DECISION
+            if value.get("is_action_required"):
+                return WAITING_FOR_SOMETHING_TO_BE_FILLED_IN
+    return None
 
 
 def _new_turn(

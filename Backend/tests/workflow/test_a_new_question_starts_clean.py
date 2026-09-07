@@ -106,3 +106,65 @@ def test_a_pause_for_clarification_keeps_what_the_question_had_worked_out(
     assert resumed["clarification_round"] == 1, "the round already asked was not forgotten"
     assert resumed["original_question"] == "How many leaves can I take?"
     assert resumed["answer_status"] == AnswerStatus.VERIFIED
+
+
+# The fields a conversation deliberately carries from one question to the next. Every
+# other field in the state belongs to a single question and has to be cleared before the
+# next one, or the next question is answered partly as if it were the last one.
+FIELDS_A_CONVERSATION_KEEPS = {
+    # Who is asking, and what they asked this time.
+    "employee_id",
+    "employee_question",
+    "requested_language",
+    "conversation_id",
+    "started_at_seconds",
+    # Their record, read once at the top of the turn.
+    "employee_facts",
+    "employee_profile",
+    # What the conversation remembers. Clearing these is what the reset must never do:
+    # they are written at the end of a turn and read at the start of the next, so
+    # emptying them in between loses exactly the context they exist for.
+    "remembered_turns",
+    "previous_reply",
+    # Fields belonging to one branch of the fan-out rather than to the turn.
+    "index",
+    "question",
+    "required_evidence_for_part",
+}
+
+
+def test_no_field_outlives_the_question_it_belongs_to():
+    """
+    Every field is either reset between questions or named here as one the conversation
+    keeps. Nothing may be neither.
+
+    `checkable_evidence` was missing from the reset for exactly this reason — nothing
+    compared the two lists. It is the text every figure in an answer is held against, so
+    a question that gathered nothing could still be checked against the previous
+    question's extracts and pass.
+    """
+    from app.workflow.conversation_state import ConversationState
+    from app.workflow.nodes.load_employee_facts import WORKED_OUT_FRESH_EACH_QUESTION
+
+    unaccounted = (
+        set(ConversationState.__annotations__)
+        - set(WORKED_OUT_FRESH_EACH_QUESTION)
+        - FIELDS_A_CONVERSATION_KEEPS
+    )
+    assert not unaccounted, (
+        f"{sorted(unaccounted)} outlive the question they belong to. Add each to "
+        "WORKED_OUT_FRESH_EACH_QUESTION, or to FIELDS_A_CONVERSATION_KEEPS if the "
+        "conversation is meant to carry it."
+    )
+
+
+def test_the_conversations_own_memory_is_never_reset():
+    """
+    The other half of the rule. Adding either of these to the reset would wipe them in
+    the one step between the turn that writes them and the turn that reads them — and
+    every single-turn test would still pass while follow-ups silently lost their context.
+    """
+    from app.workflow.nodes.load_employee_facts import WORKED_OUT_FRESH_EACH_QUESTION
+
+    assert "remembered_turns" not in WORKED_OUT_FRESH_EACH_QUESTION
+    assert "previous_reply" not in WORKED_OUT_FRESH_EACH_QUESTION

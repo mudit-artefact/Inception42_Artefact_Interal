@@ -208,3 +208,37 @@ def test_a_supposed_figure_is_not_quotable_without_a_sum_that_uses_it():
     )
 
     assert not outcome.is_valid
+
+
+def test_a_dirham_figure_written_the_english_way_is_still_checked():
+    """
+    Every unit follows its number — "15 days", "45,000 درهم" — except the currency code
+    in English, which comes first. "AED 45,000" was therefore not a quantity as far as
+    this check was concerned, and so was held against nothing at all.
+
+    That is the exact shape of the education allowance answer that shipped: a dirham
+    ceiling, written the way anybody writes it in English, in an answer marked verified.
+    """
+    outcome = validate_answer(
+        answer="Your education allowance is up to AED 45,000 per eligible child.",
+        evidence_text='{"plan_name": "Education Allowance - Standard", "annual_limit_aed": 25000}',
+        employee_id="EMP001",
+        requested_language="en",
+        has_any_evidence=True,
+    )
+
+    assert not outcome.is_valid
+    assert "AED 45,000" in outcome.unsupported_claims
+
+
+def test_the_employees_own_dirham_ceiling_passes():
+    """The same sentence, with the figure their own record holds."""
+    outcome = validate_answer(
+        answer="Your education allowance is up to AED 25,000 per eligible child.",
+        evidence_text='{"plan_name": "Education Allowance - Standard", "annual_limit_aed": 25000}',
+        employee_id="EMP001",
+        requested_language="en",
+        has_any_evidence=True,
+    )
+
+    assert outcome.is_valid, outcome.reason

@@ -1,32 +1,24 @@
 """
-Agentic Leave & Absence Action Nodes: Parameter extraction, calendar date picker,
-policy validation, Human-in-the-Loop confirmation pauses, manager approvals,
-and transactional database commits.
+Leave actions that answer in one go: cancelling, checking status, and a manager's
+approvals.
+
+Applying for leave is not here. It is the one action that pauses to ask the employee
+something — twice — so it lives in `leave_application.py`, split into steps that can be
+paused in. See the note at the top of that module.
 """
 
-from datetime import date
 import logging
 import re
-from typing import Optional
-
-from langgraph.types import interrupt
 
 from app.database.engine import SessionLocal
-from app.database.tables import Employee, LeaveBalance, LeaveRequest
+from app.database.tables import Employee, LeaveRequest
 from app.domain.enums import AnswerStatus, QuestionIntent
 from app.services.leave_service import (
-    approve_leave_request,
-    cancel_leave_request,
-    commit_leave_request,
     get_manager_pending_approvals,
     get_pending_leave_requests,
-    reject_leave_request,
-    validate_leave_policy,
 )
 from app.workflow.conversation_state import ConversationState
-from app.workflow.language_model_client import generate_structured_output
-from app.workflow.prompts import LEAVE_EXTRACTION_INSTRUCTIONS
-from app.workflow.structured_outputs import LeaveApplicationDraft, LeaveCancellationDraft
+from app.workflow.tools import run_tool
 
 logger = logging.getLogger(__name__)
 
@@ -41,220 +33,36 @@ NEGATIVE_REPLY = re.compile(
 )
 
 
-def handle_leave_application(state: ConversationState) -> dict:
+def _could_not_act(outcome, lang: str, *, english: str, arabic: str) -> dict:
     """
-    Handle the apply_leave intent:
-    1. Extract dates, duration, leave type from message.
-    2. Check completeness. If missing fields, pause with SHOW_LEAVE_CALENDAR_PICKER interrupt.
-    3. Run deterministic policy validation against employee balances and rules.
-    4. If invalid, decline with clear policy reasons.
-    5. If valid, pause via interrupt for Human-in-the-Loop user confirmation.
-    6. Upon confirmation resume, submit to manager as Pending.
+    An action that did not happen, said in the employee's own language.
+
+    A service that declines on purpose writes its own sentence — "request #12 is already
+    Approved" — and that sentence is ours, so it is safe to pass on. It is only written in
+    English, though, so an Arabic turn gets the Arabic line here instead; an English
+    sentence in an Arabic reply fails the language check and would be thrown away anyway.
+
+    Anything that actually broke says none of this. Its traceback is in the log.
     """
-    employee_id = state["employee_id"]
-    question = state["employee_question"]
-    lang = state.get("requested_language", "en")
-    today_str = date.today().strftime("%Y-%m-%d")
-
-    # Step A: Extract draft parameters
-    extract_prompt = (
-        f"Today's date is: {today_str}\n"
-        f"Employee ID: {employee_id}\n"
-        f'Employee message: "{question}"\n'
+    declined_in_our_words = (
+        outcome.result.get("message") if isinstance(outcome.result, dict) else None
     )
-    if state.get("employee_clarification_reply"):
-        extract_prompt += f'Prior clarification reply: "{state["employee_clarification_reply"]}"\n'
+    if lang == "en" and declined_in_our_words:
+        spoken = declined_in_our_words
+    else:
+        spoken = arabic if lang == "ar" else english
 
-    draft = generate_structured_output(
-        messages=[
-            {"role": "system", "content": LEAVE_EXTRACTION_INSTRUCTIONS},
-            {"role": "user", "content": extract_prompt},
-        ],
-        output_model=LeaveApplicationDraft,
-    )
-
-    logger.info(
-        f"Extracted leave draft for {employee_id}: type={draft.leave_type}, "
-        f"start={draft.start_date}, end={draft.end_date}, days={draft.days_requested}, "
-        f"complete={draft.is_complete}"
-    )
-
-    # Step B: If dates/duration missing, pause and offer the interactive calendar picker
-    if not draft.is_complete or not draft.start_date:
-        clarification_msg = (
-            f"Please select your dates on the calendar below to apply for {draft.leave_type or 'Annual leave'}:"
-            if lang == "en"
-            else f"يرجى تحديد التواريخ المطلوبة من التقويم أدناه لطلب {draft.leave_type or 'إجازة اعتيادية'}:"
-        )
-        user_reply = interrupt(
-            {
-                "clarification_question": clarification_msg,
-                "original_question": question,
-                "action_payload": {
-                    "action_type": "SHOW_LEAVE_CALENDAR_PICKER",
-                    "leave_type": draft.leave_type or "Annual leave",
-                    "min_date": today_str,
-                },
-                "is_action_required": True,
-            }
-        )
-        # Resumed with dates chosen by employee!
-        extract_prompt += f'Employee provided dates: "{user_reply}"\n'
-        draft = generate_structured_output(
-            messages=[
-                {"role": "system", "content": LEAVE_EXTRACTION_INSTRUCTIONS},
-                {"role": "user", "content": extract_prompt},
-            ],
-            output_model=LeaveApplicationDraft,
-        )
-
-    # If still incomplete after asking:
-    if not draft.is_complete or not draft.start_date:
-        fallback_msg = (
-            "Unable to process leave request without valid dates. Please try again with specific dates."
-            if lang == "en"
-            else "تعذر معالجة طلب الإجازة دون تواريخ محددة. يرجى المحاولة مرة أخرى بتواريخ واضحة."
-        )
-        return {
-            "final_answer": fallback_msg,
-            "answer_status": AnswerStatus.SAFE_FALLBACK.value,
-            "citations": [],
-        }
-
-    # Step C: Deterministic policy validation
-    validation = validate_leave_policy(employee_id=employee_id, draft=draft)
-    state_validation_dict = validation.model_dump()
-
-    # Step D: If policy check fails (insufficient balance, notice violation, probation restriction)
-    if not validation.is_valid:
-        violations_text = "\n".join(f"• {v}" for v in validation.violations)
-        if lang == "ar":
-            decline_msg = (
-                f"⚠️ **تعذر تقديم طلب الإجازة بسبب شروط السياسة:**\n\n"
-                f"{violations_text}\n\n"
-                f"إذا كنت بحاجة إلى استثناء أو مزيد من المساعدة، يرجى التواصل مع مسؤول الموارد البشرية أو مديرك المباشر."
-            )
-        else:
-            decline_msg = (
-                f"⚠️ **Unable to submit leave request due to policy requirements:**\n\n"
-                f"{violations_text}\n\n"
-                f"Please adjust your dates or contact your Line Manager ({validation.approver_name}) / HR for special dispensation."
-            )
-
-        return {
-            "final_answer": decline_msg,
-            "answer_status": AnswerStatus.ACTION_REJECTED.value,
-            "leave_draft": draft.model_dump(),
-            "leave_validation": state_validation_dict,
-            "action_payload": {
-                "action_type": "POLICY_VIOLATION",
-                "is_valid": False,
-                "violations": validation.violations,
-                "leave_type": validation.leave_type,
-                "start_date": validation.start_date,
-                "end_date": validation.end_date,
-                "working_days": validation.working_days,
-            },
-            "citations": [],
-        }
-
-    # Step E: Valid! Prepare Human-in-the-Loop Confirmation Card and Pause
-    confirmation_question = (
-        f"Please review and confirm your {validation.leave_type} request below:"
-        if lang == "en"
-        else f"يرجى مراجعة وتأكيد طلب {validation.leave_type} أدناه:"
-    )
-
-    bal_before_val = int(validation.balance_before) if float(validation.balance_before).is_integer() else validation.balance_before
-    bal_after_val = int(validation.balance_after) if float(validation.balance_after).is_integer() else validation.balance_after
-
-    action_payload = {
-        "action_type": "CONFIRM_LEAVE_APPLICATION",
-        "leave_type": validation.leave_type,
-        "start_date": validation.start_date,
-        "end_date": validation.end_date,
-        "working_days": validation.working_days,
-        "balance_before": bal_before_val,
-        "balance_after": bal_after_val,
-        "approver_name": validation.approver_name,
-        "notice_compliant": validation.notice_compliant,
-        "requires_medical_certificate": validation.requires_medical_certificate,
-        "summary_text": confirmation_question,
+    return {
+        "final_answer": spoken,
+        "answer_status": AnswerStatus.SAFE_FALLBACK.value,
+        "citations": [],
     }
 
-    # LangGraph interrupt: pauses workflow until user confirms or cancels
-    user_decision = interrupt(
-        {
-            "clarification_question": confirmation_question,
-            "original_question": question,
-            "action_payload": action_payload,
-            "is_action_required": True,
-        }
-    )
 
-    # Step F: User Resumed! Check confirmation decision
-    decision_text = str(user_decision or "").strip()
-    logger.info(f"Leave action resumed with user decision: '{decision_text}'")
-
-    if NEGATIVE_REPLY.search(decision_text):
-        cancel_msg = (
-            "Your leave request has been cancelled. No changes were made to your leave balance."
-            if lang == "en"
-            else "تم إلغاء طلب الإجازة. لم يتم إجراء أي تغيير على رصيدك."
-        )
-        return {
-            "final_answer": cancel_msg,
-            "answer_status": AnswerStatus.ACTION_REJECTED.value,
-            "action_payload": {"action_type": "LEAVE_CANCELLED_BY_USER"},
-            "citations": [],
-        }
-
-    if not AFFIRMATIVE_REPLY.search(decision_text):
-        logger.info(f"Leave action resumed without affirmative confirmation: '{decision_text}'")
-        cancel_msg = (
-            "Your leave request was not submitted as it was not confirmed. Please let me know if you would like to submit a new request."
-            if lang == "en"
-            else "لم يتم إرسال طلب الإجازة لعدم التأكيد. يرجى إخباري إذا كنت ترغب في تقديم طلب جديد."
-        )
-        return {
-            "final_answer": cancel_msg,
-            "answer_status": AnswerStatus.ACTION_REJECTED.value,
-            "action_payload": {"action_type": "LEAVE_CANCELLED_BY_USER"},
-            "citations": [],
-        }
-
-    # Step G: Confirmed! Submit Request as Pending to Manager
-    try:
-        receipt = commit_leave_request(
-            employee_id=employee_id,
-            validation=validation,
-            reason=draft.reason,
-        )
-
-        cur_bal_display = int(receipt['current_balance']) if isinstance(receipt['current_balance'], (int, float)) and float(receipt['current_balance']).is_integer() else receipt['current_balance']
-        proj_bal_display = int(receipt['projected_balance']) if isinstance(receipt['projected_balance'], (int, float)) and float(receipt['projected_balance']).is_integer() else receipt['projected_balance']
-
-        if lang == "ar":
-            success_msg = "✅ **تم إرسال طلب الإجازة بنجاح وهو بانتظار اعتماد المدير.**"
-        else:
-            success_msg = "✅ **Leave Request Submitted & Awaiting Manager Approval!**"
-
-        return {
-            "final_answer": success_msg,
-            "answer_status": AnswerStatus.ACTION_EXECUTED.value,
-            "action_payload": {
-                "action_type": "LEAVE_SUBMITTED_PENDING_APPROVAL",
-                "receipt": receipt,
-            },
-            "citations": [],
-        }
-    except Exception as exc:
-        logger.error(f"Error submitting leave request: {exc}", exc_info=True)
-        return {
-            "final_answer": f"An error occurred while submitting your leave request: {str(exc)}",
-            "answer_status": AnswerStatus.SAFE_FALLBACK.value,
-            "citations": [],
-        }
+# Applying for leave now lives in `leave_application.py`, split into steps so that the
+# two pauses it needs sit in steps of their own. It was one step holding both, and every
+# resume replayed everything in front of the pause: two model calls to read the request,
+# and a fresh read of the balance the employee had already been shown.
 
 
 def handle_manager_approval(state: ConversationState) -> dict:
@@ -317,19 +125,33 @@ def handle_manager_approval(state: ConversationState) -> dict:
             "citations": [],
         }
 
-    # Extract target request ID if stated, or look for direct report name
-    id_match = re.search(r"#?\b(\d+)\b", question)
+    # Which request this is about. `pending_approvals` is already scoped to this
+    # manager's own direct reports, so it is the only list a target may come from.
+    #
+    # A number in the message is a hint, not an instruction. It used to be taken
+    # literally — any integer anywhere in the sentence became the request id, checked
+    # against nothing — so "approve 3 days of annual leave" approved request #3,
+    # whoever it belonged to.
+    approvable = {approval["request_id"]: approval for approval in pending_approvals}
     target_id = None
-    if id_match:
-        target_id = int(id_match.group(1))
-    elif pending_approvals:
-        for pa in pending_approvals:
-            emp_first_name = pa["employee_name"].split()[0].lower()
-            if emp_first_name in question.lower():
-                target_id = pa["request_id"]
-                break
-        if not target_id and len(pending_approvals) == 1:
-            target_id = pending_approvals[0]["request_id"]
+
+    stated = re.search(r"#?\b(\d+)\b", question)
+    if stated and int(stated.group(1)) in approvable:
+        target_id = int(stated.group(1))
+
+    if target_id is None:
+        # A first name only decides it when exactly one report answers to it. Two people
+        # called Omar is not a tie to break by picking the earlier row.
+        named = [
+            approval["request_id"]
+            for approval in pending_approvals
+            if approval["employee_name"].split()[0].lower() in question.lower()
+        ]
+        if len(named) == 1:
+            target_id = named[0]
+
+    if target_id is None and len(pending_approvals) == 1:
+        target_id = pending_approvals[0]["request_id"]
 
     if not target_id:
         msg = (
@@ -348,17 +170,31 @@ def handle_manager_approval(state: ConversationState) -> dict:
         }
 
     if intent == QuestionIntent.REJECT_LEAVE or re.search(r"\b(reject|decline)\b", question, re.I):
-        res = reject_leave_request(manager_id=manager_id, request_id=target_id)
-        if not res.get("success"):
-            return {
-                "final_answer": res.get("message", "Unable to reject request."),
-                "answer_status": AnswerStatus.SAFE_FALLBACK.value,
-                "citations": [],
-            }
+        # The target came from this manager's own scoped list, which is what authorises
+        # the write from the workflow's side. The reporting-line check inside the
+        # database transaction is the layer below this one, and is still owed.
+        outcome = run_tool(
+            "reject_leave",
+            authorised_to_write=True,
+            manager_id=manager_id,
+            request_id=target_id,
+        )
+        if not outcome.ok:
+            return _could_not_act(
+                outcome,
+                lang,
+                english="I could not reject that request. Nothing has changed.",
+                arabic="لم أتمكن من رفض هذا الطلب، ولم يطرأ أي تغيير.",
+            )
+        res = outcome.result
         ans = (
             f"❌ **Leave Request has been Rejected.**\n\n"
             f"Request from **{res['employee_name']}** for {res['days_requested']} days of {res['leave_type']} "
             f"has been marked as Rejected. The employee has been notified."
+            if lang == "en"
+            else f"❌ **تم رفض طلب الإجازة.**\n\n"
+            f"طلب **{res['employee_name']}** لمدة {res['days_requested']} أيام من {res['leave_type']} "
+            f"تم رفضه، وقد تم إشعار الموظف."
         )
         return {
             "final_answer": ans,
@@ -369,13 +205,20 @@ def handle_manager_approval(state: ConversationState) -> dict:
 
     # Only approve if explicit approve command is present and NOT an inquiry!
     if is_action_command and (intent == QuestionIntent.APPROVE_LEAVE or re.search(r"\b(approve|accept)\b", question, re.I)):
-        res = approve_leave_request(manager_id=manager_id, request_id=target_id)
-        if not res.get("success"):
-            return {
-                "final_answer": res.get("message", "Unable to approve request."),
-                "answer_status": AnswerStatus.SAFE_FALLBACK.value,
-                "citations": [],
-            }
+        outcome = run_tool(
+            "approve_leave",
+            authorised_to_write=True,
+            manager_id=manager_id,
+            request_id=target_id,
+        )
+        if not outcome.ok:
+            return _could_not_act(
+                outcome,
+                lang,
+                english="I could not approve that request. Nothing has changed.",
+                arabic="لم أتمكن من اعتماد هذا الطلب، ولم يطرأ أي تغيير.",
+            )
+        res = outcome.result
 
         ans = (
             "Thanks for approving leave!"
@@ -561,13 +404,18 @@ def handle_leave_cancellation(state: ConversationState) -> dict:
     question = state["employee_question"]
     lang = state.get("requested_language", "en")
 
-    # Extract request ID if mentioned, e.g. "cancel leave #3" or "cancel request 3"
-    id_match = re.search(r"#?\b(\d+)\b", question)
-    pending = get_pending_leave_requests(employee_id)
+    # Which request, e.g. "cancel leave #3". As with approval, a number only counts when
+    # it names one of this employee's own pending requests. The query behind the write
+    # already scopes by employee, so this cannot reach another person's row either way —
+    # but saying "that is not one of yours" beats a bare "not found".
+    pending_read = run_tool("check_leave_status", employee_id=employee_id)
+    pending = pending_read.result if pending_read.ok else []
+    cancellable = {request["id"] for request in pending}
 
     target_id = None
-    if id_match:
-        target_id = int(id_match.group(1))
+    stated = re.search(r"#?\b(\d+)\b", question)
+    if stated and int(stated.group(1)) in cancellable:
+        target_id = int(stated.group(1))
     elif len(pending) == 1:
         target_id = pending[0]["id"]
 
@@ -590,13 +438,21 @@ def handle_leave_cancellation(state: ConversationState) -> dict:
             "citations": [],
         }
 
-    res = cancel_leave_request(employee_id=employee_id, request_id=target_id)
-    if not res.get("success"):
-        return {
-            "final_answer": res.get("message", "Unable to cancel request."),
-            "answer_status": AnswerStatus.SAFE_FALLBACK.value,
-            "citations": [],
-        }
+    # The employee asked to cancel their own request, and the target came from their own
+    # pending list. That is what authorises the write.
+    outcome = run_tool(
+        "cancel_leave",
+        authorised_to_write=True,
+        employee_id=employee_id,
+        request_id=target_id,
+    )
+    if not outcome.ok:
+        return _could_not_act(
+            outcome,
+            lang,
+            english="I could not cancel that request. Nothing has changed.",
+            arabic="لم أتمكن من إلغاء هذا الطلب، ولم يطرأ أي تغيير.",
+        )
 
     if lang == "ar":
         ans = (

@@ -54,21 +54,25 @@ from app.workflow.nodes.finish_turn import (
 )
 from app.workflow.nodes.gather_evidence import assemble_evidence, gather_subquery_evidence
 from app.workflow.nodes.generate_answer import generate_answer
-from app.workflow.nodes.handle_leave_action import (
+from app.workflow.nodes.leave_application import (
+    compose_leave_confirmation,
     handle_leave_application,
-    handle_leave_cancellation,
-    handle_leave_status,
-    handle_manager_approval,
+    request_leave_dates,
+    submit_leave_application,
+    wait_for_leave_confirmation,
+    wait_for_leave_dates,
 )
-from app.workflow.nodes.handle_school_verification import handle_school_verification
 from app.workflow.nodes.load_employee_facts import load_employee_facts
+from app.workflow.nodes.prepare_action_answer import prepare_action_answer
 from app.workflow.nodes.rephrase_previous_answer import rephrase_previous_answer
+from app.workflow.nodes.run_action import run_action
 from app.workflow.nodes.rewrite_and_decompose import rewrite_and_decompose_query
 from app.workflow.nodes.route_subqueries import route_each_subquery
 from app.workflow.nodes.understand_query import understand_query
 from app.workflow.nodes.validate_answer import validate_answer
 from app.workflow.routing_rules import (
     GATHER_EVIDENCE_FOR_ONE_PART,
+    decide_after_reading_the_leave_request,
     decide_after_understanding,
     decide_answer_validity,
     fan_out_to_each_subquery,
@@ -98,13 +102,20 @@ def build_conversation_workflow() -> StateGraph:
     workflow.add_node("finalize_verified_answer", finalize_verified_answer)
     workflow.add_node("build_safe_fallback", build_safe_fallback)
     workflow.add_node("record_conversation_turn", record_conversation_turn)
-    # Agentic Leave & Absence Action Nodes
+    # Everything the assistant can do, behind one branch. Which one runs is a lookup in
+    # run_action, so a new action does not add a destination to the fork above.
+    workflow.add_node("run_action", run_action)
+    # Applying is its own flow, because it is the only action that pauses to ask.
     workflow.add_node("handle_leave_application", handle_leave_application)
-    workflow.add_node("handle_leave_cancellation", handle_leave_cancellation)
-    workflow.add_node("handle_leave_status", handle_leave_status)
-    workflow.add_node("handle_manager_approval", handle_manager_approval)
-    # HCS-11 School Verification Action Node
-    workflow.add_node("handle_school_verification", handle_school_verification)
+    # Applying for leave, as steps. Each pause sits in a step of its own holding
+    # nothing else, so resuming never replays the work in front of it.
+    workflow.add_node("request_leave_dates", request_leave_dates)
+    workflow.add_node("wait_for_leave_dates", wait_for_leave_dates)
+    workflow.add_node("compose_leave_confirmation", compose_leave_confirmation)
+    workflow.add_node("wait_for_leave_confirmation", wait_for_leave_confirmation)
+    workflow.add_node("submit_leave_application", submit_leave_application)
+    # What every branch that answers without searching hands to the check.
+    workflow.add_node("prepare_action_answer", prepare_action_answer)
 
     workflow.add_edge(START, "load_employee_facts")
     workflow.add_edge("load_employee_facts", "understand_query")
@@ -121,10 +132,7 @@ def build_conversation_workflow() -> StateGraph:
             "rewrite_and_decompose_query": "rewrite_and_decompose_query",
             "route_each_subquery": "route_each_subquery",
             "handle_leave_application": "handle_leave_application",
-            "handle_leave_cancellation": "handle_leave_cancellation",
-            "handle_leave_status": "handle_leave_status",
-            "handle_manager_approval": "handle_manager_approval",
-            "handle_school_verification": "handle_school_verification",
+            "run_action": "run_action",
         },
     )
 
@@ -164,15 +172,41 @@ def build_conversation_workflow() -> StateGraph:
         },
     )
 
-    workflow.add_edge("generate_greeting", "record_conversation_turn")
-    workflow.add_edge("generate_document_upload_prompt", "record_conversation_turn")
+    # Every branch that answers without searching — the greeting, the upload prompt, the
+    # four leave actions and school verification — is checked like any other answer.
+    #
+    # These seven used to edge straight to the end. That is how an answer stating a figure
+    # nobody could point at reached the employee marked verified: the step that exists to
+    # catch exactly that was the one step it never passed through.
+    ANSWERS_WITHOUT_SEARCHING = (
+        "generate_greeting",
+        "generate_document_upload_prompt",
+        "submit_leave_application",
+        "run_action",
+    )
+    for branch in ANSWERS_WITHOUT_SEARCHING:
+        workflow.add_edge(branch, "prepare_action_answer")
+    workflow.add_edge("prepare_action_answer", "validate_answer")
+
+    # Applying for leave asks up to two things. Asking for dates loops back so the reply
+    # is read together with the original message; confirming does not, because by then
+    # there is nothing left to work out.
+    workflow.add_conditional_edges(
+        "handle_leave_application",
+        decide_after_reading_the_leave_request,
+        {
+            "request_leave_dates": "request_leave_dates",
+            "compose_leave_confirmation": "compose_leave_confirmation",
+            "prepare_action_answer": "prepare_action_answer",
+        },
+    )
+    workflow.add_edge("request_leave_dates", "wait_for_leave_dates")
+    workflow.add_edge("wait_for_leave_dates", "handle_leave_application")
+    workflow.add_edge("compose_leave_confirmation", "wait_for_leave_confirmation")
+    workflow.add_edge("wait_for_leave_confirmation", "submit_leave_application")
+
     workflow.add_edge("finalize_verified_answer", "record_conversation_turn")
     workflow.add_edge("build_safe_fallback", "record_conversation_turn")
-    workflow.add_edge("handle_leave_application", "record_conversation_turn")
-    workflow.add_edge("handle_leave_cancellation", "record_conversation_turn")
-    workflow.add_edge("handle_leave_status", "record_conversation_turn")
-    workflow.add_edge("handle_manager_approval", "record_conversation_turn")
-    workflow.add_edge("handle_school_verification", "record_conversation_turn")
     workflow.add_edge("record_conversation_turn", END)
 
 

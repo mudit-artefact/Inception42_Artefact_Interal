@@ -31,6 +31,7 @@ EXPECTED_ANSWER_KEYS = {
     "is_awaiting_clarification",
     "action_payload",
     "is_action_required",
+    "chart",
 }
 
 # Every key the frontend's PolicySource type reads off a citation.

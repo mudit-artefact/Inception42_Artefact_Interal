@@ -12,8 +12,15 @@ from tests.workflow.conftest import (  # noqa: F401
 
 
 @pytest.fixture
-def client(stub_policy_search_service):
-    """The application, started, with the fake language model already in place."""
+def client(temporary_database, stub_policy_search_service):
+    """
+    The application, started, with the fake language model already in place.
+
+    `temporary_database` comes first deliberately. Unlike `api_client` in the root
+    conftest, this fixture starts the application's lifespan, and the lifespan seeds
+    employees and indexes policies for real — so without the temporary database pointed
+    at first, running the streaming tests rewrote the developer's own records.
+    """
     from fastapi.testclient import TestClient
 
     from app.main import app

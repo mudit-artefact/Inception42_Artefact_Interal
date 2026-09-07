@@ -17,7 +17,7 @@ from typing import Annotated, TypedDict
 
 # Raise this when the fields below change. It is part of the saved-state key, so old
 # saved conversations start fresh instead of resuming into steps that expect new fields.
-CONVERSATION_STATE_VERSION = 5
+CONVERSATION_STATE_VERSION = 6
 
 
 
@@ -151,4 +151,12 @@ class ConversationState(TypedDict, total=False):
     action_payload: dict | None
     is_action_required: bool
     leave_action_status: str | None
+    # Where a leave application has got to, and what the employee said at each pause.
+    # Applying used to be one step holding two pauses, replayed from the top on every
+    # resume: it re-extracted the request from the model twice and re-read the balance,
+    # so the card an employee confirmed could describe a balance that had since moved.
+    leave_stage: str
+    leave_dates_round: int
+    leave_dates_reply: str | None
+    leave_confirmation_reply: str | None
 

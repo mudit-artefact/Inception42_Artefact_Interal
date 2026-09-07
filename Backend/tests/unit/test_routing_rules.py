@@ -159,3 +159,30 @@ def test_a_question_where_no_part_can_be_served_gathers_nothing_at_all():
 )
 def test_only_a_valid_answer_is_shown(verdict, expected_next_step):
     assert decide_answer_validity({"answer_verdict": verdict}) == expected_next_step
+
+
+def test_every_action_intent_reaches_the_one_action_branch():
+    """
+    Each action used to be its own destination out of the first fork, so the fork grew a
+    lane every time the product grew a feature. They share one now, and which action runs
+    is a lookup — so an intent registered in one place and not the other would route
+    somewhere that cannot serve it.
+    """
+    from app.workflow.nodes.run_action import ACTION_FOR_INTENT
+
+    for intent in ACTION_FOR_INTENT:
+        assert decide_after_understanding({"question_intent": intent}) == "run_action", (
+            f"{intent} is registered as an action but the fork sends it elsewhere"
+        )
+
+
+def test_applying_for_leave_keeps_its_own_branch():
+    """It is the only action that pauses to ask, so it needs steps of its own."""
+    from app.domain.enums import QuestionIntent
+    from app.workflow.nodes.run_action import ACTION_FOR_INTENT
+
+    assert QuestionIntent.APPLY_LEAVE.value not in ACTION_FOR_INTENT
+    assert (
+        decide_after_understanding({"question_intent": QuestionIntent.APPLY_LEAVE})
+        == "handle_leave_application"
+    )

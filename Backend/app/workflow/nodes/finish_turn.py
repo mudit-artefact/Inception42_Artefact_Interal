@@ -245,12 +245,24 @@ def finalize_verified_answer(state: ConversationState) -> dict:
 
     clean_answer = _clean_and_format_markdown(state.get("draft_answer", ""))
 
+    # An action branch has already said what became of the request, and "verified" is not
+    # that. Whether the answer is true to its evidence is what the check just settled;
+    # whether the leave was booked is a different fact and the only one that can report it
+    # is the step that did it.
+    already_reported = state.get("answer_status")
+    reports_an_action = already_reported in {
+        AnswerStatus.ACTION_EXECUTED.value,
+        AnswerStatus.ACTION_REJECTED.value,
+    }
+
     result = {
         "final_answer": clean_answer,
         "citations": _citations_for(state),
         "answer_status": (
-            AnswerStatus.PARTIAL if unanswered else AnswerStatus.VERIFIED
-        ).value,
+            already_reported
+            if reports_an_action
+            else (AnswerStatus.PARTIAL if unanswered else AnswerStatus.VERIFIED).value
+        ),
     }
 
     # Include chart visualization if one was generated
@@ -302,6 +314,11 @@ def build_safe_fallback(state: ConversationState) -> dict:
         "citations": citations,
         "answer_status": status,
         "fallback_reason": reason,
+        # The card goes with the answer it belonged to. Now that action branches are
+        # checked like everything else, one of them can end up here — and "I could not
+        # find that" under a leave confirmation card the employee is invited to approve
+        # is worse than either half on its own.
+        "action_payload": None,
     }
 
 

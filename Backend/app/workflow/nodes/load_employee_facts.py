@@ -45,10 +45,16 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "policy_passages": [],
     "hr_data_facts": {},
     "evidence_summary": "",
+    # The text every figure in the answer is held against. It was missing from this list,
+    # which made it the one validation input that outlived the question it was gathered
+    # for: a later answer's numbers could be quietly grounded in an earlier turn's
+    # extracts, and the check would pass on evidence nobody had looked for.
+    "checkable_evidence": "",
     # Step 5 and the check that follows it
     "draft_answer": "",
     "declared_calculations": [],
     "tokens_used": 0,
+    "latency_milliseconds": 0,
     "chart_data": None,  # Reset chart data for each new question
     "answer_verdict": "",
     "unsupported_claims": [],
@@ -64,6 +70,10 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "leave_draft": None,
     "leave_validation": None,
     "leave_action_status": None,
+    "leave_stage": "",
+    "leave_dates_round": 0,
+    "leave_dates_reply": None,
+    "leave_confirmation_reply": None,
     # `remembered_turns` and `previous_reply` are deliberately NOT here, and must never
     # be added.
     #

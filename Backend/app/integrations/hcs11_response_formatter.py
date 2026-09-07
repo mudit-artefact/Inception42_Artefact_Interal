@@ -8,7 +8,7 @@ translates them into clear, actionable messages for employees.
 from dataclasses import dataclass, field
 from enum import Enum
 
-from .hcs11_schemas import CaseDetail, EmployeeIssueOut, RequiredDocumentOut
+from .hcs11_schemas import CaseDetail
 
 
 class UploadStatus(str, Enum):
@@ -19,6 +19,7 @@ class UploadStatus(str, Enum):
     NEEDS_REVIEW = "needs_review"
     INCOMPLETE = "incomplete"
     ALREADY_PAID = "already_paid"
+    REJECTED = "rejected"
     ERROR = "error"
 
 
@@ -86,26 +87,46 @@ def format_upload_result(case: CaseDetail) -> UploadResult:
 
 
 def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
-    """Build status list for each required document."""
-    statuses = []
+    """
+    The checklist, with each problem shown against the file it is about.
 
-    doc_issues = {
-        issue.kind: issue.what_to_do
-        for issue in case.employee_issues
+    Problems used to be matched to files by `kind`, but the two `kind`s are different
+    vocabularies: a problem's kind is what went wrong ("unreadable"), and a checklist
+    row's kind is which document it is ("enrolment_certificate"). They never matched, so
+    `has_issues` was never true and no problem was ever shown beside a file.
+
+    HCS-11 says which files each problem is about, by id and by name. Ids are preferred
+    where they resolve, because a replaced file keeps the name it was sent under.
+    """
+    name_for_id = {
+        document.document_id: document.file_name for document in case.documents
     }
 
-    for req in case.required_documents:
-        has_issue = req.kind in doc_issues
-        statuses.append(DocumentStatus(
-            kind=req.kind,
-            label=req.label,
-            filename=req.file_name,
-            received=req.received,
-            has_issues=has_issue,
-            issue_message=doc_issues.get(req.kind),
-        ))
+    problems_by_filename: dict[str, list[str]] = {}
+    for issue in case.employee_issues:
+        named_files = {name_for_id.get(document_id) for document_id in issue.document_ids}
+        named_files.update(issue.documents)
+        for filename in named_files:
+            if filename:
+                problems_by_filename.setdefault(filename, []).append(
+                    f"{issue.title}. {issue.what_to_do}"
+                )
 
-    return statuses
+    return [
+        DocumentStatus(
+            kind=required.kind,
+            label=required.label,
+            filename=required.file_name,
+            received=required.received,
+            has_issues=bool(problems_by_filename.get(required.file_name)),
+            issue_message=(
+                " ".join(problems_by_filename[required.file_name])
+                if problems_by_filename.get(required.file_name)
+                else None
+            ),
+        )
+        for required in case.required_documents
+    ]
 
 
 def _extract_issues(case: CaseDetail) -> list[str]:
@@ -162,6 +183,18 @@ def _determine_status(
     if case.route == "approve" or case.case_status == "Approved":
         return UploadStatus.SUCCESS
 
+    # `route` alone cannot tell these apart. HCS-11 has only two routes — approve and
+    # review — so a claim that failed the rules, a claim that needs better paperwork, and
+    # a claim that is a genuine judgement call all arrive as "review". Which one it is
+    # lives in `recommendation`, and reading only the route collapsed all three into
+    # "received, under review": a claim the rules rejected was reported to the employee
+    # as a successful submission, with nothing to tell them anything was wrong.
+    if case.recommendation == "reject":
+        return UploadStatus.REJECTED
+
+    if case.recommendation == "request_documents":
+        return UploadStatus.NEEDS_REUPLOAD
+
     if case.route == "review" or case.awaiting_review:
         return UploadStatus.NEEDS_REVIEW
 
@@ -192,6 +225,18 @@ def _build_message(
             f"All documents for {case.dependent_name} have been verified. "
             f"Your claim for AED {amount:,.0f} is approved and will be "
             f"processed in the next payroll cycle."
+        )
+
+    if status == UploadStatus.REJECTED:
+        # Say that it did not pass, say why, and say what happens next. The employee is
+        # not left to infer any of the three from a sentence about a review.
+        why = " ".join(issues) if issues else ""
+        return (
+            "Claim Not Approved",
+            f"The claim for {case.dependent_name} did not meet the requirements and has "
+            f"not been approved. {why} "
+            f"A member of the People & Culture team will be in touch. "
+            f"Reference: {case.case_id}".replace("  ", " ").strip()
         )
 
     if status == UploadStatus.ALREADY_PAID:
@@ -250,18 +295,27 @@ def _build_reupload_prompt(
         if not doc.received:
             lines.append(f"• {doc.label} (not yet received)")
 
+    # Name the file the problem is about. This used to look the issue's `kind` up in the
+    # checklist, but an issue's kind says what went wrong ("unreadable") while a
+    # checklist row's kind says which document it is, so the lookup always missed and
+    # every line read "Unreadable (…)" instead of naming a document.
+    label_for_file = {
+        required.file_name: required.label
+        for required in case.required_documents
+        if required.file_name
+    }
+    name_for_id = {
+        document.document_id: document.file_name for document in case.documents
+    }
+
     for issue in case.employee_issues:
-        lines.append(f"• {_get_label_for_kind(issue.kind, case.required_documents)} ({issue.title.lower()})")
+        files = {name_for_id.get(document_id) for document_id in issue.document_ids}
+        files.update(issue.documents)
+        named = sorted(label_for_file.get(f, f) for f in files if f)
+        where = ", ".join(named) if named else "your documents"
+        lines.append(f"• {where} — {issue.title.lower()}")
 
     return True, "\n".join(lines)
-
-
-def _get_label_for_kind(kind: str, required_docs: list[RequiredDocumentOut]) -> str:
-    """Get the display label for a document kind."""
-    for doc in required_docs:
-        if doc.kind == kind:
-            return doc.label
-    return kind.replace("_", " ").title()
 
 
 def format_case_status_message(case: CaseDetail) -> str:
@@ -291,6 +345,13 @@ def format_case_status_message(case: CaseDetail) -> str:
         return (
             f"Your claim for {dependent} is approved for AED {amount:,.0f}. "
             "It will be included in the next payroll batch."
+        )
+
+    if case.recommendation == "reject":
+        return (
+            f"The claim for {dependent} did not meet the requirements and has not been "
+            f"approved. A member of the People & Culture team will be in touch. "
+            f"Reference: {case.case_id}"
         )
 
     if status == "Under Review" and case.awaiting_review:

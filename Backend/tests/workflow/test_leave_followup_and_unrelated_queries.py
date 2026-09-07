@@ -17,7 +17,7 @@ def _use_canned_passages(stub_policy_search_service, temporary_database):
 
 
 def test_unrelated_follow_up_does_not_trigger_leave_submission(
-    conversation_workflow, fake_language_model, script_understanding, script_routing
+    temporary_database, conversation_workflow, fake_language_model, script_understanding, script_routing
 ):
     cid = "test-unrelated-followup-conv"
 
@@ -68,7 +68,7 @@ def test_unrelated_follow_up_does_not_trigger_leave_submission(
     assert not res2.is_awaiting_clarification
 
     # Verification: No leave was committed in the database
-    db = SessionLocal()
+    db = temporary_database()
     req = (
         db.query(LeaveRequest)
         .filter_by(employee_id="EMP001", start_date="2026-11-17")

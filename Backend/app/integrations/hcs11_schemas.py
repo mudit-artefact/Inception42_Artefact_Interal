@@ -36,6 +36,14 @@ class EmployeeIssueOut(BaseModel):
     kind: str
     title: str
     what_to_do: str
+    # Which files the problem is about. HCS-11 sends both, and says why in its own
+    # comment: the ids are "for a caller that shows the message against the upload
+    # itself", because names are not unique on a claim — a replaced file keeps the name
+    # it was sent under. We are that caller, and both fields used to be dropped here,
+    # so a problem with one certificate could only ever be shown as a note about the
+    # claim as a whole.
+    documents: list[str] = []
+    document_ids: list[str] = []
 
 
 class ExtractedField(BaseModel):

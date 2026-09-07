@@ -15,6 +15,11 @@ import logging
 from langgraph.types import Send
 
 from app.domain.enums import QuestionIntent, RequiredEvidence
+from app.workflow.nodes.run_action import ACTION_FOR_INTENT
+from app.workflow.nodes.leave_application import (
+    AWAITING_CONFIRMATION,
+    NEEDS_DATES,
+)
 from app.workflow.conversation_state import ConversationState
 
 logger = logging.getLogger(__name__)
@@ -43,21 +48,11 @@ def decide_after_understanding(state: ConversationState) -> str:
     if intent == QuestionIntent.APPLY_LEAVE:
         return "handle_leave_application"
 
-    if intent == QuestionIntent.CANCEL_LEAVE:
-        return "handle_leave_cancellation"
-
-    if intent == QuestionIntent.CHECK_LEAVE_STATUS:
-        return "handle_leave_status"
-
-    if intent in (QuestionIntent.APPROVE_LEAVE, QuestionIntent.REJECT_LEAVE):
-        return "handle_manager_approval"
-
-    if intent in (
-        QuestionIntent.CHECK_SCHOOL_VERIFICATION,
-        QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
-        QuestionIntent.REVIEW_SCHOOL_CASES,
-    ):
-        return "handle_school_verification"
+    # Everything else the assistant can *do* goes to one place, which looks up what to
+    # run. Applying is the exception above because it is the only action that pauses to
+    # ask the employee something, so it needs steps of its own to pause in.
+    if intent in ACTION_FOR_INTENT:
+        return "run_action"
 
     if intent == QuestionIntent.DOCUMENT_UPLOAD:
         return "generate_document_upload_prompt"
@@ -128,3 +123,25 @@ def decide_answer_validity(state: ConversationState) -> str:
     if state.get("answer_verdict") == "valid":
         return "finalize_verified_answer"
     return "build_safe_fallback"
+
+
+def decide_after_reading_the_leave_request(state: ConversationState) -> str:
+    """
+    The fork inside applying for leave: ask for dates, ask for confirmation, or stop.
+
+    Both of the questions this asks the employee pause the conversation, and a pause is
+    resumed by re-running the step it sits in. So each one gets a step of its own holding
+    nothing else, and this decides which — rather than the two pauses sitting one after
+    the other inside the step that reads the request and checks the policy, replaying both
+    every time somebody answers.
+    """
+    stage = state.get("leave_stage")
+
+    if stage == NEEDS_DATES:
+        return "request_leave_dates"
+    if stage == AWAITING_CONFIRMATION:
+        return "compose_leave_confirmation"
+
+    # The policy declined it, or the dates never arrived. Either way there is an answer
+    # already written and nothing left to ask.
+    return "prepare_action_answer"

@@ -20,10 +20,17 @@ logger = logging.getLogger(__name__)
 ARABIC_INDIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
 
 # A number that is being used as a quantity, in either language.
+#
+# Two shapes, because a currency is written on whichever side the language puts it. Every
+# unit follows its number — "15 days", "45,000 درهم" — except the currency code in
+# English, which precedes it: "AED 45,000". That second shape used to be no shape at all,
+# so a dirham figure written the way anybody actually writes it in English was not a
+# quantity as far as this check was concerned, and was never held against anything.
 QUANTITY_PATTERN = re.compile(
-    r"(\d[\d,]*(?:\.\d+)?)\s*"
+    r"(?:(\d[\d,]*(?:\.\d+)?)\s*"
     r"(?:working\s+days?|days?|months?|weeks?|hours?|AED|dirhams?|%|percent"
-    r"|أيام|يوم|يوماً|أشهر|شهر|ساعات|ساعة|درهم|بالمائة|٪)",
+    r"|أيام|يوم|يوماً|أشهر|شهر|ساعات|ساعة|درهم|بالمائة|٪)"
+    r"|(?:AED|dirhams?)\s*(\d[\d,]*(?:\.\d+)?))",
     re.IGNORECASE,
 )
 
@@ -110,7 +117,9 @@ def check_every_quantity_is_grounded(
     unsupported_claims = [
         matched_quantity.group(0).strip()
         for matched_quantity in QUANTITY_PATTERN.finditer(_normalise_digits(answer))
-        if _normalise_number(matched_quantity.group(1)) not in grounded
+        # Whichever side the number fell on.
+        if _normalise_number(matched_quantity.group(1) or matched_quantity.group(2))
+        not in grounded
     ]
 
     if not unsupported_claims:
