@@ -4,7 +4,7 @@ from app.domain.policy_catalog import POLICY_CATALOG, english_documents, title_f
 
 
 def test_the_catalogue_holds_every_document_in_both_languages():
-    assert len(POLICY_CATALOG) == 16
+    assert len(POLICY_CATALOG) == 20
     assert len(english_documents()) == 10
 
 

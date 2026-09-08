@@ -57,4 +57,4 @@ def test_rebuilding_the_index_can_be_forced(api_client, fake_embedding_model):
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["status"] == "success"
-    assert body["chunks_indexed"] == 140
+    assert body["chunks_indexed"] == 168
