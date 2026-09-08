@@ -29,11 +29,11 @@ This policy applies to all employees of HC Services from their first day of serv
 **2.2.1 Entitlement and Pay Tranches**  
 Employees are entitled to a maximum of **90 days** of sick leave per leave year. Pay depends on how many days of the 90 have already been taken in that year:
 
-| Days of the 90 used | Pay level | Percentage | Counts toward the 90 |
-|---|---|---|---|
-| Days 1–15 | Full pay (basic + fixed allowances) | 100% | Yes |
-| Days 16–60 | Half pay | 50% | Yes |
-| Days 61–90 | Unpaid | 0% | Yes |
+| Days of the 90 used | Length of the tranche | Pay level | Percentage | Counts toward the 90 |
+|---|---|---|---|---|
+| Days 1–15 | 15 days | Full pay (basic + fixed allowances) | 100% | Yes |
+| Days 16–60 | 45 days | Half pay | 50% | Yes |
+| Days 61–90 | 30 days | Unpaid | 0% | Yes |
 
 The 90-day entitlement is counted across a **rolling 12-month period**, defined at HC-PC-007 §7.5, not per calendar year.
 
@@ -109,11 +109,11 @@ Falsifying a medical certificate, or claiming sick leave for a purpose other tha
 **A.1 Entitlement and Pay Tranches (Version 2.8, in force 1 January 2025 – 31 March 2026)**  
 Employees are entitled to a maximum of 90 days of sick leave per year, paid as follows:
 
-| Days of the 90 used | Pay level | Percentage |
-|---|---|---|
-| Days 1–15 | Full pay | 100% |
-| Days 16–45 | Half pay | 50% |
-| Days 46–90 | Unpaid | 0% |
+| Days of the 90 used | Length of the tranche | Pay level | Percentage |
+|---|---|---|---|
+| Days 1–15 | 15 days | Full pay | 100% |
+| Days 16–45 | 30 days | Half pay | 50% |
+| Days 46–90 | 45 days | Unpaid | 0% |
 
 Where a single period of absence straddles 1 April 2026, each day is paid under the rule in force on that day.
 
