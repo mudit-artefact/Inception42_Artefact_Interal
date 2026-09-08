@@ -18,7 +18,7 @@ from .hcs11_errors import (
     HCS11TimeoutError,
     HCS11ValidationError,
 )
-from .hcs11_schemas import CaseDetail, CaseSummary, HealthResponse
+from .hcs11_schemas import CaseDetail, CaseSummary, HealthResponse, VisaCaseOut
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +147,43 @@ class HCS11Client:
         except httpx.TimeoutException as e:
             raise HCS11TimeoutError() from e
 
+    async def list_visa_cases(self, employee_id: str) -> list[VisaCaseOut]:
+        """
+        Every employment visa case HCS-11 holds for this new joiner.
+
+        HCS-11's visa listing takes an employee and nothing else — there is no status
+        filter, because a visa case has only two states and no payment leg to close it.
+        """
+        client = self._ensure_client()
+        try:
+            response = await client.get(
+                "/api/visa/cases",
+                params={"employee_id": map_hcs01_to_hcs11_employee_id(employee_id)},
+            )
+            response.raise_for_status()
+            return [VisaCaseOut(**case) for case in response.json()]
+        except httpx.ConnectError as e:
+            raise HCS11ConnectionError() from e
+        except httpx.TimeoutException as e:
+            raise HCS11TimeoutError() from e
+
+    async def get_visa_case(self, case_id: str) -> VisaCaseOut:
+        """One visa case in full, with its documents and the checks run against them."""
+        client = self._ensure_client()
+        try:
+            response = await client.get(f"/api/visa/cases/{case_id}")
+            if response.status_code == 404:
+                raise HCS11CaseNotFoundError(
+                    employee_id="unknown",
+                    message=f"Visa case {case_id} not found",
+                )
+            response.raise_for_status()
+            return VisaCaseOut(**response.json())
+        except httpx.ConnectError as e:
+            raise HCS11ConnectionError() from e
+        except httpx.TimeoutException as e:
+            raise HCS11TimeoutError() from e
+
     async def get_employee_cases(self, employee_id: str) -> list[CaseSummary]:
         """Get all cases for an employee (one per child per academic year).
 
@@ -174,7 +211,8 @@ class HCS11Client:
         self,
         case_id: str,
         files: list[tuple[str, BinaryIO, str]],
-    ) -> CaseDetail:
+        process: str = "school",
+    ) -> CaseDetail | VisaCaseOut:
         """
         Upload documents to a case and run verification.
 
@@ -191,11 +229,17 @@ class HCS11Client:
 
         Raises:
             HCS11CaseNotFoundError: Case doesn't exist
-            HCS11AlreadyPaidError: Case was sent to payroll
+            HCS11AlreadyPaidError: Case was sent to payroll — school only, HCS-11's visa
+                upload never returns 409
             HCS11DocumentError: File rejected (wrong type, too large)
             HCS11ValidationError: Other validation error
+
+        Sending a school document and sending a visa document differ in three lines: the
+        path, the model the answer is parsed into, and nothing else. Every status-code
+        branch below, and both connection handlers, are the same for either.
         """
         client = self._ensure_client()
+        sending_a_visa_document = process == "visa"
 
         form_files = [
             ("files", (filename, file_obj, content_type))
@@ -205,7 +249,9 @@ class HCS11Client:
         try:
             logger.info(f"Uploading {len(files)} document(s) to case {case_id}")
             response = await client.post(
-                f"/api/hcs11/cases/{case_id}/documents",
+                f"/api/visa/cases/{case_id}/documents"
+                if sending_a_visa_document
+                else f"/api/hcs11/cases/{case_id}/documents",
                 files=form_files,
             )
 
@@ -249,7 +295,8 @@ class HCS11Client:
                 )
 
             response.raise_for_status()
-            result = CaseDetail(**response.json())
+            parse = VisaCaseOut if sending_a_visa_document else CaseDetail
+            result = parse(**response.json())
             logger.info(
                 f"Upload complete for case {case_id}: "
                 f"status={result.case_status}, route={result.route}"

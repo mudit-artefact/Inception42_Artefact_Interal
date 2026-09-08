@@ -109,7 +109,9 @@ def test_the_classifier_is_told_a_sent_claim_is_a_question_not_an_upload():
     guidance = prompts.QUERY_UNDERSTANDING_INSTRUCTIONS
 
     assert "was my application submitted?" in guidance
-    assert "already made" in guidance.lower()
+    assert "already sent in" in guidance.lower()
+    # And that sending documents in still opens a window, for either process.
+    assert "visa" in guidance.lower()
 
 
 @pytest.mark.parametrize(

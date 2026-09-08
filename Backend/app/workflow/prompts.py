@@ -82,20 +82,24 @@ Choose one intent:
   ("where has my visa application got to?", "أين وصلت معاملة تأشيرتي؟", "ما حالة طلب
   تأشيرتي؟"). A question about a visa is HR, not general knowledge — it is only out of
   scope when it is about immigration law rather than about this employer's process.
-- "document_upload": the employee wants to SEND school documents in, or has just
-  attached some. Only that:
-  * Asking to send: "upload documents", "submit my school documents", "I want to upload"
+- "document_upload": the employee wants to SEND documents in — school documents for an
+  education claim, or passport, photograph, job offer and certificate for an employment
+  visa — or has just attached some. Only that:
+  * Asking to send: "upload documents", "submit my school documents", "I want to upload",
+    "how do I send my visa documents?", "كيف أرسل مستندات التأشيرة؟"
   * A file arriving: "[file attached]", "[document uploaded]"
-  Choosing this opens the upload window, so choose it only when that window is what the
-  employee wants. Two kinds of message look close and are not:
-  * A question ABOUT the scheme — which fees are covered, what the limit is, which
+  You do not decide WHICH kind. Choosing this opens a window, and the step that answers
+  looks up what the person actually has: a new joiner is handed the visa window and an
+  employee the school one.
+  Two kinds of message look close and are not:
+  * A question ABOUT either scheme — which fees are covered, what the limit is, which
     documents are needed, when the deadline falls, who is eligible.
-  * A question about a claim they have ALREADY made — "was my application submitted?",
+  * A question about a case they have ALREADY sent in — "was my application submitted?",
     "did my documents go through?", "where is my claim?", "have they been reviewed?",
     "when will I be paid?", "was it approved?"
-  Both are "hr_question". The first is answered from the education allowance policy; the
-  second is answered by looking their claim up. Opening an upload window in reply to
-  either tells the employee nothing they asked.
+  Both are "hr_question". The first is answered from the policy; the second by looking
+  their case up. Opening a window in reply to either tells the employee nothing they
+  asked.
 - "what_can_you_do": a question about you rather than about HR — "what can you help me
   with?", "what do you do?", "how can you help?", "بماذا يمكنك مساعدتي؟". Not a greeting,
   and not out of scope.
@@ -401,18 +405,21 @@ NOTHING_TO_UPLOAD_NO_CASE_MESSAGES = {
     ),
 }
 
-VISA_UPLOAD_NOT_IN_THE_CHAT_MESSAGES = {
+# Offered when what is open for somebody is a visa case rather than a school claim. It
+# used to apologise — "I cannot open the visa document window from here yet" — and send
+# them to People & Culture, which was true until the window existed.
+VISA_UPLOAD_MESSAGES = {
     "en": (
-        "What is open for you is an employment visa case, not a school claim, and I cannot "
-        "open the visa document window from here yet. Please send your visa documents to "
-        "People & Culture at people@hcservices.ae. I can tell you which documents your "
-        "route needs and where your case has got to — just ask."
+        "I can open the window for your employment visa documents. Use the **Upload "
+        "Visa Documents** button below — it lists what your route still needs and ticks "
+        "each document off as it arrives.\n\n"
+        "If a document comes back with something wrong, send a corrected copy of that "
+        "one; it replaces what is there."
     ),
     "ar": (
-        "المفتوح باسمك هو معاملة تأشيرة عمل وليست مطالبة دراسية، ولا أستطيع فتح نافذة "
-        "مستندات التأشيرة من هنا بعد. يرجى إرسال مستندات تأشيرتك إلى إدارة الموارد البشرية "
-        "على people@hcservices.ae. ويمكنني أن أخبرك بالمستندات التي يتطلبها مسارك وبما "
-        "وصلت إليه معاملتك — اسألني فقط."
+        "أستطيع فتح نافذة مستندات تأشيرة العمل الخاصة بك. استخدم زر **رفع مستندات "
+        "التأشيرة** أدناه — تعرض النافذة ما يتطلبه مسارك وتؤشر على كل مستند فور وصوله.\n\n"
+        "وإذا أُعيد إليك مستند لخلل فيه، فأرسل نسخة مصححة منه؛ وهي تحل محل الموجود."
     ),
 }
 

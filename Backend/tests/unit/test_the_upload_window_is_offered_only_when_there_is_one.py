@@ -111,14 +111,33 @@ def test_a_plan_with_no_open_claim_is_told_something_different(hcs11):
     assert "no education allowance" not in reply["final_answer"]
 
 
-def test_a_new_joiner_is_told_theirs_is_a_visa_case(hcs11):
+def test_a_new_joiner_is_handed_to_the_visa_window(hcs11):
+    """
+    It used to apologise and send them to People & Culture, because the window did not
+    exist. Now it opens it — carried on the action payload, the way five of the six cards
+    the interface can draw are chosen.
+    """
     hcs11(school=[], visa=[A_VISA_CASE])
 
     reply = finish_turn.generate_document_upload_prompt(asked_to_submit(plan="NONE"))
 
-    assert not offers_the_button(reply)
+    assert reply["action_payload"] == {
+        "action_type": "VISA_DOCUMENT_UPLOAD",
+        "case_id": "VISA0001",
+    }
     assert "visa" in reply["final_answer"].lower()
+    # Not the school button: that one is drawn off the intent label, and a new joiner has
+    # no school claim to send anything to.
+    assert not offers_the_button(reply)
     assert "Upload Documents" not in reply["final_answer"]
+
+
+def test_the_visa_window_is_never_offered_to_somebody_with_no_visa_case(hcs11):
+    hcs11(school=[], visa=[])
+
+    reply = finish_turn.generate_document_upload_prompt(asked_to_submit(plan="NONE"))
+
+    assert reply["action_payload"] is None
 
 
 @pytest.mark.parametrize("plan", ["NONE", "", None])

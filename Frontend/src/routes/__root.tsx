@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import appCss from "../styles.css?url";
@@ -131,6 +132,12 @@ function RootComponent() {
       <TooltipProvider delayDuration={200}>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
+        {/*
+          Every toast the upload flow raises was silent until this was mounted: the calls
+          were there, nothing was listening. A document rejected for its size said so only
+          in the console.
+        */}
+        <Toaster position="top-center" richColors />
       </TooltipProvider>
     </QueryClientProvider>
   );

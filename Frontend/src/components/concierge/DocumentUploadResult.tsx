@@ -55,6 +55,12 @@ const STATUS_CONFIG: Record<
     bgColor: "bg-muted",
     borderColor: "border-muted-foreground/30",
   },
+  rejected: {
+    icon: XCircle,
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
+    borderColor: "border-destructive/30",
+  },
   error: {
     icon: XCircle,
     color: "text-destructive",

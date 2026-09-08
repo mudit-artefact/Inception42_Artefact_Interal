@@ -9,6 +9,7 @@ from app.api.endpoints import (
     notifications,
     policies,
     service_status,
+    visa_documents,
 )
 
 api_router = APIRouter()
@@ -18,4 +19,5 @@ api_router.include_router(employees.router)
 api_router.include_router(service_status.router)
 api_router.include_router(notifications.router)
 api_router.include_router(hcs11_documents.router)
+api_router.include_router(visa_documents.router)
 

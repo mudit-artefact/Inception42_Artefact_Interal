@@ -29,7 +29,7 @@ from app.workflow.prompts import (
     NOT_STARTED_YET_MESSAGES,
     NOTHING_TO_UPLOAD_NO_CASE_MESSAGES,
     NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES,
-    VISA_UPLOAD_NOT_IN_THE_CHAT_MESSAGES,
+    VISA_UPLOAD_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     PLEASANTRY_MESSAGES,
     REPEAT_GREETING_MESSAGES,
@@ -80,7 +80,10 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
     ]
 
     if not open_claims and not could_not_ask:
-        return _nothing_to_upload(state, language, bool(visa_cases))
+        # A new joiner's case is a visa case, and that window is its own.
+        if visa_cases:
+            return _open_the_visa_window(state, language, visa_cases)
+        return _nothing_to_upload(state, language)
 
     has_files_attached = any(
         indicator in question
@@ -95,7 +98,32 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
     }
 
 
-def _nothing_to_upload(state: ConversationState, language: str, has_a_visa_case: bool) -> dict:
+def _open_the_visa_window(state: ConversationState, language: str, cases: list) -> dict:
+    """
+    Hand over to the visa document window.
+
+    Carried on `action_payload` rather than on the intent label. Five of the six cards the
+    interface can draw are chosen by `action_type`; only the school upload button is chosen
+    by the intent, and it is the odd one out. Following the majority leaves the school path
+    untouched and adds nothing to the published intent vocabulary.
+    """
+    case_id = next((case.get("case_id") for case in cases if case.get("case_id")), None)
+    logger.info(f"Opening the visa document window for {state['employee_id']} ({case_id})")
+
+    return {
+        "final_answer": _clean_and_format_markdown(
+            message_in_language(VISA_UPLOAD_MESSAGES, language)
+        ),
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+        # An ordinary question as far as the intent label goes, so the *school* button is
+        # not drawn alongside the visa one.
+        "question_intent": QuestionIntent.HR_QUESTION.value,
+        "action_payload": {"action_type": "VISA_DOCUMENT_UPLOAD", "case_id": case_id},
+    }
+
+
+def _nothing_to_upload(state: ConversationState, language: str) -> dict:
     """
     Say why there is nothing to send, and drop the button.
 
@@ -104,10 +132,7 @@ def _nothing_to_upload(state: ConversationState, language: str, has_a_visa_case:
     is nothing to upload, with an Upload Documents button underneath it, would be worse
     than either half alone.
     """
-    if has_a_visa_case:
-        message = message_in_language(VISA_UPLOAD_NOT_IN_THE_CHAT_MESSAGES, language)
-        reason = "a visa case, not a school claim"
-    elif (state.get("employee_facts") or {}).get("education_plan_code") in ("", "NONE", None):
+    if (state.get("employee_facts") or {}).get("education_plan_code") in ("", "NONE", None):
         message = message_in_language(NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES, language)
         reason = "no education allowance on the package"
     else:

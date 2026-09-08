@@ -13,8 +13,12 @@ from app.workflow.structured_outputs import QueryUnderstanding
 logger = logging.getLogger(__name__)
 
 
-# Sending documents in is the one schooling thing that is an action; everything else about
-# the scheme is a question, answered from HC-PC-012 like any other policy question.
+# Sending documents in is the one thing about either scheme that is an action; everything
+# else is a question, answered from HC-PC-012 or HC-PC-013 like any other policy question.
+#
+# Which window opens is not decided here. This only recognises "I want to send something
+# in"; the step that answers then asks HCS-11 what cases the person actually has, and a
+# new joiner is handed the visa window while an employee is handed the school one.
 #
 # Anchored to the opening of the message, because the verb alone is not enough: "when is
 # the deadline to submit school documents" is a question about a date, and offering
@@ -27,12 +31,14 @@ ASKING_TO_SEND_DOCUMENTS = [
     re.compile(
         r"^\s*(i (want|need|would like|wish) to |i'd like to |please |let me |can i |how do i )?"
         r"(submit|upload|send|attach)\b[^?]*\b"
-        r"(proof of schooling|school|schooling|education|certificate|enrolment|enrollment)\b",
+        r"(proof of schooling|school|schooling|education|certificate|enrolment|enrollment"
+        r"|visa|passport|photograph|job.?offer)\b",
         re.IGNORECASE,
     ),
     re.compile(
         r"^\s*(أريد|اريد|أود|اود|كيف|من فضلك)?\s*(تقديم|رفع|إرسال|ارفاق|إرفاق|تحميل)\s+"
-        r"[^؟]*\b(مستند|مستندات|إثبات|شهادة|أوراق|اوراق|وثيقة|الدراسة|القيد|المدرسة|التعليم)\b"
+        r"[^؟]*\b(مستند|مستندات|إثبات|شهادة|أوراق|اوراق|وثيقة|الدراسة|القيد|المدرسة|التعليم"
+        r"|التأشيرة|تأشيرة|الجواز|جواز)\b"
     ),
 ]
 

@@ -19,6 +19,14 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from app.api.endpoints.document_upload_shared import (
+    ALLOWED_CONTENT_TYPES,
+    MAX_FILE_SIZE,
+    ReadableBytes,
+    require_hcs11_enabled,
+    sse_event,
+    validate_file,
+)
 from app.core.settings import settings
 from app.integrations import (
     CaseDetail,
@@ -84,13 +92,8 @@ class ErrorResponse(BaseModel):
 # ─── Dependency ─────────────────────────────────────────────────────────────
 
 
-def require_hcs11_enabled():
-    """Ensure HCS-11 integration is enabled."""
-    if not settings.hcs11_enabled:
-        raise HTTPException(
-            status_code=503,
-            detail="Document verification service is not enabled",
-        )
+# `require_hcs11_enabled`, `validate_file`, `sse_event` and `ReadableBytes` now live in
+# `document_upload_shared`, so the visa router uses the same ones rather than copies.
 
 
 # ─── Endpoints ──────────────────────────────────────────────────────────────
@@ -233,7 +236,7 @@ async def upload_documents(
     # Validate files locally first (fast feedback)
     validated_files = []
     for file in files:
-        error = _validate_file(file)
+        error = validate_file(file)
         if error:
             raise HTTPException(status_code=422, detail=error)
 
@@ -247,7 +250,7 @@ async def upload_documents(
             case = await client.upload_documents(
                 case_id=case_id,
                 files=[
-                    (name, _BytesIO(content), content_type)
+                    (name, ReadableBytes(content), content_type)
                     for name, content, content_type in validated_files
                 ],
             )
@@ -373,33 +376,33 @@ async def upload_documents_streaming(
     async def event_stream():
         try:
             # Validate files
-            yield _sse_event("stage", {"text": "Validating files..."})
+            yield sse_event("stage", {"text": "Validating files..."})
 
             validated_files = []
             for file in files:
-                error = _validate_file(file)
+                error = validate_file(file)
                 if error:
-                    yield _sse_event("error", {"detail": error})
+                    yield sse_event("error", {"detail": error})
                     return
 
                 content = await file.read()
                 validated_files.append((file.filename or "document", content, file.content_type))
 
-            yield _sse_event("stage", {"text": f"Uploading {len(validated_files)} document(s)..."})
+            yield sse_event("stage", {"text": f"Uploading {len(validated_files)} document(s)..."})
 
             async with get_hcs11_client() as client:
-                yield _sse_event("stage", {"text": "Reading and verifying documents..."})
+                yield sse_event("stage", {"text": "Reading and verifying documents..."})
 
                 case = await client.upload_documents(
                     case_id=case_id,
                     files=[
-                        (name, _BytesIO(content), content_type)
+                        (name, ReadableBytes(content), content_type)
                         for name, content, content_type in validated_files
                     ],
                 )
 
                 result = format_upload_result(case)
-                yield _sse_event("complete", {
+                yield sse_event("complete", {
                     "status": result.status.value,
                     "title": result.title,
                     "message": result.message,
@@ -411,29 +414,29 @@ async def upload_documents_streaming(
                 })
 
         except HCS11CaseNotFoundError:
-            yield _sse_event("error", {"detail": f"Case {case_id} not found"})
+            yield sse_event("error", {"detail": f"Case {case_id} not found"})
 
         except HCS11AlreadyPaidError as e:
-            yield _sse_event("error", {"detail": e.message})
+            yield sse_event("error", {"detail": e.message})
 
         except HCS11DocumentError as e:
-            yield _sse_event("error", {
+            yield sse_event("error", {
                 "detail": format_error_message(e.error_type, e.detail, e.filename)
             })
 
         except HCS11ConnectionError:
-            yield _sse_event("error", {
+            yield sse_event("error", {
                 "detail": "Document verification service is not available. Please try again later."
             })
 
         except HCS11TimeoutError:
-            yield _sse_event("error", {
+            yield sse_event("error", {
                 "detail": "Verification is taking longer than expected. Please try again."
             })
 
         except Exception as e:
             logger.exception(f"Unexpected error during document upload: {e}")
-            yield _sse_event("error", {"detail": "An unexpected error occurred"})
+            yield sse_event("error", {"detail": "An unexpected error occurred"})
 
     return StreamingResponse(
         event_stream(),
@@ -449,61 +452,4 @@ async def upload_documents_streaming(
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 
-ALLOWED_CONTENT_TYPES = {
-    "application/pdf",
-    "image/png",
-    "image/jpeg",
-    "image/jpg",
-}
 
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-
-
-def _validate_file(file: UploadFile) -> str | None:
-    """
-    Validate a file before sending to HCS-11.
-
-    Returns an error message, or None if valid.
-    """
-    if not file.filename:
-        return "File must have a name"
-
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
-        return (
-            f"'{file.filename}' is not a supported format. "
-            "Please upload PDF, PNG, or JPEG files only."
-        )
-
-    if file.size and file.size > MAX_FILE_SIZE:
-        return (
-            f"'{file.filename}' is too large ({file.size / 1024 / 1024:.1f}MB). "
-            "Maximum file size is 10MB."
-        )
-
-    return None
-
-
-def _sse_event(name: str, data: dict) -> str:
-    """Format a server-sent event."""
-    import json
-    return f"event: {name}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
-
-
-class _BytesIO:
-    """Simple bytes wrapper that acts like a file object for httpx."""
-
-    def __init__(self, data: bytes):
-        self._data = data
-        self._pos = 0
-
-    def read(self, size: int = -1) -> bytes:
-        if size == -1:
-            result = self._data[self._pos:]
-            self._pos = len(self._data)
-        else:
-            result = self._data[self._pos:self._pos + size]
-            self._pos += len(result)
-        return result
-
-    def seek(self, pos: int) -> None:
-        self._pos = pos

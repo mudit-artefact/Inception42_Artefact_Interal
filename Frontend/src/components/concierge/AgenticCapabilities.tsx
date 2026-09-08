@@ -14,7 +14,13 @@ export interface AgenticCapability {
   prompt: string;
   colorClass: string;
   borderClass: string;
-  isSpecialAction?: boolean;
+  /**
+   * Which panel this tile opens, if it opens one rather than asking a question.
+   *
+   * This was a boolean called `isSpecialAction`, which could say that a tile was special
+   * but not which special thing it did — one bit for what is now two destinations.
+   */
+  opens?: "school-documents" | "visa-documents";
 }
 
 export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
@@ -35,7 +41,7 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
     prompt: "I want to submit school certificates for child education benefits",
     colorClass: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
     borderClass: "hover:border-pink-500/50 hover:bg-pink-500/5",
-    isSpecialAction: true,
+    opens: "school-documents",
   },
   {
     id: "medical",
@@ -47,26 +53,30 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
     borderClass: "hover:border-sky-500/50 hover:bg-sky-500/5",
   },
   {
+    // Renewal and family sponsorship are not in the People Code, and the assistant
+    // correctly declines them. What it does have is HC-PC-013: the documents a new joiner
+    // provides before their first day. The tile now says that.
     id: "visa",
-    title: "Visa & Residency",
-    description: "Manage visas and residency renewals",
+    title: "Employment Visa",
+    description: "Send your joining documents",
     icon: PlaneTakeoff,
-    prompt: "What are the requirements for UAE visa renewal and family dependent sponsorship?",
+    prompt: "What documents do I need for my employment visa?",
     colorClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     borderClass: "hover:border-amber-500/50 hover:bg-amber-500/5",
+    opens: "visa-documents",
   },
 ];
 
 interface AgenticCapabilitiesProps {
   onSelectCapability: (prompt: string) => void;
-  onOpenSchoolUpload?: () => void;
+  onOpenPanel?: (panel: NonNullable<AgenticCapability["opens"]>) => void;
   disabled?: boolean;
   className?: string;
 }
 
 export function AgenticCapabilities({
   onSelectCapability,
-  onOpenSchoolUpload,
+  onOpenPanel,
   disabled,
   className,
 }: AgenticCapabilitiesProps) {
@@ -82,8 +92,8 @@ export function AgenticCapabilities({
               tabIndex={0}
               onClick={() => {
                 if (disabled) return;
-                if (cap.isSpecialAction && onOpenSchoolUpload) {
-                  onOpenSchoolUpload();
+                if (cap.opens && onOpenPanel) {
+                  onOpenPanel(cap.opens);
                 } else {
                   onSelectCapability(cap.prompt);
                 }
@@ -92,8 +102,8 @@ export function AgenticCapabilities({
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   if (disabled) return;
-                  if (cap.isSpecialAction && onOpenSchoolUpload) {
-                    onOpenSchoolUpload();
+                  if (cap.opens && onOpenPanel) {
+                    onOpenPanel(cap.opens);
                   } else {
                     onSelectCapability(cap.prompt);
                   }

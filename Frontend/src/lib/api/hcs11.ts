@@ -16,6 +16,7 @@ export type UploadStatus =
   | "needs_review"
   | "incomplete"
   | "already_paid"
+  | "rejected"
   | "error";
 
 export interface DocumentStatus {

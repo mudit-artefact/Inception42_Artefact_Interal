@@ -7,6 +7,7 @@ import {
   CornerDownLeft,
   FileText,
   GraduationCap,
+  PlaneTakeoff,
   Paperclip,
   Plus,
   RotateCcw,
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataChart } from "@/components/concierge/DataChart";
 import { DocumentUpload } from "@/components/concierge/DocumentUpload";
+import { VisaDocumentUpload } from "@/components/concierge/VisaDocumentUpload";
 import { LeaveConfirmationCard } from "@/components/concierge/LeaveConfirmationCard";
 import { LeaveCalendarPicker } from "@/components/concierge/LeaveCalendarPicker";
 import { LeaveApprovedCard } from "@/components/concierge/LeaveApprovedCard";
@@ -105,7 +107,11 @@ export function ChatPanel({
   const isEmpty = messages.length === 0;
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
+  // Which document panel is open, or null. It was a boolean when there was only the
+  // school one; a second panel needs a name rather than another flag beside it.
+  const [openPanel, setOpenPanel] = useState<
+    "school-documents" | "visa-documents" | null
+  >(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (
@@ -142,7 +148,7 @@ export function ChatPanel({
               <div className="w-full">
                 <AgenticCapabilities
                   onSelectCapability={(prompt) => onSend(prompt)}
-                  onOpenSchoolUpload={() => setShowDocumentUpload(true)}
+                  onOpenPanel={(panel) => setOpenPanel(panel)}
                   disabled={busy}
                 />
               </div>
@@ -250,11 +256,26 @@ export function ChatPanel({
                 ) : null}
 
                 {/* Document Upload Action Button */}
+                {/* The visa panel is chosen by action_type, like the leave cards. Only
+                    the school button below is chosen by the intent label. */}
+                {m.action_payload?.action_type === "VISA_DOCUMENT_UPLOAD" ? (
+                  <div className="mt-3 pt-2 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setOpenPanel("visa-documents")}
+                      className="px-4 py-2.5 rounded-lg text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                    >
+                      <UploadCloud className="size-4" />
+                      Upload Visa Documents
+                    </button>
+                  </div>
+                ) : null}
+
                 {m.role === "assistant" && m.intent === "document_upload" ? (
                   <div className="mt-3 pt-2 border-t border-border/40">
                     <button
                       type="button"
-                      onClick={() => setShowDocumentUpload(true)}
+                      onClick={() => setOpenPanel("school-documents")}
                       className="px-4 py-2.5 rounded-lg text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       <UploadCloud className="size-4" />
@@ -457,7 +478,28 @@ export function ChatPanel({
                     type="button"
                     onClick={() => {
                       setActionsOpen(false);
-                      setShowDocumentUpload(true);
+                      setOpenPanel("visa-documents");
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-amber-500/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 mt-0.5 group-hover:scale-105 transition-transform">
+                      <PlaneTakeoff className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">
+                        Upload Visa Documents
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Send your employment visa joining documents
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
+                      setOpenPanel("school-documents");
                     }}
                     className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-pink-500/10 transition-colors group"
                   >
@@ -572,12 +614,13 @@ export function ChatPanel({
       </div>
 
       {/* Document Upload Modal */}
-      {showDocumentUpload && (
+      {openPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <DocumentUpload
-            employeeId={employeeId}
-            onClose={() => setShowDocumentUpload(false)}
-          />
+          {openPanel === "visa-documents" ? (
+            <VisaDocumentUpload employeeId={employeeId} onClose={() => setOpenPanel(null)} />
+          ) : (
+            <DocumentUpload employeeId={employeeId} onClose={() => setOpenPanel(null)} />
+          )}
         </div>
       )}
     </div>

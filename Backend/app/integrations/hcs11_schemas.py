@@ -135,3 +135,78 @@ class HealthResponse(BaseModel):
     open_cycle: str
     extraction_model: str
     confidence_threshold: float
+
+
+# ── The visa side ────────────────────────────────────────────────────────────
+#
+# A separate set, not an extension of the school ones. Six of CaseSummary's fields are
+# required and have no visa counterpart — dependent, academic year, cycle, benefit plan,
+# payment status — so CaseSummary(**visa_json) raises rather than degrading.
+#
+# The difference that shapes everything downstream: a school checklist row arrives as an
+# object carrying its own `received` flag, while a visa case sends `required_documents` as
+# plain kind strings and says separately which of them are still `missing`. The checklist
+# is therefore derived here rather than read. See `visa_response_formatter`.
+
+
+class VisaReadField(BaseModel):
+    """One value read off a visa document — a passport number, a signature date."""
+    key: str
+    label: str
+    value: str | None = None
+    mandatory: bool = False
+
+
+class VisaDocumentOut(BaseModel):
+    """One document on a visa case."""
+    document_id: str
+    file_name: str
+    kind: str | None = None
+    kind_label: str | None = None
+    uploaded_at: str
+    stored: bool = False
+    fields: list[VisaReadField] = []
+
+
+class VisaCheckOut(BaseModel):
+    """
+    One check HCS-11 ran, and what it concluded.
+
+    `about` is the field the school side lacks and the reason the visa panel needs no
+    lookup tables: HCS-11 names the document kinds each check concerns, so a failure can be
+    shown against the row it belongs to instead of being reconstructed in the browser from
+    a copy of HCS-11's internals.
+    """
+    code: str
+    result: str
+    detail: str | None = None
+    document_value: str | None = None
+    master_value: str | None = None
+    about: list[str] = []
+
+
+class VisaCaseOut(BaseModel):
+    """
+    A new joiner's employment visa case.
+
+    `problems` arrives already computed — HCS-11 builds it as the detail sentence of every
+    check that failed — so what an employee is told about a fault is HCS-11's own wording,
+    not a second description of it written here.
+    """
+    case_id: str
+    process: str = "visa"
+    employee_id: str
+    employee_name: str
+    job_title: str | None = None
+    plan_code: str | None = None
+    plan_name: str | None = None
+    case_status: str
+    outcome: str | None = None
+    route: str | None = None
+    submission_deadline: str | None = None
+    submitted_on: str | None = None
+    required_documents: list[str] = []
+    missing_documents: list[str] = []
+    documents: list[VisaDocumentOut] = []
+    checks: list[VisaCheckOut] = []
+    problems: list[str] = []
