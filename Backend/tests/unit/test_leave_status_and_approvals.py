@@ -225,3 +225,67 @@ def test_a_number_in_the_message_is_not_taken_as_a_request_id(temporary_database
         )
     finally:
         session.close()
+
+
+def test_a_number_we_cannot_place_does_not_approve_the_only_request(temporary_database):
+    """
+    "approve 3 days of annual leave" must approve nothing, even when the manager has
+    exactly one request waiting.
+
+    The first attempt at this fix stopped the number naming somebody else's request, but
+    left the shortcut that says "only one is pending, so they must mean that one" — and
+    that shortcut then approved a ten-day request off the back of a sentence saying three
+    days. A number we could not place is the manager being specific about something we
+    could not find, which is a reason to ask rather than to reach for whatever is lying
+    there.
+    """
+    session = temporary_database()
+    try:
+        only_pending = (
+            session.query(LeaveRequest).filter(LeaveRequest.status == "Pending").one()
+        )
+        assert only_pending.approver_name == "Alia Al Suwaidi"
+
+        result = handle_manager_approval(
+            {
+                "employee_id": "EMP001",
+                "employee_question": "approve 3 days of annual leave",
+                "requested_language": "en",
+                "question_intent": QuestionIntent.APPROVE_LEAVE.value,
+            }
+        )
+
+        session.expire_all()
+        assert (
+            session.query(LeaveRequest).filter(LeaveRequest.id == only_pending.id).first().status
+            == "Pending"
+        ), "a number naming none of their requests must approve nothing at all"
+        assert result["action_payload"]["action_type"] == "MANAGER_PENDING_APPROVALS"
+    finally:
+        session.close()
+
+
+def test_naming_the_request_properly_still_approves_it(temporary_database):
+    """The tightening must not make a real approval impossible."""
+    session = temporary_database()
+    try:
+        only_pending = (
+            session.query(LeaveRequest).filter(LeaveRequest.status == "Pending").one()
+        )
+
+        handle_manager_approval(
+            {
+                "employee_id": "EMP001",
+                "employee_question": f"Approve leave #{only_pending.id}",
+                "requested_language": "en",
+                "question_intent": QuestionIntent.APPROVE_LEAVE.value,
+            }
+        )
+
+        session.expire_all()
+        assert (
+            session.query(LeaveRequest).filter(LeaveRequest.id == only_pending.id).first().status
+            == "Approved"
+        )
+    finally:
+        session.close()

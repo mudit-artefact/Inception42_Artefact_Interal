@@ -150,7 +150,14 @@ def handle_manager_approval(state: ConversationState) -> dict:
         if len(named) == 1:
             target_id = named[0]
 
-    if target_id is None and len(pending_approvals) == 1:
+    # One request and nothing to distinguish it: they can only mean that one. But a
+    # number they stated that named none of their requests is not nothing — it is them
+    # being specific about something we could not find, and the answer to that is to ask,
+    # not to approve whatever happens to be lying there. "approve 3 days of annual leave"
+    # against a single ten-day request is not consent to approve the ten-day request.
+    said_a_number_we_could_not_place = bool(stated) and target_id is None
+
+    if target_id is None and len(pending_approvals) == 1 and not said_a_number_we_could_not_place:
         target_id = pending_approvals[0]["request_id"]
 
     if not target_id:

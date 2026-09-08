@@ -1,0 +1,320 @@
+<mxfile host="app.diagrams.net" modified="2026-09-08T00:00:00.000Z" agent="Claude" version="24.7.17" type="device">
+  <diagram id="hcs01-as-built" name="LangGraph as built">
+    <mxGraphModel dx="2900" dy="1750" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2900" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" /><mxCell id="1" parent="0" />
+        <mxCell id="title" value="HCS-01 Policy &amp; Leave Concierge — LangGraph as built" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#17233F;fontSize=26;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="55" y="18" width="2700" height="36" as="geometry" /></mxCell>
+        <mxCell id="subtitle" value="Generated from the running graph and checked against it. Every branch that answers without searching joins the same check — seven of them used to reach the employee without it. Actions sit behind one branch and a registry; applying for leave keeps its own steps because it is the only action that pauses to ask." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#4A5A6E;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="55" y="52" width="2700" height="34" as="geometry" /></mxCell>
+        <mxCell id="start" value="&lt;b&gt;START&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F6F8FB;strokeColor=#AEB8C7;strokeWidth=2;fontColor=#17233F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="100" width="180" height="42" as="geometry" /></mxCell>
+        <mxCell id="load_employee_facts" value="&lt;b&gt;load_employee_facts&lt;/b&gt;&lt;br&gt;who is asking · clears the last question" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="170" width="380" height="60" as="geometry" /></mxCell>
+        <mxCell id="understand_query" value="&lt;b&gt;understand_query&lt;/b&gt;&lt;br&gt;LLM · intent · ambiguity · one question or two" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="265" width="460" height="64" as="geometry" /></mxCell>
+        <mxCell id="compose_clarification_question" value="&lt;b&gt;compose_clarification_question&lt;/b&gt;&lt;br&gt;ask one focused question" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="100" y="410" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="wait_for_clarification" value="&lt;b&gt;wait_for_clarification&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="100" y="505" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="merge_clarification_into_question" value="&lt;b&gt;merge_clarification_into_question&lt;/b&gt;&lt;br&gt;fold the reply in · capped at one round" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="rephrase_previous_answer" value="&lt;b&gt;rephrase_previous_answer&lt;/b&gt;&lt;br&gt;rework the last reply · no search" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="470" y="410" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="rewrite_and_decompose_query" value="&lt;b&gt;rewrite_and_decompose_query&lt;/b&gt;&lt;br&gt;split into parts" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="410" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="route_each_subquery" value="&lt;b&gt;route_each_subquery&lt;/b&gt;&lt;br&gt;POLICY · HR_DATA · BOTH · UNSUPPORTED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="505" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="gather_subquery_evidence" value="&lt;b&gt;gather_subquery_evidence&lt;/b&gt;&lt;br&gt;hybrid search + RRF · authorised HR fields&lt;br&gt;one branch per part, in parallel" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="600" width="300" height="76" as="geometry" /></mxCell>
+        <mxCell id="assemble_evidence" value="&lt;b&gt;assemble_evidence&lt;/b&gt;&lt;br&gt;put the parts back · build checkable_evidence" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="706" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="generate_answer" value="&lt;b&gt;generate_answer&lt;/b&gt;&lt;br&gt;LLM writes draft_answer from the evidence only" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="801" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="handle_leave_application" value="&lt;b&gt;handle_leave_application&lt;/b&gt;&lt;br&gt;read the request · check the policy" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="410" width="330" height="58" as="geometry" /></mxCell>
+        <mxCell id="request_leave_dates" value="&lt;b&gt;request_leave_dates&lt;/b&gt;&lt;br&gt;offer the calendar" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="505" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="wait_for_leave_dates" value="&lt;b&gt;wait_for_leave_dates&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="600" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="compose_leave_confirmation" value="&lt;b&gt;compose_leave_confirmation&lt;/b&gt;&lt;br&gt;build the confirmation card" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1660" y="505" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="wait_for_leave_confirmation" value="&lt;b&gt;wait_for_leave_confirmation&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1660" y="600" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="submit_leave_application" value="&lt;b&gt;submit_leave_application&lt;/b&gt;&lt;br&gt;re-check the policy, then write" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1660" y="706" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="run_action" value="&lt;b&gt;run_action&lt;/b&gt;&lt;br&gt;one branch for every other action&lt;br&gt;intent → tool, from the registry" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="2050" y="410" width="320" height="72" as="geometry" /></mxCell>
+        <mxCell id="registry" value="&lt;b&gt;APPROVED TOOL REGISTRY&lt;/b&gt;&lt;br&gt;not graph nodes&lt;br&gt;&lt;br&gt;apply · cancel · status&lt;br&gt;approve · reject · education&lt;br&gt;entitlement · policy check&lt;br&gt;&lt;br&gt;reads run freely&lt;br&gt;writes refuse unless authorised" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A63B62;strokeWidth=2;dashed=1;fontColor=#17233F;fontSize=11;fontStyle=0;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="2050" y="600" width="320" height="180" as="geometry" /></mxCell>
+        <mxCell id="generate_greeting" value="&lt;b&gt;generate_greeting&lt;/b&gt;&lt;br&gt;approved fixed reply" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="2430" y="410" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="generate_document_upload_prompt" value="&lt;b&gt;generate_document_upload_prompt&lt;/b&gt;&lt;br&gt;approved fixed reply" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="2430" y="505" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="prepare_action_answer" value="&lt;b&gt;prepare_action_answer&lt;/b&gt;&lt;br&gt;hand the check the answer and what it came from" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1130" width="380" height="58" as="geometry" /></mxCell>
+        <mxCell id="validate_answer" value="&lt;b&gt;validate_answer&lt;/b&gt;&lt;br&gt;every figure traced to its evidence&lt;br&gt;no other employee · right language" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="1240" width="440" height="76" as="geometry" /></mxCell>
+        <mxCell id="finalize_verified_answer" value="&lt;b&gt;finalize_verified_answer&lt;/b&gt;&lt;br&gt;show it, with sources" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="840" y="1370" width="300" height="58" as="geometry" /></mxCell>
+        <mxCell id="build_safe_fallback" value="&lt;b&gt;build_safe_fallback&lt;/b&gt;&lt;br&gt;decline safely" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FCEAEA;strokeColor=#B33A3A;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1370" width="280" height="58" as="geometry" /></mxCell>
+        <mxCell id="record_conversation_turn" value="&lt;b&gt;record_conversation_turn&lt;/b&gt;&lt;br&gt;remember the turn" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="690" y="1470" width="340" height="58" as="geometry" /></mxCell>
+        <mxCell id="end" value="&lt;b&gt;END&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F6F8FB;strokeColor=#AEB8C7;strokeWidth=2;fontColor=#17233F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="770" y="1565" width="180" height="42" as="geometry" /></mxCell>
+        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="start" target="load_employee_facts">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="load_employee_facts" target="understand_query">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="too vague" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="compose_clarification_question">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="250" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" value="about the last reply" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="rephrase_previous_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="620" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="two questions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="rewrite_and_decompose_query">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="990" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" value="apply for leave" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="handle_leave_application">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="1455" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="any other action" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="run_action">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="2210" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" value="greeting" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="generate_greeting">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="2580" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="one clear question" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="route_each_subquery">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="790" y="370" />
+              <mxPoint x="790" y="534" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" value="upload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="generate_document_upload_prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="2790" y="370" />
+              <mxPoint x="2790" y="534" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" value="out of scope" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="build_safe_fallback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="370" />
+              <mxPoint x="60" y="370" />
+              <mxPoint x="60" y="1399" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="compose_clarification_question" target="wait_for_clarification">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_clarification" target="merge_clarification_into_question">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e13" value="read it again" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="merge_clarification_into_question" target="understand_query">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="60" y="629" />
+              <mxPoint x="60" y="297" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="rewrite_and_decompose_query" target="route_each_subquery">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e15" value="one Send per part" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="route_each_subquery" target="gather_subquery_evidence">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e16" value="nothing servable" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="route_each_subquery" target="build_safe_fallback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="548" />
+              <mxPoint x="790" y="1424" />
+              <mxPoint x="300" y="1424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="gather_subquery_evidence" target="assemble_evidence">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="assemble_evidence" target="generate_answer">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="generate_answer" target="validate_answer">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rephrase_previous_answer" target="validate_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="620" y="1205" />
+              <mxPoint x="950" y="1205" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e21" value="no dates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="handle_leave_application" target="request_leave_dates">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="request_leave_dates" target="wait_for_leave_dates">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e23" value="read it again" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wait_for_leave_dates" target="handle_leave_application">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250" y="629" />
+              <mxPoint x="1250" y="439" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e24" value="valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="handle_leave_application" target="compose_leave_confirmation">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1635" y="439" />
+              <mxPoint x="1635" y="534" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e25" value="policy says no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="handle_leave_application" target="prepare_action_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1635" y="449" />
+              <mxPoint x="1635" y="1075" />
+              <mxPoint x="1690" y="1075" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="compose_leave_confirmation" target="wait_for_leave_confirmation">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_leave_confirmation" target="submit_leave_application">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit_leave_application" target="prepare_action_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1810" y="1075" />
+              <mxPoint x="1690" y="1075" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="run_action" target="prepare_action_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2210" y="1075" />
+              <mxPoint x="1690" y="1075" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="generate_greeting" target="prepare_action_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2790" y="451" />
+              <mxPoint x="2790" y="1093" />
+              <mxPoint x="1690" y="1093" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="generate_document_upload_prompt" target="prepare_action_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2790" y="546" />
+              <mxPoint x="2790" y="1093" />
+              <mxPoint x="1690" y="1093" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="prepare_action_answer" target="validate_answer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1690" y="1210" />
+              <mxPoint x="1180" y="1210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e33" value="passes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="validate_answer" target="finalize_verified_answer">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e34" value="fails" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="validate_answer" target="build_safe_fallback">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="1278" />
+              <mxPoint x="790" y="1399" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="finalize_verified_answer" target="record_conversation_turn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="990" y="1445" />
+              <mxPoint x="860" y="1445" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="build_safe_fallback" target="record_conversation_turn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="440" y="1445" />
+              <mxPoint x="860" y="1445" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="record_conversation_turn" target="end">
+          <mxGeometry relative="1" as="geometry">
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

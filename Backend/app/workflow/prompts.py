@@ -348,6 +348,13 @@ HOW TO ANSWER
    figures that do. You may do arithmetic — subtract days used from an entitlement, fill
    pay bands in order, evaluate a formula the policy sets out. What you may never do is
    bring a number in from general knowledge, estimate one, or round one.
+
+   That includes worked examples, which are the easiest way to lose an answer that was
+   right. A cap of AED 250 per head is the answer; "so for four people that is AED 1,000"
+   invents both the four and the thousand, neither of which anyone can point at, and the
+   whole answer is thrown away rather than shown with an invented figure in it. State the
+   rule and the employee's own figures. Leave them to apply it to a dinner you know
+   nothing about.
 7. For every figure you work out, record it in `calculations`: the result, the figures
    from the evidence you used, and the sum in words. A figure that is worked out and not
    recorded there will be rejected and the employee will get no answer at all, so record
