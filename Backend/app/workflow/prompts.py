@@ -367,6 +367,55 @@ CONVERSATION_RECAP_MESSAGES = {
 # For somebody who has accepted an offer and not started. It refuses the action, not the
 # person: they are told what they can ask about instead, and given a date rather than a
 # closed door. No figure appears here — the start date comes from their own record.
+# What to say when somebody asks to send documents in and there is nothing to send them
+# to. The upload prompt used to be offered to anybody who asked, so an employee with no
+# education allowance was told "the window lists what your claim still needs" about a claim
+# that did not exist, and a leaver whose record still carried a plan was told the same.
+#
+# Three cases, because the reason matters to the person hearing it. No figures in any of
+# them: the plan, the deadline and the document list all live elsewhere.
+NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES = {
+    "en": (
+        "There is no education allowance on your current benefits package, so there are no "
+        "school documents for you to send in. If you believe your package is recorded "
+        "incorrectly, please contact People & Culture at people@hcservices.ae and they can "
+        "check your benefits record."
+    ),
+    "ar": (
+        "لا يوجد بدل تعليم ضمن حزمة مزاياك الحالية، لذا لا توجد مستندات دراسية عليك "
+        "إرسالها. وإذا كنت ترى أن حزمة مزاياك مسجّلة على نحو غير صحيح، يرجى التواصل مع "
+        "إدارة الموارد البشرية على people@hcservices.ae للتحقق من سجل مزاياك."
+    ),
+}
+
+NOTHING_TO_UPLOAD_NO_CASE_MESSAGES = {
+    "en": (
+        "You do have an education allowance, but there is no open claim on file for you at "
+        "the moment, so there is nothing for me to open an upload window against. Please "
+        "contact People & Culture at people@hcservices.ae, who can open one for you."
+    ),
+    "ar": (
+        "لديك بدل تعليم، غير أنه لا توجد مطالبة مفتوحة باسمك في الوقت الحالي، لذا لا يوجد "
+        "ما أفتح نافذة الرفع من أجله. يرجى التواصل مع إدارة الموارد البشرية على "
+        "people@hcservices.ae لفتح مطالبة لك."
+    ),
+}
+
+VISA_UPLOAD_NOT_IN_THE_CHAT_MESSAGES = {
+    "en": (
+        "What is open for you is an employment visa case, not a school claim, and I cannot "
+        "open the visa document window from here yet. Please send your visa documents to "
+        "People & Culture at people@hcservices.ae. I can tell you which documents your "
+        "route needs and where your case has got to — just ask."
+    ),
+    "ar": (
+        "المفتوح باسمك هو معاملة تأشيرة عمل وليست مطالبة دراسية، ولا أستطيع فتح نافذة "
+        "مستندات التأشيرة من هنا بعد. يرجى إرسال مستندات تأشيرتك إلى إدارة الموارد البشرية "
+        "على people@hcservices.ae. ويمكنني أن أخبرك بالمستندات التي يتطلبها مسارك وبما "
+        "وصلت إليه معاملتك — اسألني فقط."
+    ),
+}
+
 NOT_STARTED_YET_MESSAGES = {
     "en": (
         "You have not started yet, so there is no leave record to act on — leave begins "

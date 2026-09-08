@@ -121,16 +121,31 @@ def test_the_classifier_is_told_a_sent_claim_is_a_question_not_an_upload():
         "I want to upload my school documents",
     ],
 )
-def test_the_upload_step_has_only_one_reply_left(message):
+def test_the_upload_step_never_guesses_at_a_review_time(monkeypatch, message):
     """
     It used to hold a second reply for status questions and a list of about thirty
     spellings to find it by, so the answer turned on how the employee spelled
-    "successfully". Whatever reaches this step now gets the button and nothing else — and
-    in particular never the "2-3 business days" that used to be typed into it.
-    """
-    from app.workflow.nodes.finish_turn import generate_document_upload_prompt
+    "successfully". That reply also promised a review in "2-3 business days" — a figure
+    typed into a Python file and grounded in nothing.
 
-    answer = generate_document_upload_prompt({"employee_question": message})["final_answer"]
+    The step has since gained a second job, checking that there is a claim to upload
+    against at all, so it no longer has exactly one reply. What it must never have again
+    is a made-up review time, whatever reaches it.
+    """
+    from app.workflow.nodes import finish_turn
+
+    monkeypatch.setattr(finish_turn, "read_school_claims",
+                        lambda _: [{"case_id": "CASE0001", "payment_status": "Not Ready"}])
+    monkeypatch.setattr(finish_turn, "read_visa_case", lambda _: [])
+
+    answer = finish_turn.generate_document_upload_prompt(
+        {
+            "employee_id": "EMP002",
+            "employee_question": message,
+            "requested_language": "en",
+            "employee_facts": {"education_plan_code": "EDU_STANDARD"},
+        }
+    )["final_answer"]
 
     assert answer in (prompts.DOCUMENT_UPLOAD_RESPONSE,
                       prompts.DOCUMENT_UPLOAD_RESPONSE_WITH_FILES)

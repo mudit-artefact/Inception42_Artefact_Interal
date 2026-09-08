@@ -14,6 +14,7 @@ from app.services.citation_builder import build_employee_record_citation, build_
 from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
 import re
+from app.integrations.hcs11_client import read_school_claims, read_visa_case
 from app.workflow.routing_rules import LEAVE_INTENTS, ONBOARDING
 from app.workflow.prompts import (
     WHAT_I_CAN_DO,
@@ -26,6 +27,9 @@ from app.workflow.prompts import (
     NO_EVIDENCE_MESSAGES,
     NOTHING_TO_REPHRASE_MESSAGES,
     NOT_STARTED_YET_MESSAGES,
+    NOTHING_TO_UPLOAD_NO_CASE_MESSAGES,
+    NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES,
+    VISA_UPLOAD_NOT_IN_THE_CHAT_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     PLEASANTRY_MESSAGES,
     REPEAT_GREETING_MESSAGES,
@@ -37,24 +41,46 @@ from app.workflow.prompts import (
 logger = logging.getLogger(__name__)
 
 
+# A claim that has been paid out is closed, and the upload window filters it out too. The
+# chat must promise exactly what the window will show.
+CLOSED_PAYMENT_STATUSES = {"Sent", "Paid"}
+
+
 def generate_document_upload_prompt(state: ConversationState) -> dict:
     """
-    Open the upload window.
+    Open the upload window — but only when there is something to open it against.
 
-    This step used to do two jobs. Alongside the button it carried a second reply for
-    employees asking where their claim had got to, matched by a list of thirty spellings
-    of that question — "submitted successfully", "are they approved", "when will". An
-    employee who wrote "successfuly" with one l matched none of them and got the button.
-    One who spelled it correctly got a fixed paragraph that told them to click the button
-    anyway, and promised a review in "2-3 business days" — a figure typed into this file,
-    grounded in nothing.
+    This used to offer the button to anybody who asked. An employee with no education
+    allowance was told "the window lists what your claim still needs" about a claim that
+    did not exist; so was a leaver whose record still carried a plan he was no longer
+    eligible for; and so, once they were added, were the new joiners, who need the visa
+    window rather than this one.
 
-    Neither is this step's job. Asking where a claim stands is a question about the
-    employee's own record, and is answered like every other one: the claim is read from
-    the school verification service, cited, and checked. This step now only does the one
-    thing the button is for.
+    Checking the plan on the record would have caught the first and missed the second: a
+    leaver's plan is a leftover, and only HCS-11 knows the claim is gone. So the question
+    put to HCS-11 is what cases this person actually has, which answers both "is there
+    anything to send?" and "which window?" at once.
+
+    Asked here rather than at the start of the turn, so no other question pays for it.
+    Fails open: if HCS-11 cannot be reached we offer the window anyway and let it report
+    the failure itself, because blocking somebody who does have a claim is worse than a
+    window that opens onto an error.
     """
+    employee_id = state["employee_id"]
+    language = state.get("requested_language", "en")
     question = (state.get("employee_question") or "").lower()
+
+    school_claims = read_school_claims(employee_id)
+    visa_cases = read_visa_case(employee_id)
+    could_not_ask = school_claims is None and visa_cases is None
+
+    open_claims = [
+        claim for claim in (school_claims or [])
+        if claim.get("payment_status") not in CLOSED_PAYMENT_STATUSES
+    ]
+
+    if not open_claims and not could_not_ask:
+        return _nothing_to_upload(state, language, bool(visa_cases))
 
     has_files_attached = any(
         indicator in question
@@ -66,6 +92,36 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
         "final_answer": response,
         "citations": [],
         "answer_status": AnswerStatus.VERIFIED.value,
+    }
+
+
+def _nothing_to_upload(state: ConversationState, language: str, has_a_visa_case: bool) -> dict:
+    """
+    Say why there is nothing to send, and drop the button.
+
+    The intent is reported as an ordinary question rather than a document upload, because
+    that label is what makes the interface draw the button. A reply explaining that there
+    is nothing to upload, with an Upload Documents button underneath it, would be worse
+    than either half alone.
+    """
+    if has_a_visa_case:
+        message = message_in_language(VISA_UPLOAD_NOT_IN_THE_CHAT_MESSAGES, language)
+        reason = "a visa case, not a school claim"
+    elif (state.get("employee_facts") or {}).get("education_plan_code") in ("", "NONE", None):
+        message = message_in_language(NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES, language)
+        reason = "no education allowance on the package"
+    else:
+        message = message_in_language(NOTHING_TO_UPLOAD_NO_CASE_MESSAGES, language)
+        reason = "an allowance, but no open claim"
+
+    logger.info(f"Not offering the upload window to {state['employee_id']}: {reason}")
+
+    return {
+        "final_answer": _clean_and_format_markdown(message),
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+        "question_intent": QuestionIntent.HR_QUESTION.value,
+        "action_payload": None,
     }
 
 
