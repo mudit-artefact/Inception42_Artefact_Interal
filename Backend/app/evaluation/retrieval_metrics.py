@@ -30,7 +30,15 @@ def rank_of_first_relevant(
 
 
 def found_within(ranked_clause_ids: list[str], relevant: Iterable[str], k: int) -> bool:
-    """Whether a correct clause is in the first k. This is recall@k for one query."""
+    """
+    Whether a correct clause is in the first k.
+
+    Averaged over queries this is what the report calls recall@k, and what the literature
+    more precisely calls **hit rate@k** or success@k: one question, one yes or no. It is
+    not the textbook recall, which is the share of a question's relevant clauses that were
+    found. The two agree for every question with a single right answer — 177 of 218 here —
+    and differ only where several clauses each answer the same question.
+    """
     rank = rank_of_first_relevant(ranked_clause_ids[:k], relevant)
     return rank is not None
 
@@ -49,6 +57,43 @@ def found_all_within(
     return set(relevant).issubset(set(ranked_clause_ids[:k]))
 
 
+def share_that_was_relevant(
+    ranked_clause_ids: list[str], relevant: Iterable[str], k: int
+) -> float:
+    """
+    What fraction of the first k were actually about the question. Precision@k.
+
+    The companion to recall, and the one that was missing. Recall asks whether the answer
+    was found; this asks how much came back with it. Everything retrieved is read by the
+    assistant, and everything irrelevant is something it has to recognise and ignore —
+    which it does not always manage.
+
+    Read the level against its ceiling, not on its own. Most questions here have a single
+    right clause, so fetching eight caps this at one in eight however well the search
+    ranks. The number that means something is how it moves when the depth changes: more
+    depth always buys recall with precision, and this is the price tag.
+    """
+    if k <= 0:
+        return 0.0
+    considered = ranked_clause_ids[:k]
+    if not considered:
+        return 0.0
+    wanted = set(relevant)
+    return sum(1 for clause_id in considered if clause_id in wanted) / len(considered)
+
+
+def best_possible_share(relevant: Iterable[str], k: int) -> float:
+    """
+    The most precision@k could be for this question, given how many answers exist.
+
+    A question with one right clause, asked of eight, cannot score above an eighth. Without
+    this the precision figure reads as a failure when it is arithmetic.
+    """
+    if k <= 0:
+        return 0.0
+    return min(len(set(relevant)), k) / k
+
+
 def reciprocal_rank(ranked_clause_ids: list[str], relevant: Iterable[str]) -> float:
     """
     One over the position of the first correct clause. Zero when there is none.
@@ -63,3 +108,32 @@ def reciprocal_rank(ranked_clause_ids: list[str], relevant: Iterable[str]) -> fl
 
 def as_percentage(count: int, total: int) -> float:
     return round((count / total) * 100.0, 1) if total else 0.0
+
+
+# What the search itself treats as "close enough to trust", from
+# `app/workflow/nodes/gather_evidence.py`. Held here so the evaluation scores the rule the
+# system actually applies rather than a second opinion about it.
+CLOSE_ENOUGH_TO_TRUST = 0.35
+
+
+def stayed_unsure(best_similarity: float, threshold: float = CLOSE_ENOUGH_TO_TRUST) -> bool:
+    """
+    Whether the search correctly declined to be confident about a question with no answer.
+
+    Every other measure here asks whether the right clause was found. None of them can fail
+    on the opposite mistake: returning something confidently for a question the corpus does
+    not answer. A query about the parking policy will always return the ten nearest
+    passages, because a vector search always returns something — what tells you it found
+    nothing is that none of them is close.
+    """
+    return best_similarity < threshold
+
+
+def margin_below(best_similarity: float, threshold: float = CLOSE_ENOUGH_TO_TRUST) -> float:
+    """
+    How much room a no-answer query had to spare. Negative where it had none.
+
+    The number worth watching. A corpus can pass every no-answer query today and be one
+    added policy away from failing them, and only the margin shows that coming.
+    """
+    return round(threshold - best_similarity, 3)

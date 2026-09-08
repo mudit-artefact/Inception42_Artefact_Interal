@@ -93,8 +93,19 @@ def run_benchmark_evaluation() -> EvaluationReport:
             category["correct_intent"] += 1
 
     answerable_count = max(len(questions_answerable), 1)
-    recall = _as_percentage(expected_document_found, answerable_count)
-    recall_without_expansion = _as_percentage(found_without_expanding_acronyms, answerable_count)
+
+    # Retrieval is scored only over the questions that name a document to retrieve. Seven
+    # of these ask about the employee's own record — their grade, their balance — and carry
+    # no expected document at all, so `_rank_of_the_best_expected_document` returns nothing
+    # and they counted as retrieval misses. They were never retrieval questions. The effect
+    # was a ceiling: recall and precision@1 could not pass 78.8% and MRR could not pass
+    # 0.788 however well the search performed. Hop coverage already excluded them, so the
+    # same report contradicted itself about the same seven cases.
+    retrieval_count = max(
+        sum(1 for case in questions_answerable if case.expected_doc_sources), 1
+    )
+    recall = _as_percentage(expected_document_found, retrieval_count)
+    recall_without_expansion = _as_percentage(found_without_expanding_acronyms, retrieval_count)
     abstain_accuracy = _as_percentage(correct_abstentions, max(len(questions_to_abstain), 1))
 
     return EvaluationReport(
@@ -104,12 +115,13 @@ def run_benchmark_evaluation() -> EvaluationReport:
         intent_accuracy_pct=_as_percentage(
             expected_document_found + correct_abstentions, len(GOLDEN_BENCHMARK_CASES)
         ),
-        retrieval_recall_at_5_pct=recall,
+        retrieval_recall_pct=recall,
+        retrieval_depth=PASSAGES_TO_RETRIEVE,
         abstain_accuracy_pct=abstain_accuracy,
         # How often the best-ranked passage is from the right document. This is the
         # evidence an answer would actually be built on, so it is the honest stand-in for
         # groundedness in a benchmark that does not call the model.
-        precision_at_1_pct=_as_percentage(expected_document_ranked_first, answerable_count),
+        precision_at_1_pct=_as_percentage(expected_document_ranked_first, retrieval_count),
         # How much of a multi-document answer's evidence actually came back. A question
         # whose evidence spans four documents used to score the same as a single lookup.
         hop_coverage_pct=round(
@@ -121,7 +133,7 @@ def run_benchmark_evaluation() -> EvaluationReport:
         # that was not about the past. This is the number that says whether keeping
         # superseded provisions in the index is safe.
         superseded_leakage_pct=_as_percentage(superseded_leaks, answerable_count),
-        mrr_score=round(reciprocal_ranks / answerable_count, 3),
+        mrr_score=round(reciprocal_ranks / retrieval_count, 3),
         avg_latency_ms=int((time.time() - started_at) * 1000 / max(len(GOLDEN_BENCHMARK_CASES), 1)),
         ablation_study={
             "raw_query_recall_pct": recall_without_expansion,

@@ -34,7 +34,11 @@ class RetrievalCase(BaseModel):
     """One question, and the clauses that would answer it."""
 
     query: str
-    relevant_clause_ids: list[str] = Field(min_length=1)
+    # Empty on purpose for a question the corpus does not answer. Those are scored on
+    # whether the search stayed unsure, never on rank — a query with no right answer has no
+    # reciprocal rank, and averaging a zero in for it would report a ranking failure that
+    # did not happen.
+    relevant_clause_ids: list[str] = Field(default_factory=list)
     # True where the answer needs every clause named, not any one of them.
     every_clause_required: bool = False
 
@@ -46,6 +50,11 @@ class RetrievalCase(BaseModel):
 
 def _case(query: str, *clauses: str, **tags) -> RetrievalCase:
     return RetrievalCase(query=query, relevant_clause_ids=list(clauses), **tags)
+
+
+def _nothing_to_find(query: str, **tags) -> RetrievalCase:
+    """A question HC Services has no policy on. The right result is an unconfident one."""
+    return RetrievalCase(query=query, relevant_clause_ids=[], **tags)
 
 
 ENGLISH_CASES: list[RetrievalCase] = [
@@ -275,6 +284,60 @@ ENGLISH_CASES: list[RetrievalCase] = [
           "HC-PC-013§13.7", modality=Modality.TABLE),
     _case("One of my documents came back — what happens now?",
           "HC-PC-013§13.8"),
+
+    # ── Asked about the whole of a policy, not a clause of it ────────────────
+    _case("Summarise the sick leave policy for me",
+          "HC-PC-002§2.2", "HC-PC-002§2.3", "HC-PC-002§2.5",
+          reasoning_type=ReasoningType.HOLISTIC),
+    _case("Tell me everything I need to know about probation",
+          "HC-PC-003§3.2", "HC-PC-003§3.3", "HC-PC-003§3.6",
+          reasoning_type=ReasoningType.HOLISTIC),
+    _case("Give me an overview of how expenses work here",
+          "HC-PC-005§5.2", "HC-PC-005§5.3", "HC-PC-005§5.7",
+          reasoning_type=ReasoningType.HOLISTIC),
+    _case("Explain the education allowance from start to finish",
+          "HC-PC-012§12.3", "HC-PC-012§12.4", "HC-PC-012§12.5",
+          reasoning_type=ReasoningType.HOLISTIC),
+
+    # ── My own record, read against the rules ────────────────────────────────
+    _case("I have fifteen days left — is that enough for a fortnight away?",
+          "HC-PC-001§1.2", "HC-PC-001§1.4",
+          source_type=SourceType.MIXED, reasoning_type=ReasoningType.NUMERICAL),
+    _case("I joined last year, so how do I compare with someone here five years?",
+          "HC-PC-001§1.2",
+          source_type=SourceType.MIXED, reasoning_type=ReasoningType.COMPARATIVE),
+    _case("On my grade, do I fly at the front of the plane?",
+          "HC-PC-005§5.3", "HC-PC-007§7.6",
+          source_type=SourceType.MIXED, reasoning_type=ReasoningType.RELATIONSHIP),
+    _case("I am on the lower plan — which school charges does that actually cover?",
+          "HC-PC-012§12.3", "HC-PC-012§12.4",
+          source_type=SourceType.MIXED),
+
+    # ── Two languages in one sentence, the way people here actually write ────
+    _case("Does unpaid leave break my continuous service؟",
+          "HC-PC-007§7.2", modality=Modality.CODE_SWITCH),
+    _case("كم days of annual leave do I get?",
+          "HC-PC-001§1.2", modality=Modality.CODE_SWITCH),
+    _case("هل I need a medical certificate for two days?",
+          "HC-PC-002§2.3", modality=Modality.CODE_SWITCH),
+    _case("What is the الحد الأقصى for carry over?",
+          "HC-PC-001§1.5", modality=Modality.CODE_SWITCH),
+
+    # ── Nothing in the Code answers these ────────────────────────────────────
+    #
+    # Included because the corpus has no clause on the subject — not because the search
+    # already handles them. Excluding the ones it currently gets wrong would be marking
+    # its own homework.
+    _nothing_to_find("What is the parking policy?"),
+    _nothing_to_find("How do I book a meeting room?"),
+    _nothing_to_find("What is the dress code in the office?"),
+    _nothing_to_find("How do I claim a gym membership?"),
+    _nothing_to_find("Who do I call when my laptop stops working?"),
+    _nothing_to_find("Can I bring my dog to the office?"),
+    _nothing_to_find("Do we get a Christmas party?"),
+    _nothing_to_find("When is my salary review?"),
+    _nothing_to_find("How is the annual bonus calculated?"),
+    _nothing_to_find("What is the company pension scheme?"),
 ]
 
 
@@ -459,12 +522,84 @@ ARABIC_CASES: list[RetrievalCase] = [
           "HC-PC-013-AR§13.7", modality=Modality.TABLE),
     _case("أُعيد أحد مستنداتي، فماذا أفعل؟",
           "HC-PC-013-AR§13.8"),
+
+    # ── يسأل بلغتين في الجملة نفسها ──────────────────────────────────────────
+    _case("هل الـ unpaid leave تؤثر على رصيد الإجازة السنوية؟",
+          "HC-PC-007-AR§7.2", modality=Modality.CODE_SWITCH),
+    _case("كم يوم sick leave أستحق في السنة؟",
+          "HC-PC-002-AR§2.2", modality=Modality.CODE_SWITCH),
+    _case("هل يمكنني عمل carry over لأيامي المتبقية؟",
+          "HC-PC-001-AR§1.5", modality=Modality.CODE_SWITCH),
+    _case("ما هي شروط الـ remote work عندنا؟",
+          "HC-PC-004-AR§4.2", modality=Modality.CODE_SWITCH),
+    _case("متى أحتاج medical certificate؟",
+          "HC-PC-002-AR§2.3", modality=Modality.CODE_SWITCH),
+    _case("ما قيمة الـ per diem عند السفر؟",
+          "HC-PC-005-AR§5.3", modality=Modality.CODE_SWITCH),
+    _case("هل الـ probation عندي انتهت؟",
+          "HC-PC-003-AR§3.3", modality=Modality.CODE_SWITCH),
+    _case("كم الـ education allowance لكل طفل؟",
+          "HC-PC-012-AR§12.3", modality=Modality.CODE_SWITCH),
+
+    # ── يسأل عن السياسة كلها، لا عن بند فيها ────────────────────────────────
+    _case("اشرح لي سياسة الإجازات المرضية بالكامل",
+          "HC-PC-002-AR§2.2", "HC-PC-002-AR§2.3", "HC-PC-002-AR§2.5",
+          reasoning_type=ReasoningType.HOLISTIC),
+    _case("ما كل ما يلزمني معرفته عن فترة التجربة؟",
+          "HC-PC-003-AR§3.2", "HC-PC-003-AR§3.3", "HC-PC-003-AR§3.6",
+          reasoning_type=ReasoningType.HOLISTIC),
+    _case("لخّص لي قواعد المصروفات من أولها لآخرها",
+          "HC-PC-005-AR§5.2", "HC-PC-005-AR§5.3", "HC-PC-005-AR§5.7",
+          reasoning_type=ReasoningType.HOLISTIC),
+    _case("عرّفني على نظام بدل التعليم كاملاً",
+          "HC-PC-012-AR§12.3", "HC-PC-012-AR§12.4", "HC-PC-012-AR§12.5",
+          reasoning_type=ReasoningType.HOLISTIC),
+
+    # ── سجلي الوظيفي مقروءاً مع السياسة ─────────────────────────────────────
+    _case("بقي لي خمسة عشر يوماً، فهل تكفي لأسبوعين متصلين؟",
+          "HC-PC-001-AR§1.2", "HC-PC-001-AR§1.4",
+          source_type=SourceType.MIXED, reasoning_type=ReasoningType.NUMERICAL),
+    _case("أنا في السنة الأولى، فكم يوماً أستحق مقارنة بزميل أقدم؟",
+          "HC-PC-001-AR§1.2",
+          source_type=SourceType.MIXED, reasoning_type=ReasoningType.COMPARATIVE),
+    _case("درجتي السابعة، فهل يحق لي السفر بدرجة رجال الأعمال؟",
+          "HC-PC-005-AR§5.3", "HC-PC-007-AR§7.6",
+          source_type=SourceType.MIXED, reasoning_type=ReasoningType.RELATIONSHIP),
+    _case("خطتي هي الأساسية، فما الذي يغطيه هذا في رسوم المدرسة؟",
+          "HC-PC-012-AR§12.3", "HC-PC-012-AR§12.4",
+          source_type=SourceType.MIXED),
+
+    # ── سؤالان معاً، ويلزم البندان ──────────────────────────────────────────
+    _case("أريد العمل من المنزل: ما شروط الاستحقاق وأي فئة وظيفتي؟",
+          "HC-PC-004-AR§4.2", "HC-PC-007-AR§7.7",
+          every_clause_required=True, reasoning_type=ReasoningType.SPANNING),
+    _case("غبت مرضياً أثناء التجربة: كيف يُدفع لي وهل تُمدَّد تجربتي؟",
+          "HC-PC-002-AR§2.2", "HC-PC-003-AR§3.6",
+          every_clause_required=True, reasoning_type=ReasoningType.SPANNING),
+    _case("رُفضت مطالبتي: بأي بند رُفضت وكيف أعترض؟",
+          "HC-PC-005-AR§5.6", "HC-PC-009-AR§9.2",
+          every_clause_required=True, reasoning_type=ReasoningType.SPANNING),
+
+    # ── لا جواب لها في المدونة ──────────────────────────────────────────────
+    _nothing_to_find("ما سياسة مواقف السيارات؟"),
+    _nothing_to_find("كيف أحجز قاعة اجتماعات؟"),
+    _nothing_to_find("من أتصل به إذا تعطل حاسوبي؟"),
+    _nothing_to_find("ما نظام التقاعد في الشركة؟"),
+    _nothing_to_find("كيف تُحتسب المكافأة السنوية؟"),
+    _nothing_to_find("هل لدينا حفل نهاية العام؟"),
 ]
+
+# The Arabic list is written as Arabic by construction, so the language and the default
+# modality are set here rather than repeated on every case. A modality that was stated
+# deliberately survives: a question about a table is about a table whatever language it is
+# asked in, and a question mixing English HR terms into Arabic is code-switched — which is
+# the whole point of tagging it, and calling it plain Arabic would erase the only cases
+# that test the language detector's actual job.
+DELIBERATE_MODALITIES = {Modality.TABLE, Modality.CODE_SWITCH}
 
 for _case_ in ARABIC_CASES:
     _case_.language = "ar"
-    _case_.modality = (
-        Modality.TABLE if _case_.modality == Modality.TABLE else Modality.ARABIC
-    )
+    if _case_.modality not in DELIBERATE_MODALITIES:
+        _case_.modality = Modality.ARABIC
 
 RETRIEVAL_CASES: list[RetrievalCase] = ENGLISH_CASES + ARABIC_CASES

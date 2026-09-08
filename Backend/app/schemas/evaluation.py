@@ -117,11 +117,29 @@ class ConversationScenario(BaseModel):
 
 
 class EvaluationReport(BaseModel):
-    """The body of GET /api/v1/hcs01/eval."""
+    """
+    The body of GET /api/v1/hcs01/eval.
+
+    **These figures are document-level, over 26 questions.** They ask whether any passage
+    came from the right policy — did anything from HC-PC-001 come back — which is a much
+    easier question than the one that matters, and they score close to perfect.
+
+    The number to quote about retrieval is the clause-level one from
+    `scripts/run_retrieval_evaluation.py`: 218 questions, scored on whether the *specific*
+    clause came back, currently MRR 0.61 and 90% found within the eight the system reads.
+    That is the honest figure. This report is a smoke test for the pipeline as a whole —
+    routing, versioning, abstention — not a measure of how well the search ranks.
+    """
 
     total_test_cases: int
     intent_accuracy_pct: float
-    retrieval_recall_at_5_pct: float
+    # Recall at whatever depth the system is set to retrieve — `rag_top_k`, eight today.
+    # It was called retrieval_recall_at_5_pct and reported at five only while rag_top_k
+    # happened to be five; the name outlived the setting and the figure was quoted as
+    # recall@5 when it was not. The depth is now reported alongside it rather than baked
+    # into a name that can go stale again.
+    retrieval_recall_pct: float
+    retrieval_depth: int
     abstain_accuracy_pct: float
     # Was called faithfulness_score_pct, which it never was. It is precision@1: how often
     # the best-ranked passage comes from the right document.
@@ -130,7 +148,10 @@ class EvaluationReport(BaseModel):
     # How much of a multi-document answer's evidence was actually retrieved. This is what
     # makes spanning reasoning measurable rather than assumed.
     hop_coverage_pct: float
-    # Whether the right clause was found, not merely the right document.
+    # Whether the right clause was found, not merely the right document. Named precision,
+    # measured as recall: it asks whether any expected clause appears among those retrieved,
+    # not what share of the retrieved ones were expected. Kept under the old name because
+    # it is a published field; read it as clause-level recall.
     clause_precision_pct: float
     # How often a rule that no longer applies outranks the one that does, on questions
     # that are not about the past. The single best signal that versioning works.

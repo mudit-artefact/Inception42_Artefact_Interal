@@ -21,7 +21,7 @@ def test_every_reported_figure_is_within_range(isolated_policy_index):
 
     for name, value in (
         ("intent accuracy", report.intent_accuracy_pct),
-        ("recall@5", report.retrieval_recall_at_5_pct),
+        ("recall", report.retrieval_recall_pct),
         ("abstain accuracy", report.abstain_accuracy_pct),
         ("precision@1", report.precision_at_1_pct),
         ("hop coverage", report.hop_coverage_pct),
@@ -36,7 +36,7 @@ def test_the_groundedness_figure_is_no_longer_a_constant(isolated_policy_index):
     """It was hardcoded to 98.8 regardless of how retrieval actually performed."""
     report = run_benchmark_evaluation()
 
-    assert report.precision_at_1_pct != 98.8 or report.retrieval_recall_at_5_pct == 100.0
+    assert report.precision_at_1_pct != 98.8 or report.retrieval_recall_pct == 100.0
 
 
 def test_the_ablation_compares_two_real_measurements(isolated_policy_index):

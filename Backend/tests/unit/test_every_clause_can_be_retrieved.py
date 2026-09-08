@@ -83,3 +83,38 @@ def test_a_spanning_case_names_more_than_one_clause():
 
 def _words(text: str) -> list[str]:
     return re.findall(r"\w+", (text or "").lower())
+
+
+# ── Questions the Code does not answer ───────────────────────────────────────
+#
+# Every other case in this set has a right answer somewhere, so the score could only ever
+# measure whether the search found it. None of them could fail on the opposite mistake:
+# coming back confident about something the corpus says nothing on.
+
+NOTHING_TO_FIND = [case for case in RETRIEVAL_CASES if not case.relevant_clause_ids]
+
+
+def test_there_are_questions_with_no_answer_in_both_languages():
+    assert len(NOTHING_TO_FIND) >= 12
+    assert {case.language for case in NOTHING_TO_FIND} == {"en", "ar"}
+
+
+@pytest.mark.parametrize("case", NOTHING_TO_FIND, ids=lambda c: c.query[:40])
+def test_a_question_with_no_answer_names_no_clause(case):
+    """
+    Empty on purpose, and it has to stay empty. A clause added here later would turn a
+    question that tests restraint into one that tests recall, and the no-answer figure
+    would quietly start measuring something else.
+    """
+    assert case.relevant_clause_ids == []
+    assert case.every_clause_required is False
+
+
+def test_the_wording_rule_has_nothing_to_check_on_them():
+    """
+    The no-borrowed-wording rule compares a query against its clause. These have no clause,
+    so they pass it vacuously — recorded here so that is a decision rather than an accident
+    somebody later reads as coverage.
+    """
+    for case in NOTHING_TO_FIND:
+        assert not case.relevant_clause_ids
