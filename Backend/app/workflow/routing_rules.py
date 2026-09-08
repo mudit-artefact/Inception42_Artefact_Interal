@@ -29,6 +29,27 @@ MAXIMUM_CLARIFICATION_ROUNDS = 1
 
 GATHER_EVIDENCE_FOR_ONE_PART = "gather_subquery_evidence"
 
+# What HCS-11 calls somebody who has accepted an offer and not started, used here so both
+# systems describe the same person the same way.
+ONBOARDING = "Onboarding"
+
+# Everything that would read or change a leave record.
+LEAVE_INTENTS = frozenset(
+    {
+        QuestionIntent.APPLY_LEAVE,
+        QuestionIntent.CANCEL_LEAVE,
+        QuestionIntent.CHECK_LEAVE_STATUS,
+        QuestionIntent.APPROVE_LEAVE,
+        QuestionIntent.REJECT_LEAVE,
+    }
+)
+
+
+def _has_not_started(state: ConversationState) -> bool:
+    """Whether this turn belongs to somebody whose first day has not come."""
+    facts = state.get("employee_facts") or {}
+    return facts.get("employment_status") == ONBOARDING
+
 
 def decide_after_understanding(state: ConversationState) -> str:
     """
@@ -49,6 +70,18 @@ def decide_after_understanding(state: ConversationState) -> str:
         return "generate_greeting"
 
     if intent == QuestionIntent.OUT_OF_SCOPE:
+        return "build_safe_fallback"
+
+    # Somebody who has accepted an offer and not started may ask anything they like, but
+    # may not act on a record: they have no balance to spend, no request to cancel and no
+    # team to approve for.
+    #
+    # This is checked here rather than at the write, because applying for leave reads the
+    # request with the model, checks it against policy and pauses twice before it would
+    # reach one. Refusing at the end would let a new joiner pick dates on a calendar and
+    # confirm a card before being told the answer was always no.
+    if _has_not_started(state) and intent in LEAVE_INTENTS:
+        logger.info("Turning away a leave action from somebody who has not started yet")
         return "build_safe_fallback"
 
     if intent == QuestionIntent.APPLY_LEAVE:

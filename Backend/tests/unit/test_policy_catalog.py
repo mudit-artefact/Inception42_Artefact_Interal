@@ -4,8 +4,8 @@ from app.domain.policy_catalog import POLICY_CATALOG, english_documents, title_f
 
 
 def test_the_catalogue_holds_every_document_in_both_languages():
-    assert len(POLICY_CATALOG) == 20
-    assert len(english_documents()) == 10
+    assert len(POLICY_CATALOG) == 22
+    assert len(english_documents()) == 11
 
 
 def test_expense_policy_has_one_agreed_title():

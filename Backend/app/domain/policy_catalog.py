@@ -211,6 +211,16 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         topic_key="expenses",
         quick_link_section="HC-PC-005 Section 5.7",
     ),
+    "HC-PC-013": PolicyDocument(
+        code="HC-PC-013",
+        title="Employment Visa Documents Policy",
+        pdf_filename="13_visa_documents_policy.pdf",
+        language="en",
+        markdown_filename="13_visa_documents.md",
+        topics=["Who it covers", "The two routes", "The four documents", "The deadline"],
+        topic_key="visa",
+        quick_link_section="HC-PC-013 Section 13.4",
+    ),
     "HC-PC-006-AR": PolicyDocument(
         code="HC-PC-006-AR",
         title="السياسة التأديبية",
@@ -260,6 +270,16 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         topics=["الاستحقاق", "الحد السنوي", "الرسوم القابلة للاسترداد", "المستندات المطلوبة"],
         topic_key="education",
         quick_link_section="HC-PC-012 Section 12.3",
+    ),
+    "HC-PC-013-AR": PolicyDocument(
+        code="HC-PC-013-AR",
+        title="سياسة مستندات تأشيرة العمل",
+        pdf_filename="13_visa_documents_ar.pdf",
+        language="ar",
+        markdown_filename="13_visa_documents.md",
+        topics=["على من تسري", "المساران", "المستندات الأربعة", "الموعد النهائي"],
+        topic_key="visa",
+        quick_link_section="HC-PC-013 Section 13.4",
     ),
 }
 

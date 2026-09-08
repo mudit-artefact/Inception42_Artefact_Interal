@@ -394,3 +394,49 @@ def read_school_claims(employee_id: str) -> list[dict] | None:
         for case in cases
         if isinstance(case, dict)
     ]
+
+
+def read_visa_case(employee_id: str) -> list[dict] | None:
+    """
+    The employment visa case HCS-11 holds for this new joiner, if there is one.
+
+    The same request the visa document window makes, and read-only: HCS-11 is asked, never
+    told. `None` means it could not be asked, which is not the same as a person having no
+    case, and the two must never be told to somebody as though they were.
+    """
+    from app.core.settings import settings
+
+    hcs11_employee_id = map_hcs01_to_hcs11_employee_id(employee_id)
+    try:
+        response = httpx.get(
+            f"{settings.hcs11_backend_url.rstrip('/')}/api/visa/cases",
+            params={"employee_id": hcs11_employee_id},
+            timeout=CLAIM_READ_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        cases = response.json()
+    except Exception as unreachable:
+        logger.warning(f"Could not read the visa case for {employee_id}: {unreachable}")
+        return None
+
+    if not isinstance(cases, list):
+        logger.warning(f"HCS-11 returned {type(cases).__name__} for {employee_id}, not a list")
+        return None
+
+    # Only what the new joiner is owed about their own case. The routing verdict, the check
+    # codes, the legal entity and the nationality read off their passport are HCS-11's own
+    # working, not theirs.
+    return [
+        {
+            "case_id": case.get("case_id", ""),
+            "plan_name": case.get("plan_name", ""),
+            "status": case.get("case_status", ""),
+            "submission_deadline": case.get("submission_deadline") or "",
+            "submitted_on": case.get("submitted_on") or "",
+            "required_documents": tuple(case.get("required_documents") or ()),
+            "missing_documents": tuple(case.get("missing_documents") or ()),
+            "problems": tuple(case.get("problems") or ()),
+        }
+        for case in cases
+        if isinstance(case, dict)
+    ]

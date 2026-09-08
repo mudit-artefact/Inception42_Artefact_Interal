@@ -255,6 +255,26 @@ ENGLISH_CASES: list[RetrievalCase] = [
           "basic one, and does it cover textbooks?",
           "HC-PC-012§12.3", "HC-PC-012§12.4",
           every_clause_required=True, reasoning_type=ReasoningType.COMPARATIVE),
+
+    # ── HC-PC-013 Employment visa documents ─────────────────────────────────
+    _case("When was the visa documents policy first issued?",
+          "HC-PC-013§13.0", reasoning_type=ReasoningType.TEMPORAL),
+    _case("Does any of this apply to me before my first day?",
+          "HC-PC-013§13.1"),
+    _case("I have accepted an offer but have not started — what am I entitled to?",
+          "HC-PC-013§13.2", reasoning_type=ReasoningType.RELATIONSHIP),
+    _case("Do I need a degree certificate, or does that depend on the job?",
+          "HC-PC-013§13.3", modality=Modality.TABLE),
+    _case("What do I need to send in for my work visa?",
+          "HC-PC-013§13.4", modality=Modality.TABLE),
+    _case("Where do I send my passport copy?",
+          "HC-PC-013§13.5"),
+    _case("By when do my visa papers have to be in?",
+          "HC-PC-013§13.6", reasoning_type=ReasoningType.TEMPORAL),
+    _case("What exactly do you check on my passport and my photo?",
+          "HC-PC-013§13.7", modality=Modality.TABLE),
+    _case("One of my documents came back — what happens now?",
+          "HC-PC-013§13.8"),
 ]
 
 
@@ -419,6 +439,26 @@ ARABIC_CASES: list[RetrievalCase] = [
           "HC-PC-009-AR§9.2", reasoning_type=ReasoningType.TEMPORAL),
     _case("إن قدمت شكوى، هل يُتخذ ضدي شيء بسببها؟",
           "HC-PC-009-AR§9.3", "HC-PC-006-AR§6.4"),
+
+    # ── مستندات تأشيرة العمل ─────────────────────────────────────────────────
+    _case("متى صدرت سياسة مستندات التأشيرة؟",
+          "HC-PC-013-AR§13.0", reasoning_type=ReasoningType.TEMPORAL),
+    _case("هل يسري عليّ شيء قبل أول يوم عمل؟",
+          "HC-PC-013-AR§13.1"),
+    _case("قبلت العرض ولم أباشر بعد، فما الذي أستحقه؟",
+          "HC-PC-013-AR§13.2", reasoning_type=ReasoningType.RELATIONSHIP),
+    _case("هل تلزمني شهادة دراسية أم يعتمد ذلك على الوظيفة؟",
+          "HC-PC-013-AR§13.3", modality=Modality.TABLE),
+    _case("ما المستندات التي أرسلها لاستخراج تأشيرة العمل؟",
+          "HC-PC-013-AR§13.4", modality=Modality.TABLE),
+    _case("إلى أين أرسل صورة جواز سفري؟",
+          "HC-PC-013-AR§13.5"),
+    _case("ما آخر موعد لتسليم أوراق التأشيرة؟",
+          "HC-PC-013-AR§13.6", reasoning_type=ReasoningType.TEMPORAL),
+    _case("ماذا تفحصون في الجواز والصورة الشخصية؟",
+          "HC-PC-013-AR§13.7", modality=Modality.TABLE),
+    _case("أُعيد أحد مستنداتي، فماذا أفعل؟",
+          "HC-PC-013-AR§13.8"),
 ]
 
 for _case_ in ARABIC_CASES:

@@ -15,7 +15,7 @@ from app.services.policy_indexing_service import reindex_policies
 from app.services.policy_search_service import search_policies
 
 # Nine English policies and five Arabic editions, indexed from their Markdown sources.
-EXPECTED_PASSAGE_COUNT = 168
+EXPECTED_PASSAGE_COUNT = 186
 
 
 def test_searching_an_empty_index_says_so_rather_than_indexing_mid_question(

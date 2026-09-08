@@ -86,6 +86,26 @@ class SchoolClaim:
 
 
 @dataclass(frozen=True)
+class VisaCase:
+    """
+    A new joiner's employment visa case, as HCS-11 holds it.
+
+    Read from HCS-11 rather than the HR database, and carrying only what the new joiner is
+    owed about their own case. The reviewer, the internal routing verdict and the check
+    codes stay where they are, exactly as with `SchoolClaim`.
+    """
+
+    case_id: str
+    plan_name: str
+    status: str
+    submission_deadline: str = ""
+    submitted_on: str = ""
+    required_documents: tuple[str, ...] = ()
+    missing_documents: tuple[str, ...] = ()
+    problems: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class EmployeeFacts:
     """One employee's record, as read from the HR database."""
 
@@ -117,10 +137,17 @@ class EmployeeFacts:
     manager_history: list[ManagerChange] = field(default_factory=list)
     recent_leave_requests: list[LeaveRequest] = field(default_factory=list)
     recent_expense_claims: list[ExpenseClaim] = field(default_factory=list)
+    # "Active", "On Leave", "Terminated", or "Onboarding" for somebody who has accepted an
+    # offer and not yet started. It rides inside employee_profile rather than taking an
+    # allowlist entry of its own, because it is part of who somebody is rather than a
+    # subject anybody asks about directly.
+    employment_status: str = ""
     # None until HCS-11 has been asked, and after asking if it could not be reached. An
     # empty list means it answered and this employee has no claims — a different thing,
     # and the employee must not be told one when the truth is the other.
     school_claims: list[SchoolClaim] | None = None
+    # The same three states, for the visa case of somebody who has not started.
+    visa_cases: list[VisaCase] | None = None
 
     @classmethod
     def from_dictionary(cls, stored: dict[str, Any]) -> "EmployeeFacts":
@@ -179,9 +206,25 @@ class EmployeeFacts:
                 )
                 for claim in stored.get("recent_expense_claims", [])
             ],
+            # .get with a default on both, not stored[...]: a conversation checkpointed
+            # before these fields existed must still resume.
+            employment_status=stored.get("employment_status", ""),
             school_claims=(
                 [SchoolClaim(**claim) for claim in stored["school_claims"]]
                 if stored.get("school_claims") is not None
+                else None
+            ),
+            visa_cases=(
+                [
+                    VisaCase(
+                        **{
+                            key: tuple(value) if isinstance(value, list) else value
+                            for key, value in case.items()
+                        }
+                    )
+                    for case in stored["visa_cases"]
+                ]
+                if stored.get("visa_cases") is not None
                 else None
             ),
         )
@@ -257,11 +300,17 @@ class EmployeeFacts:
                 }
                 for claim in self.recent_expense_claims
             ],
+            "employment_status": self.employment_status,
             # None survives the round trip, because "not asked" and "asked, and there are
             # none" are different answers and the reply turns on which one it is.
             "school_claims": (
                 [asdict(claim) for claim in self.school_claims]
                 if self.school_claims is not None
+                else None
+            ),
+            "visa_cases": (
+                [asdict(case) for case in self.visa_cases]
+                if self.visa_cases is not None
                 else None
             ),
         }

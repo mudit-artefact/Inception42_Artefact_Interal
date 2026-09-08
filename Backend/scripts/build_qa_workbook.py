@@ -172,9 +172,32 @@ CASES = [
      "Mark FAIL only if it invents cover amounts, tier names or hospital lists."),
     ("P-11", "Policy", "Alia Al Suwaidi",
      'New conversation. Click the "Visa & Residency" tile.',
-     "Should say the visa renewal and dependent sponsorship rules are not in the policy documents, "
-     "and give the People & Culture email (people@hcservices.ae). Mark FAIL if it produces "
-     "confident detail about visa steps, fees or timelines — none of that exists in the documents."),
+     "The tile asks about visa RENEWAL and family sponsorship, which HC-PC-013 does not cover — "
+     "it covers new-joiner employment visas only. Should say those rules are not in the policy "
+     "documents and give the People & Culture email (people@hcservices.ae). Mark FAIL if it "
+     "produces confident detail about renewal steps, fees or timelines."),
+    ("P-12", "Policy", "Ahmed Al Rashid",
+     'Ask: "What documents do I need for my work visa?"',
+     "Four documents from HC-PC-013 §13.4: passport copy, photograph, signed job-offer form, "
+     "attested academic certificate. Must cite the policy. Mark FAIL if it lists three, or "
+     "invents a document."),
+    ("P-13", "Policy", "Daniel Okonkwo",
+     'Ask: "What documents do I need for my work visa?"',
+     "THREE documents — passport, photograph, job-offer form. NO academic certificate: Daniel is "
+     "on the no-degree route. This is the test that proves the answer is read from his own case "
+     "rather than from the first table in the policy. Mark FAIL if it lists four."),
+    ("P-14", "Policy", "Priya Nair",
+     'Ask: "Where has my visa application got to?"',
+     "Awaiting submission, four documents still outstanding, deadline 7 October 2026. Read live "
+     "from HCS-11. Mark FAIL if it says she has no application."),
+    ("P-15", "Policy", "Ahmed Al Rashid",
+     'Ask: "How many annual leave days do I have?"',
+     "Must NOT state a number. Should say he has not started yet and that leave begins on his "
+     "first day. Mark FAIL if it states any day count, including zero."),
+    ("P-16", "Policy", "Ahmed Al Rashid",
+     'Ask: "I want to book a week off next month."',
+     "Refused, and the calendar must NOT open. Should say he has not started yet and offer the "
+     "visa documents and policy questions instead. Mark FAIL if a date picker appears."),
 
     # Own record
     ("R-01", "My record", "Alia Al Suwaidi",

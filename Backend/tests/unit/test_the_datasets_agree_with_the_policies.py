@@ -41,7 +41,17 @@ def annual_balance(record: dict, year: int = 2026):
     )
 
 
-@pytest.mark.parametrize("record", build_seed_employees(), ids=lambda r: r["employee"].user_id)
+# The 2026 joining cohort carries no leave rows, because none exist before a first day.
+# These tests assert that a leave record agrees with the leave policy; somebody who has no
+# leave record is not an exception to that, they are outside it.
+def employees_who_have_started() -> list[dict]:
+    return [
+        record for record in build_seed_employees()
+        if record["employee"].employment_status != "Onboarding"
+    ]
+
+
+@pytest.mark.parametrize("record", employees_who_have_started(), ids=lambda r: r["employee"].user_id)
 def test_entitlement_matches_the_service_ladder(record):
     """Or departs from it for a reason the policy itself allows."""
     employee = record["employee"]
@@ -57,7 +67,7 @@ def test_entitlement_matches_the_service_ladder(record):
     )
 
 
-@pytest.mark.parametrize("record", build_seed_employees(), ids=lambda r: r["employee"].user_id)
+@pytest.mark.parametrize("record", employees_who_have_started(), ids=lambda r: r["employee"].user_id)
 def test_the_balance_adds_up(record):
     """remaining = entitled + carried over - used, on every row."""
     for balance in record["balances"]:
@@ -66,7 +76,7 @@ def test_the_balance_adds_up(record):
         ), f"{record['employee'].user_id} {balance.leave_type} {balance.year} does not reconcile"
 
 
-@pytest.mark.parametrize("record", build_seed_employees(), ids=lambda r: r["employee"].user_id)
+@pytest.mark.parametrize("record", employees_who_have_started(), ids=lambda r: r["employee"].user_id)
 def test_days_used_are_backed_by_approved_requests(record):
     """
     Otherwise "show me the requests behind my balance" has no answer, and the number the
@@ -84,7 +94,7 @@ def test_days_used_are_backed_by_approved_requests(record):
     )
 
 
-@pytest.mark.parametrize("record", build_seed_employees(), ids=lambda r: r["employee"].user_id)
+@pytest.mark.parametrize("record", employees_who_have_started(), ids=lambda r: r["employee"].user_id)
 def test_sick_leave_models_the_whole_entitlement(record):
     """
     Ninety days across three pay tranches, as HC-PC-002 §2.2.1 sets out — not the 15-day

@@ -75,8 +75,13 @@ Choose one intent:
 - "approve_leave": an explicit intent, inquiry, or command from a manager regarding approving a team member's leave request (e.g. "Approve leave for Ahmed", "Approve request #19", "Approve leave", "What leave requests do I need to approve?", "Leave request (What leave requests do I need to approve?)", "Pending approvals from my team").
 - "reject_leave": an explicit intent or command from a manager to reject an employee's leave request (e.g. "Reject leave for Ahmed", "Reject request #19", "Decline leave").
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
-  balances, sick leave, remote work, expenses, probation, their line manager, benefits.
-  This includes general questions ("How much leave do I have?", "What is the leave policy?").
+  balances, sick leave, remote work, expenses, probation, their line manager, benefits,
+  the education allowance, and the **employment visa documents a new joiner must provide**
+  before their first day. This includes general questions ("How much leave do I have?",
+  "What is the leave policy?") and questions about where somebody's own case has got to
+  ("where has my visa application got to?", "أين وصلت معاملة تأشيرتي؟", "ما حالة طلب
+  تأشيرتي؟"). A question about a visa is HR, not general knowledge — it is only out of
+  scope when it is about immigration law rather than about this employer's process.
 - "document_upload": the employee wants to SEND school documents in, or has just
   attached some. Only that:
   * Asking to send: "upload documents", "submit my school documents", "I want to upload"
@@ -302,6 +307,11 @@ English one does.
 - education_plan: which education allowance plan they are on. The policy states a ceiling
   for each plan; this says which one is theirs, so ask for it alongside the policy for
   anything about school fees, the education allowance or what a claim may cover.
+- visa_case_status: where a new joiner's employment visa case has got to — which route
+  they are on, which documents it needs, which are still outstanding, the deadline, and
+  anything found wrong. Ask for it when somebody asks about their visa application: "what
+  do I still need to send?", "has my visa gone through?", "where is my application?". Ask
+  for the policy as well when they ask what the rules are rather than where they stand.
 - school_claim_status: where the employee's school verification claim has got to — one
   per child — with the status, the dates, whether anything further is wanted from them,
   and whether payment is ready. Ask for it whenever the employee asks about a claim they
@@ -352,6 +362,24 @@ CONVERSATION_RECAP_MESSAGES = {
             "هذا أول ما سألتني عنه في هذه المحادثة، لذا لا يوجد ما يمكن العودة إليه بعد."
         ),
     },
+}
+
+# For somebody who has accepted an offer and not started. It refuses the action, not the
+# person: they are told what they can ask about instead, and given a date rather than a
+# closed door. No figure appears here — the start date comes from their own record.
+NOT_STARTED_YET_MESSAGES = {
+    "en": (
+        "You have not started yet, so there is no leave record to act on — leave begins "
+        "on your first day. Until then I can help with your employment visa documents "
+        "and with any question about HR policy. Anything else about your joining is best "
+        "taken to People & Culture at people@hcservices.ae."
+    ),
+    "ar": (
+        "لم تباشر العمل بعد، لذا لا يوجد سجل إجازات يمكن التصرف فيه — وتبدأ الإجازة من أول "
+        "يوم عمل. وحتى ذلك الحين يمكنني مساعدتك في مستندات تأشيرة العمل وفي أي سؤال عن "
+        "سياسات الموارد البشرية. أما ما عدا ذلك مما يخص التحاقك فيُوجَّه إلى إدارة الموارد "
+        "البشرية على people@hcservices.ae."
+    ),
 }
 
 NOTHING_TO_REPHRASE_MESSAGES = {
@@ -563,9 +591,10 @@ GREETING_BODY = {
 }
 
 # What the assistant says it can do. Only what it can actually do: it holds the HR policy
-# documents, the employee's own record, and the leave and schooling processes. There is no
-# medical insurance policy and no visa policy, so it offers neither — promising and then
-# declining is worse than not promising.
+# documents, the employee's own record, and the leave, schooling and employment-visa
+# processes. There is no medical insurance policy, and visa renewal and family sponsorship
+# are outside HC-PC-013, so it offers neither — promising and then declining is worse than
+# not promising.
 #
 # No figures here, and none may be added. A day count or an amount in a fixed sentence is
 # grounded in nothing but itself, and a test enforces that.
@@ -581,9 +610,11 @@ WHAT_I_CAN_DO = {
         "manage people, approving and rejecting theirs.\n"
         "* **The education allowance** — what your plan covers, which fees you can claim, "
         "which documents are needed and by when.\n"
-        "* **Sending school documents in** — I can open the upload window for you.\n\n"
-        "Anything outside that, including medical insurance and visa or residency "
-        "questions, is best taken to People & Culture at people@hcservices.ae."
+        "* **Sending school documents in** — I can open the upload window for you.\n"
+        "* **Employment visa documents** — if you have accepted an offer and not started, "
+        "which documents your route needs, which are still outstanding and by when.\n\n"
+        "Anything outside that, including medical insurance and visa renewals or family "
+        "sponsorship, is best taken to People & Culture at people@hcservices.ae."
     ),
     "ar": (
         "أنا دليل، مساعد الموارد البشرية في إتش سي سيرفيسز. يمكنني مساعدتك في:\n\n"
@@ -596,8 +627,10 @@ WHAT_I_CAN_DO = {
         "اعتماد طلبات فريقك أو رفضها.\n"
         "* **بدل التعليم** — ما تغطيه خطتك وأي الرسوم يمكن المطالبة بها وما المستندات "
         "المطلوبة وموعدها.\n"
-        "* **إرسال مستندات الدراسة** — أستطيع فتح نافذة الرفع لك.\n\n"
-        "أما ما عدا ذلك، ومنه التأمين الطبي وأسئلة الإقامة والتأشيرات، فيُوجَّه إلى قسم "
+        "* **إرسال مستندات الدراسة** — أستطيع فتح نافذة الرفع لك.\n"
+        "* **مستندات تأشيرة العمل** — إن كنت قد قبلت العرض ولم تباشر بعد: ما المستندات "
+        "التي يتطلبها مسارك، وما تبقّى منها، وموعدها.\n\n"
+        "أما ما عدا ذلك، ومنه التأمين الطبي وتجديد الإقامة وكفالة الأسرة، فيُوجَّه إلى قسم "
         "شؤون الموظفين على people@hcservices.ae."
     ),
 }

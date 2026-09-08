@@ -14,6 +14,7 @@ from app.services.citation_builder import build_employee_record_citation, build_
 from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
 import re
+from app.workflow.routing_rules import LEAVE_INTENTS, ONBOARDING
 from app.workflow.prompts import (
     WHAT_I_CAN_DO,
     ACKNOWLEDGMENT_MESSAGES,
@@ -24,6 +25,7 @@ from app.workflow.prompts import (
     GREETING_MESSAGES,
     NO_EVIDENCE_MESSAGES,
     NOTHING_TO_REPHRASE_MESSAGES,
+    NOT_STARTED_YET_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     PLEASANTRY_MESSAGES,
     REPEAT_GREETING_MESSAGES,
@@ -299,6 +301,10 @@ def build_safe_fallback(state: ConversationState) -> dict:
         message = message_in_language(NOTHING_TO_REPHRASE_MESSAGES, requested_language)
         citations = []
         status = AnswerStatus.SAFE_FALLBACK.value
+    elif reason == FallbackReason.NOT_STARTED_YET.value:
+        message = message_in_language(NOT_STARTED_YET_MESSAGES, requested_language)
+        citations = []
+        status = AnswerStatus.REFUSED.value
     elif reason == FallbackReason.NEEDS_HUMAN.value:
         facts = state.get("employee_facts") or {}
         message = message_in_language(ESCALATION_MESSAGES, requested_language).format(
@@ -442,6 +448,13 @@ def _infer_fallback_reason(state: ConversationState) -> str:
     """Work out why we are falling back, when nothing set it explicitly."""
     if state.get("question_intent") == "out_of_scope":
         return FallbackReason.OUT_OF_SCOPE.value
+    # Routed here by `decide_after_understanding` before any leave step ran, so the state
+    # carries the intent and nothing else that would explain the refusal.
+    if (
+        state.get("question_intent") in LEAVE_INTENTS
+        and (state.get("employee_facts") or {}).get("employment_status") == ONBOARDING
+    ):
+        return FallbackReason.NOT_STARTED_YET.value
     if state.get("question_intent") == QuestionIntent.ABOUT_THE_LAST_ANSWER:
         return FallbackReason.NOTHING_TO_REPHRASE.value
     if state.get("required_evidence") == "unsupported":

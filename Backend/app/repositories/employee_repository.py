@@ -22,8 +22,12 @@ from app.domain.employee_facts import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ANNUAL_LEAVE_BALANCE = 20
-DEFAULT_SICK_LEAVE_BALANCE = 10
+# What a record with no balance rows reports. It used to be 20 and 10, which meant somebody
+# with no leave history — a new joiner who has not started — was described to the model as
+# having twenty annual days and ten sick days. Nobody had granted those days and no row held
+# them. Zero is not a good answer either, which is why `format_employee_facts` says "has not
+# started" rather than a number for an Onboarding record; but zero at least invents nothing.
+NO_BALANCE_ON_RECORD = 0
 
 
 def list_employee_identifiers(session: Session) -> list[str]:
@@ -69,8 +73,8 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
         for balance in employee.leave_balances
     ]
 
-    annual_leave_balance = DEFAULT_ANNUAL_LEAVE_BALANCE
-    sick_leave_balance = DEFAULT_SICK_LEAVE_BALANCE
+    annual_leave_balance = NO_BALANCE_ON_RECORD
+    sick_leave_balance = NO_BALANCE_ON_RECORD
     carry_over_days = 0
 
     # A record holds more than one leave year, so the year has to be chosen rather than
@@ -112,6 +116,7 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
         manager_email=employee.manager_email,
         manager_role=employee.manager_role,
         employment_fraction=employee.employment_fraction,
+        employment_status=employee.employment_status or "",
         education_plan_code=employee.benefit_plan_code or "",
         annual_leave_balance=annual_leave_balance,
         sick_leave_balance=sick_leave_balance,

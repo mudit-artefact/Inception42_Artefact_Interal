@@ -296,3 +296,76 @@ def test_reject_already_rejected_request(temporary_database):
         assert "already Rejected" in res["message"]
     finally:
         session.close()
+
+
+# ── Somebody who has not started ─────────────────────────────────────────────
+#
+# The guard that turns a new joiner away lives at the routing fork, before any leave step
+# runs. These two check the backstop underneath it: whatever route reaches this function,
+# no leave request may be created for somebody whose first day has not come.
+
+
+@pytest.mark.parametrize("leave_type", ["Annual leave", "Sick leave", "Unpaid leave"])
+def test_a_new_joiner_cannot_pass_the_policy_check(temporary_database, leave_type):
+    """Whatever kind of leave, and whatever the dates."""
+    session = temporary_database()
+    try:
+        draft = LeaveApplicationDraft(
+            leave_type=leave_type,
+            start_date="2026-12-07",
+            end_date="2026-12-09",
+            days_requested=3,
+            is_complete=True,
+        )
+
+        result = validate_leave_policy("EMP013", draft, session=session)
+
+        assert result.is_valid is False
+        assert any("Not started yet" in violation for violation in result.violations)
+    finally:
+        session.close()
+
+
+def test_no_leave_request_row_is_created_for_a_new_joiner(temporary_database):
+    """
+    The check that matters. A violation the caller ignored would still leave the record
+    untouched, because committing runs the same validation.
+    """
+    session = temporary_database()
+    try:
+        before = session.query(LeaveRequest).filter(LeaveRequest.employee_id == "EMP013").count()
+
+        draft = LeaveApplicationDraft(
+            leave_type="Annual leave",
+            start_date="2026-12-07",
+            end_date="2026-12-09",
+            days_requested=3,
+            is_complete=True,
+        )
+        validation = validate_leave_policy("EMP013", draft, session=session)
+        outcome = commit_leave_request("EMP013", validation, session=session)
+
+        assert outcome["success"] is False
+        after = session.query(LeaveRequest).filter(LeaveRequest.employee_id == "EMP013").count()
+        assert after == before
+    finally:
+        session.close()
+
+
+def test_an_employee_who_has_started_is_not_caught_by_it(temporary_database):
+    """The backstop must refuse the new joiner and nobody else."""
+    session = temporary_database()
+    try:
+        draft = LeaveApplicationDraft(
+            leave_type="Annual leave",
+            start_date="2026-12-07",
+            end_date="2026-12-09",
+            days_requested=3,
+            is_complete=True,
+        )
+
+        result = validate_leave_policy("EMP001", draft, session=session)
+
+        assert not any("Not started yet" in violation for violation in result.violations)
+    finally:
+        session.close()

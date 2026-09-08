@@ -13,9 +13,9 @@ from app.core.settings import settings
 from app.core.errors import PolicyIndexEmptyError
 import dataclasses
 
-from app.domain.employee_facts import EmployeeFacts, SchoolClaim
+from app.domain.employee_facts import EmployeeFacts, SchoolClaim, VisaCase
 from app.domain.enums import HrDataField, RequiredEvidence
-from app.integrations.hcs11_client import read_school_claims
+from app.integrations.hcs11_client import read_school_claims, read_visa_case
 from app.services.policy_search_service import search_policies
 from app.workflow.conversation_state import ConversationState, SubqueryTask
 from app.workflow.evidence_formatting import (
@@ -128,6 +128,9 @@ def _read_hr_data(task: SubqueryTask, authorised_fields: list[str]) -> str:
     if HrDataField.SCHOOL_CLAIM_STATUS in authorised_fields:
         facts = _with_school_claims(facts)
 
+    if HrDataField.VISA_CASE_STATUS in authorised_fields:
+        facts = _with_visa_case(facts)
+
     logger.info(
         f"Part {task['index']} read {len(authorised_fields)} authorised fields "
         f"from the employee record"
@@ -151,6 +154,50 @@ def _with_school_claims(facts: EmployeeFacts) -> EmployeeFacts:
     return dataclasses.replace(
         facts, school_claims=[SchoolClaim(**claim) for claim in claims]
     )
+
+
+def _with_visa_case(facts: EmployeeFacts) -> EmployeeFacts:
+    """
+    The same record with this person's employment visa case read from HCS-11.
+
+    A failure leaves the field as None, which the formatting step reports as unknown rather
+    than as none — telling somebody who has sent their passport in that they have no case
+    is the one wrong answer that matters here.
+    """
+    cases = read_visa_case(facts.employee_id)
+    if cases is None:
+        return facts
+
+    return dataclasses.replace(
+        facts,
+        visa_cases=[
+            VisaCase(
+                **{
+                    key: tuple(value) if isinstance(value, list) else value
+                    for key, value in case.items()
+                }
+            )
+            for case in cases
+        ],
+    )
+
+
+def _merged_without_repeating(blocks) -> str:
+    """
+    One block of employee facts from however many parts gathered them.
+
+    Every part opens with the same `Employee: name (id)` header and parts often overlap, so
+    the lines are merged in order and repeats dropped rather than concatenated.
+    """
+    kept: list[str] = []
+    seen: set[str] = set()
+    for block in blocks:
+        for line in (block or "").splitlines():
+            if line in seen:
+                continue
+            seen.add(line)
+            kept.append(line)
+    return "\n".join(kept)
 
 
 def assemble_evidence(state: ConversationState) -> dict:
@@ -200,11 +247,14 @@ def assemble_evidence(state: ConversationState) -> dict:
             if field not in authorised_fields:
                 authorised_fields.append(field)
 
-    facts = state.get("employee_facts") or {}
-    merged_facts_text = (
-        format_employee_facts(EmployeeFacts.from_dictionary(facts), authorised_fields)
-        if authorised_fields
-        else ""
+    # Built from what the branches actually gathered, not re-derived from the record held
+    # in the state. Two of the authorised fields — the school claim and the visa case — are
+    # not in this database; they are fetched inside a branch onto a local copy of the
+    # record, and the copy in the state never sees them. Re-formatting from the state
+    # therefore reported "the verification service could not be reached" on a turn where
+    # the branch had just read the claim successfully.
+    merged_facts_text = _merged_without_repeating(
+        finding.get("employee_facts_text", "") for finding in findings_by_part.values()
     )
 
     answered = sum(1 for part in parts if part["has_evidence"])

@@ -14,15 +14,26 @@ from app.schemas.answer import SourceCitation
 MAXIMUM_SNIPPET_LENGTH = 160
 EMPLOYEE_RECORD_CITATION_ID = "source-employee-record"
 EXACT_MATCH_SCORE = 1.0
+ONBOARDING = "Onboarding"
 
 
 def build_employee_record_citation(facts: EmployeeFacts, language: str = "en") -> SourceCitation:
     """The single citation representing this employee's own HR record."""
+    # A record with no balance rows holds no balance, and printing "0 days remaining" for
+    # somebody who has not started reads as an entitlement that has been spent rather than
+    # one that has not begun.
+    if facts.employment_status == ONBOARDING:
+        leave_summary = f"Not started yet — first day {facts.start_date}"
+    else:
+        leave_summary = (
+            f"Annual Leave: {facts.annual_leave_balance} days remaining | "
+            f"Sick Leave: {facts.sick_leave_balance} days remaining"
+        )
+
     summary = (
         f"Employee: {facts.name} ({facts.employee_id}) | "
         f"Department: {facts.department} | "
-        f"Annual Leave: {facts.annual_leave_balance} days remaining | "
-        f"Sick Leave: {facts.sick_leave_balance} days remaining | "
+        f"{leave_summary} | "
         f"Line Manager: {facts.manager_name}"
     )
     return SourceCitation(

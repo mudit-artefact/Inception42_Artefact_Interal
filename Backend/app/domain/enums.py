@@ -75,6 +75,9 @@ class FallbackReason(StrEnum):
     NEEDS_HUMAN = "needs_human"
     # Asked to rework a reply before there was one to rework.
     NOTHING_TO_REPHRASE = "nothing_to_rephrase"
+    # Asked to act on a record by somebody who has not started yet. Not a refusal of the
+    # person — they may ask anything they like — but of the action.
+    NOT_STARTED_YET = "not_started_yet"
 
 
 class HrDataField(StrEnum):
@@ -107,6 +110,10 @@ class HrDataField(StrEnum):
     # and checked the same way, and "why is mine under review?" can be answered from the
     # claim and the policy together.
     SCHOOL_CLAIM_STATUS = "school_claim_status"
+    # Where a new joiner's employment visa case has got to. Read from HCS-11 like the
+    # school claim above, and on this list for the same reason: it is a fact about the
+    # person, so it is authorised, cited and checked like any other.
+    VISA_CASE_STATUS = "visa_case_status"
 
 
 # ── The evaluation taxonomy ──────────────────────────────────────────────────

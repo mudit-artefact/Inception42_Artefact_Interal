@@ -111,6 +111,10 @@ def _when_this_rule_applied(passage: dict) -> str:
 
 # What each plan code is called in HC-PC-012 §12.3.1. The employee's record stores the
 # code; the policy states the ceiling against the name, so the two are matched here.
+# What HCS-11 calls somebody who has accepted an offer and not started. The same word is
+# used here so both systems describe the same person the same way.
+ONBOARDING = "Onboarding"
+
 EDUCATION_PLAN_NAMES = {
     "EDU_STANDARD": "Education Allowance – Standard",
     "EDU_ENHANCED": "Education Allowance – Enhanced",
@@ -162,6 +166,54 @@ def _school_claim_lines(claims: list | None) -> list[str]:
     return lines
 
 
+# HCS-11 names its document kinds for machines. These are the names it shows people,
+# taken from its own kind_label field so the two systems call the same paper the same thing.
+VISA_DOCUMENT_NAMES = {
+    "passport": "passport copy",
+    "photograph": "photograph",
+    "job_offer": "signed job-offer form",
+    "academic_certificate": "attested academic certificate",
+}
+
+
+def _document_names(kinds) -> str:
+    return ", ".join(VISA_DOCUMENT_NAMES.get(kind, kind) for kind in kinds)
+
+
+def _visa_case_lines(cases: list | None) -> list[str]:
+    """
+    Where the employment visa case has got to, or an honest account of why that is unknown.
+
+    Three outcomes, and as with the school claim they are not interchangeable. `None` means
+    HCS-11 could not be asked; saying "you have no case" then would tell somebody who has
+    submitted their passport that their application does not exist.
+    """
+    if cases is None:
+        return [
+            "Employment visa: the visa verification service could not be reached, so the "
+            "current state of any case is unknown. Do not state or guess it."
+        ]
+    if not cases:
+        return ["Employment visa: there is no visa case open for this person."]
+
+    lines = ["Employment visa case (from the visa verification service):"]
+    for case in cases:
+        lines.append(f"  - {case.plan_name} — status {case.status}")
+        if case.required_documents:
+            lines.append(f"    documents this route needs: {_document_names(case.required_documents)}")
+        if case.missing_documents:
+            lines.append(f"    still outstanding: {_document_names(case.missing_documents)}")
+        else:
+            lines.append("    nothing outstanding — every required document has arrived")
+        if case.submitted_on:
+            lines.append(f"    first submitted {case.submitted_on}")
+        if case.submission_deadline:
+            lines.append(f"    deadline {case.submission_deadline}")
+        for problem in case.problems:
+            lines.append(f"    problem: {problem}")
+    return lines
+
+
 def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> str:
     """
     Only the facts the routing step asked for, written out for the model.
@@ -175,9 +227,16 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
     requested = set(allowed_fields)
     lines: list[str] = [f"Employee: {facts.name} ({facts.employee_id})"]
 
+    # Somebody who has accepted an offer and not started has no balance rows, so every
+    # figure about their leave would be a figure nobody granted. Say what is true instead.
+    has_not_started = facts.employment_status == ONBOARDING
+
     if HrDataField.EMPLOYEE_PROFILE in requested:
         lines.append(f"Role: {facts.job_title}, {facts.department} (grade {facts.grade})")
-        lines.append(f"Started: {facts.start_date}")
+        if has_not_started:
+            lines.append(f"Has not started yet — first day {facts.start_date}")
+        else:
+            lines.append(f"Started: {facts.start_date}")
         if facts.employment_fraction < 1.0:
             lines.append(
                 f"Works {facts.employment_fraction} of full time, so leave is pro-rated"
@@ -189,11 +248,23 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
     if HrDataField.LINE_MANAGER in requested:
         lines.append(f"Line manager: {facts.manager_name} ({facts.manager_role})")
     if HrDataField.ANNUAL_LEAVE_BALANCE in requested:
-        lines.append(f"Annual leave remaining: {facts.annual_leave_balance} days")
-        lines.extend(_balance_rows(facts, "annual"))
+        if has_not_started:
+            lines.append(
+                f"Annual leave: none yet. Leave begins to accrue on the first day of "
+                f"employment, {facts.start_date}. Do not state a number of days."
+            )
+        else:
+            lines.append(f"Annual leave remaining: {facts.annual_leave_balance} days")
+            lines.extend(_balance_rows(facts, "annual"))
     if HrDataField.SICK_LEAVE_BALANCE in requested:
-        lines.append(f"Sick leave remaining: {facts.sick_leave_balance} days in total")
-        lines.extend(_balance_rows(facts, "sick"))
+        if has_not_started:
+            lines.append(
+                f"Sick leave: none yet. Entitlement begins on the first day of employment, "
+                f"{facts.start_date}. Do not state a number of days."
+            )
+        else:
+            lines.append(f"Sick leave remaining: {facts.sick_leave_balance} days in total")
+            lines.extend(_balance_rows(facts, "sick"))
     if HrDataField.CARRY_OVER_DAYS in requested and facts.carry_over_days > 0:
         lines.append(f"Carried over from last year: {facts.carry_over_days} days")
 
@@ -204,6 +275,9 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
 
     if HrDataField.SCHOOL_CLAIM_STATUS in requested:
         lines.extend(_school_claim_lines(facts.school_claims))
+
+    if HrDataField.VISA_CASE_STATUS in requested:
+        lines.extend(_visa_case_lines(facts.visa_cases))
 
     if HrDataField.MANAGER_HISTORY in requested and facts.manager_history:
         lines.append("Previous line managers:")

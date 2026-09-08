@@ -383,6 +383,17 @@ def validate_leave_policy(
                 f"Only {notice_days_provided} working days notice was provided."
             )
 
+        # 3b. Not started yet (HC-PC-013 §13.2.2)
+        # The backstop behind the routing guard. Somebody who has accepted an offer and
+        # not started has no leave to take, whatever kind, and no route into this function
+        # may create a request for them.
+        if employee.employment_status == "Onboarding":
+            violations.append(
+                "Not started yet: Employment has not commenced, so no leave has accrued. "
+                "Under HC-PC-013 §13.2.2 leave begins to accrue on the first day of "
+                f"employment, {employee.start_date}."
+            )
+
         # 4. Active probation restriction check (HC-PC-003 §3.5.1 / §3.2)
         # Annual leave cannot be taken during active probation without special HR approval.
         # Emergency leave is expressly exempt (HC-PC-003 §3.5.1).
@@ -439,6 +450,20 @@ def commit_leave_request(
         close_session = True
 
     try:
+        # A validation that failed is not a request to write. This function used to trust
+        # whatever it was handed and insert the row regardless, so every rule in
+        # `validate_leave_policy` — notice periods, probation, an insufficient balance,
+        # not having started yet — held only for as long as every caller remembered to
+        # look at the result first. The graph does look. Nothing else has to now.
+        if not validation.is_valid:
+            return {
+                "success": False,
+                "message": (
+                    "This request does not meet the leave policy: "
+                    + "; ".join(validation.violations)
+                ),
+            }
+
         employee = session.query(Employee).filter(Employee.user_id == employee_id).first()
         if not employee:
             raise ValueError(f"Employee {employee_id} not found")
