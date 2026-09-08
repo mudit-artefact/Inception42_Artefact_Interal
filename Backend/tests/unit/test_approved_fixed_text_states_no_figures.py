@@ -25,6 +25,7 @@ APPROVED_FIXED_TEXT = [
     "DOCUMENT_UPLOAD_RESPONSE",
     "DOCUMENT_UPLOAD_RESPONSE_WITH_FILES",
     "NOTHING_TO_REPHRASE_MESSAGES",
+    "CONVERSATION_RECAP_MESSAGES",
     "GREETING_MESSAGES",
     "GREETING_BODY",
     "ACKNOWLEDGMENT_MESSAGES",
@@ -65,3 +66,52 @@ def test_the_constants_this_guards_still_exist():
     """A renamed constant would leave this test passing while guarding nothing."""
     missing = [name for name in APPROVED_FIXED_TEXT if not hasattr(prompts, name)]
     assert not missing, f"{missing} no longer exist; update this list"
+
+
+# The four documents HCS-11 actually accepts, from its own document-kind list. Anything
+# else an employee sends is filed as a document that could not be placed.
+DOCUMENTS_HCS11_ACCEPTS = {
+    "enrolment certificate",
+    "school invoice",
+    "payment receipt",
+    "employee declaration",
+}
+
+# What it must never ask for. A birth certificate is the one that shipped: HCS-11 rejects
+# it, and the same sentence never mentioned the employee declaration, which is required.
+DOCUMENTS_HCS11_REJECTS = ["birth certificate", "passport", "emirates id", "photograph"]
+
+
+@pytest.mark.parametrize("not_accepted", DOCUMENTS_HCS11_REJECTS)
+def test_no_fixed_reply_asks_for_a_document_that_will_be_refused(not_accepted):
+    """
+    An employee who does exactly what they were told should not have their claim fail.
+
+    The upload message used to name four documents and get two of them wrong — it asked
+    for a birth certificate, which is refused, and left out the employee declaration,
+    without which the claim is incomplete. Both mistakes cost the employee the claim, and
+    neither was visible to anyone reading the code.
+
+    The list is not repeated in fixed text any more. It lives in the upload window, which
+    reads it live from HCS-11, and in HC-PC-012 §12.5 for anyone who asks.
+    """
+    for constant_name in APPROVED_FIXED_TEXT:
+        for sentence in _sentences_in(getattr(prompts, constant_name)):
+            assert not_accepted not in sentence.lower(), (
+                f"{constant_name} asks for a {not_accepted}. HCS-11 does not accept one, so "
+                "an employee who sends it has their claim held up for a file nobody wanted."
+            )
+
+
+def test_the_upload_message_names_no_documents_at_all():
+    """
+    Not "names the right four" — names none. Two places already hold the list and both
+    stay current on their own; a third copy only has to be edited once to be wrong.
+    """
+    for constant_name in ("DOCUMENT_UPLOAD_RESPONSE", "DOCUMENT_UPLOAD_RESPONSE_WITH_FILES"):
+        text = getattr(prompts, constant_name).lower()
+        for document in DOCUMENTS_HCS11_ACCEPTS | set(DOCUMENTS_HCS11_REJECTS):
+            assert document not in text, (
+                f"{constant_name} lists {document}. Let the upload window and the policy "
+                "carry the list; they cannot go stale."
+            )

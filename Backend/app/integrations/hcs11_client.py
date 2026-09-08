@@ -334,3 +334,63 @@ def get_hcs11_client() -> HCS11Client:
         base_url=settings.hcs11_backend_url,
         timeout=settings.hcs11_timeout_seconds,
     )
+
+
+# ── Reading a claim's progress, from inside a workflow step ──────────────────────
+#
+# The client above is async, because uploading a document is. Reading where a claim has
+# got to happens inside a LangGraph step, which is synchronous and may already be running
+# inside an event loop — so it cannot await, and it cannot start a loop of its own.
+#
+# This is the same request the upload window already makes. It is read-only: HCS-11 is
+# asked, never told.
+
+# Short on purpose. This runs while an employee waits for a reply, and a claim status is
+# worth a couple of seconds, not a minute. Nothing found beats nothing shown.
+CLAIM_READ_TIMEOUT_SECONDS = 8
+
+
+def read_school_claims(employee_id: str) -> list[dict] | None:
+    """
+    Every school verification claim HCS-11 holds for this employee.
+
+    `None` means HCS-11 could not be asked — which is not the same as an employee having
+    no claims, and the two must not be told to the employee as though they were.
+    """
+    from app.core.settings import settings
+
+    hcs11_employee_id = map_hcs01_to_hcs11_employee_id(employee_id)
+    try:
+        response = httpx.get(
+            f"{settings.hcs11_backend_url.rstrip('/')}/api/hcs11/cases",
+            params={"employee_id": hcs11_employee_id},
+            timeout=CLAIM_READ_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        cases = response.json()
+    except Exception as unreachable:
+        logger.warning(f"Could not read school claims for {employee_id}: {unreachable}")
+        return None
+
+    if not isinstance(cases, list):
+        logger.warning(f"HCS-11 returned {type(cases).__name__} for {employee_id}, not a list")
+        return None
+
+    # Only what an employee is owed about their own claim. The reviewer, the internal
+    # routing verdict and the rule codes are HCS-11's working, not theirs.
+    return [
+        {
+            "case_id": case.get("case_id", ""),
+            "child_name": case.get("dependent_name", ""),
+            "academic_year": case.get("academic_year", ""),
+            "status": case.get("case_status", ""),
+            "recommendation": case.get("recommendation", ""),
+            "submitted_on": case.get("submitted_on") or "",
+            "submission_deadline": case.get("submission_deadline") or "",
+            "approved_on": case.get("approved_on") or "",
+            "payment_status": case.get("payment_status", ""),
+            "awaiting_review": bool(case.get("awaiting_review")),
+        }
+        for case in cases
+        if isinstance(case, dict)
+    ]

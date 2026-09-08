@@ -102,7 +102,7 @@ The following are never reimbursable: traffic and parking fines; personal groomi
 ### 5.7 Submission & Payment Process
 
 **5.7.1 Submission**  
-Claims are submitted through the Omni Expense portal with receipts attached. This is the route for the internet allowance under HC-PC-004 §4.6.2.
+Claims are submitted through the Omni Expense portal with receipts attached. This is the route for the internet allowance under HC-PC-004 §4.6.2. It is not the route for the education allowance, which is claimed under HC-PC-012 §12.5 and does not pass through this portal at all.
 
 **5.7.2 Approval Thresholds**  
 The approval required depends on the total value of the claim, assessed under the version of this policy in force on the **date the expense was incurred** (§5.0):

@@ -33,6 +33,109 @@ NEGATIVE_REPLY = re.compile(
 )
 
 
+# The card carries every one of these already. Saying them out loud costs nothing and is
+# the difference between an answer and a gesture at the screen.
+LEAVE_TYPE_IN_ARABIC = {
+    "annual leave": "إجازة سنوية",
+    "sick leave": "إجازة مرضية",
+    "unpaid leave": "إجازة بدون أجر",
+    "maternity leave": "إجازة أمومة",
+    "paternity leave": "إجازة أبوة",
+    "compassionate leave": "إجازة وفاة",
+    "study leave": "إجازة دراسية",
+}
+
+MONTHS_IN_ARABIC = [
+    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+]
+
+MONTHS_IN_ENGLISH = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+]
+
+
+def _spoken_date(iso_date: str, lang: str) -> str:
+    """"2026-10-05" as "5 October 2026". The stored string, unchanged, if it is not a date."""
+    try:
+        year, month, day = (int(part) for part in iso_date.split("-"))
+        months = MONTHS_IN_ARABIC if lang == "ar" else MONTHS_IN_ENGLISH
+        return f"{day} {months[month - 1]} {year}"
+    except (ValueError, IndexError):
+        return iso_date
+
+
+def _arabic_days(count: int) -> str:
+    """
+    Arabic counts its nouns by how many there are, and getting it wrong reads as machine
+    translation: one is singular, two is the dual, three to ten take the plural, and
+    eleven upwards goes back to the singular in the accusative.
+    """
+    if count == 1:
+        return "يوم واحد"
+    if count == 2:
+        return "يومان"
+    if 3 <= count <= 10:
+        return f"{count} أيام"
+    return f"{count} يوماً"
+
+
+def _arabic_requests(count: int) -> str:
+    """The same agreement, for the requests themselves."""
+    if count == 1:
+        return "طلب إجازة واحد"
+    if count == 2:
+        return "طلبا إجازة"
+    if 3 <= count <= 10:
+        return f"{count} طلبات إجازة"
+    return f"{count} طلب إجازة"
+
+
+def _describe_pending_approvals(pending_approvals: list[dict], lang: str) -> str:
+    """
+    Who asked, for what, for how long and when — one line per request.
+
+    This used to be "you can review and click Approve or Reject on the card below", which
+    names nobody and answers no question that was asked. A manager who then asked "who
+    asked for it and for how long?" got the identical sentence back.
+    """
+    lines = []
+    for approval in pending_approvals:
+        days = approval.get("days_requested")
+        leave_type = (approval.get("leave_type") or "").strip()
+        starts = _spoken_date(approval.get("start_date") or "", lang)
+        ends = _spoken_date(approval.get("end_date") or "", lang)
+        name = approval.get("employee_name") or approval.get("employee_id") or ""
+        request_id = approval.get("request_id")
+
+        if lang == "ar":
+            arabic_type = LEAVE_TYPE_IN_ARABIC.get(leave_type.lower(), leave_type)
+            lines.append(
+                f"- **{name}** — {_arabic_days(days)} {arabic_type}، من {starts} إلى {ends} "
+                f"(الطلب رقم {request_id})"
+            )
+        else:
+            lines.append(
+                f"- **{name}** — {days} days of {leave_type.lower()}, "
+                f"{starts} to {ends} (request #{request_id})"
+            )
+
+    waiting = len(pending_approvals)
+    if lang == "ar":
+        heading = f"لديك {_arabic_requests(waiting)} بانتظار قرارك:"
+        footer = "يمكنك **اعتماد الإجازة** أو **رفض** من البطاقة أدناه."
+    else:
+        heading = (
+            "You have one leave request waiting for your decision:"
+            if waiting == 1
+            else f"You have {waiting} leave requests waiting for your decision:"
+        )
+        footer = "You can **Approve Leave** or **Reject** on the card below."
+
+    return "\n".join([heading, "", *lines, "", footer])
+
+
 def _could_not_act(outcome, lang: str, *, english: str, arabic: str) -> dict:
     """
     An action that did not happen, said in the employee's own language.
@@ -110,11 +213,7 @@ def handle_manager_approval(state: ConversationState) -> dict:
                 "citations": [],
             }
 
-        msg = (
-            "You can review and click **Approve Leave** or **Reject** on the card below."
-            if lang == "en"
-            else "يمكنك مراجعة الطلب والنقر على **اعتماد الإجازة** أو **رفض** في البطاقة أدناه."
-        )
+        msg = _describe_pending_approvals(pending_approvals, lang)
         return {
             "final_answer": msg,
             "answer_status": AnswerStatus.VERIFIED.value,
@@ -161,11 +260,10 @@ def handle_manager_approval(state: ConversationState) -> dict:
         target_id = pending_approvals[0]["request_id"]
 
     if not target_id:
-        msg = (
-            "Please review and click **Approve Leave** or **Reject** on the card below."
-            if lang == "en"
-            else "يرجى مراجعة الطلبات والنقر على **اعتماد الإجازة** أو **رفض** في البطاقة أدناه."
-        )
+        # They meant one of these and we could not tell which, so name them all and let
+        # them choose. Saying "click the card" over an ambiguity they cannot see is how a
+        # manager ends up asking the same question twice and getting the same non-answer.
+        msg = _describe_pending_approvals(pending_approvals, lang)
         return {
             "final_answer": msg,
             "answer_status": AnswerStatus.VERIFIED.value,
@@ -244,11 +342,7 @@ def handle_manager_approval(state: ConversationState) -> dict:
         }
 
     # Otherwise, display the pending approvals card!
-    msg = (
-        "Please review and click **Approve Leave** or **Reject** on the card below."
-        if lang == "en"
-        else "يرجى مراجعة الطلبات والنقر على **اعتماد الإجازة** أو **رفض** في البطاقة أدناه."
-    )
+    msg = _describe_pending_approvals(pending_approvals, lang)
     return {
         "final_answer": msg,
         "answer_status": AnswerStatus.VERIFIED.value,

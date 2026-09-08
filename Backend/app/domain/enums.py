@@ -20,6 +20,14 @@ class QuestionIntent(StrEnum):
     # rather than a question about HR. The answer already exists; searching the policy
     # documents for "make that shorter" finds nothing and means nothing.
     ABOUT_THE_LAST_ANSWER = "about_the_last_answer"
+    # "What can you help me with?" — a question about the assistant, not about HR. It was
+    # read as out of scope and refused, which is a poor first impression given it is the
+    # first thing most people type.
+    WHAT_CAN_YOU_DO = "what_can_you_do"
+    # "What was the first thing I asked you?" — a question about this conversation rather
+    # than about HR. It was read as out of scope and refused, at the end of a conversation
+    # the assistant had otherwise remembered perfectly for ten turns.
+    ABOUT_THIS_CONVERSATION = "about_this_conversation"
     # Actionable transactional leave requests
     APPLY_LEAVE = "apply_leave"
     CANCEL_LEAVE = "cancel_leave"
@@ -93,6 +101,12 @@ class HrDataField(StrEnum):
     # scheme's two ceilings but never say which one is theirs, so the allowance question
     # was answered by a step of its own that quoted a figure and cited nothing.
     EDUCATION_PLAN = "education_plan"
+    # Where this employee's school verification claim has got to. It is the one field not
+    # held in this database — it is read from HCS-11, which owns it. It sits on this list
+    # because it is a fact about the employee like any other, so it is authorised, cited
+    # and checked the same way, and "why is mine under review?" can be answered from the
+    # claim and the policy together.
+    SCHOOL_CLAIM_STATUS = "school_claim_status"
 
 
 # ── The evaluation taxonomy ──────────────────────────────────────────────────

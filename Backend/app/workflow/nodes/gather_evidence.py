@@ -11,8 +11,11 @@ import logging
 from app.core.settings import settings
 
 from app.core.errors import PolicyIndexEmptyError
-from app.domain.employee_facts import EmployeeFacts
-from app.domain.enums import RequiredEvidence
+import dataclasses
+
+from app.domain.employee_facts import EmployeeFacts, SchoolClaim
+from app.domain.enums import HrDataField, RequiredEvidence
+from app.integrations.hcs11_client import read_school_claims
 from app.services.policy_search_service import search_policies
 from app.workflow.conversation_state import ConversationState, SubqueryTask
 from app.workflow.evidence_formatting import (
@@ -118,11 +121,36 @@ def _read_hr_data(task: SubqueryTask, authorised_fields: list[str]) -> str:
     to build and no way to reach any other employee's data.
     """
     facts = EmployeeFacts.from_dictionary(task["employee_facts"])
+
+    # One field is not in this database. It is fetched here rather than with the rest of
+    # the record at the start of the turn, because that would put a call to another
+    # service in front of every question asked — including the ones about leave.
+    if HrDataField.SCHOOL_CLAIM_STATUS in authorised_fields:
+        facts = _with_school_claims(facts)
+
     logger.info(
         f"Part {task['index']} read {len(authorised_fields)} authorised fields "
         f"from the employee record"
     )
     return format_employee_facts(facts, authorised_fields)
+
+
+def _with_school_claims(facts: EmployeeFacts) -> EmployeeFacts:
+    """
+    The same record with the employee's claims read from the school verification service.
+
+    Their claims, looked up by their own id. A failure leaves the field as None, which
+    the formatting step reports as unknown rather than as none — telling somebody who has
+    submitted a claim that they have not is worse than telling them the answer is not
+    available.
+    """
+    claims = read_school_claims(facts.employee_id)
+    if claims is None:
+        return facts
+
+    return dataclasses.replace(
+        facts, school_claims=[SchoolClaim(**claim) for claim in claims]
+    )
 
 
 def assemble_evidence(state: ConversationState) -> dict:

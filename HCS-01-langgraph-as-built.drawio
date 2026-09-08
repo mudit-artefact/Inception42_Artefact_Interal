@@ -1,319 +1,151 @@
-<mxfile host="app.diagrams.net" modified="2026-09-08T00:00:00.000Z" agent="Claude" version="24.7.17" type="device">
-  <diagram id="hcs01-as-built" name="LangGraph as built">
-    <mxGraphModel dx="2900" dy="1750" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2900" pageHeight="1700" math="0" shadow="0">
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-09-08T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="runtime" name="01 - Runtime LangGraph">
+    <mxGraphModel dx="3200" dy="2050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2050" math="0" shadow="0">
       <root>
-        <mxCell id="0" /><mxCell id="1" parent="0" />
-        <mxCell id="title" value="HCS-01 Policy &amp; Leave Concierge — LangGraph as built" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#17233F;fontSize=26;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="55" y="18" width="2700" height="36" as="geometry" /></mxCell>
-        <mxCell id="subtitle" value="Generated from the running graph and checked against it. Every branch that answers without searching joins the same check — seven of them used to reach the employee without it. Actions sit behind one branch and a registry; applying for leave keeps its own steps because it is the only action that pauses to ask." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#4A5A6E;fontSize=13;" vertex="1" parent="1">
-          <mxGeometry x="55" y="52" width="2700" height="34" as="geometry" /></mxCell>
-        <mxCell id="start" value="&lt;b&gt;START&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F6F8FB;strokeColor=#AEB8C7;strokeWidth=2;fontColor=#17233F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="1250" y="100" width="180" height="42" as="geometry" /></mxCell>
-        <mxCell id="load_employee_facts" value="&lt;b&gt;load_employee_facts&lt;/b&gt;&lt;br&gt;who is asking · clears the last question" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1150" y="170" width="380" height="60" as="geometry" /></mxCell>
-        <mxCell id="understand_query" value="&lt;b&gt;understand_query&lt;/b&gt;&lt;br&gt;LLM · intent · ambiguity · one question or two" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1130" y="265" width="460" height="64" as="geometry" /></mxCell>
-        <mxCell id="compose_clarification_question" value="&lt;b&gt;compose_clarification_question&lt;/b&gt;&lt;br&gt;ask one focused question" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="100" y="410" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="wait_for_clarification" value="&lt;b&gt;wait_for_clarification&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="100" y="505" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="merge_clarification_into_question" value="&lt;b&gt;merge_clarification_into_question&lt;/b&gt;&lt;br&gt;fold the reply in · capped at one round" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="100" y="600" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="rephrase_previous_answer" value="&lt;b&gt;rephrase_previous_answer&lt;/b&gt;&lt;br&gt;rework the last reply · no search" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="470" y="410" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="rewrite_and_decompose_query" value="&lt;b&gt;rewrite_and_decompose_query&lt;/b&gt;&lt;br&gt;split into parts" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="410" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="route_each_subquery" value="&lt;b&gt;route_each_subquery&lt;/b&gt;&lt;br&gt;POLICY · HR_DATA · BOTH · UNSUPPORTED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="505" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="gather_subquery_evidence" value="&lt;b&gt;gather_subquery_evidence&lt;/b&gt;&lt;br&gt;hybrid search + RRF · authorised HR fields&lt;br&gt;one branch per part, in parallel" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="600" width="300" height="76" as="geometry" /></mxCell>
-        <mxCell id="assemble_evidence" value="&lt;b&gt;assemble_evidence&lt;/b&gt;&lt;br&gt;put the parts back · build checkable_evidence" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="706" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="generate_answer" value="&lt;b&gt;generate_answer&lt;/b&gt;&lt;br&gt;LLM writes draft_answer from the evidence only" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="801" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="handle_leave_application" value="&lt;b&gt;handle_leave_application&lt;/b&gt;&lt;br&gt;read the request · check the policy" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1290" y="410" width="330" height="58" as="geometry" /></mxCell>
-        <mxCell id="request_leave_dates" value="&lt;b&gt;request_leave_dates&lt;/b&gt;&lt;br&gt;offer the calendar" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1290" y="505" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="wait_for_leave_dates" value="&lt;b&gt;wait_for_leave_dates&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1290" y="600" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="compose_leave_confirmation" value="&lt;b&gt;compose_leave_confirmation&lt;/b&gt;&lt;br&gt;build the confirmation card" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1660" y="505" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="wait_for_leave_confirmation" value="&lt;b&gt;wait_for_leave_confirmation&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FFF2D9;strokeColor=#A76500;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1660" y="600" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="submit_leave_application" value="&lt;b&gt;submit_leave_application&lt;/b&gt;&lt;br&gt;re-check the policy, then write" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1660" y="706" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="run_action" value="&lt;b&gt;run_action&lt;/b&gt;&lt;br&gt;one branch for every other action&lt;br&gt;intent → tool, from the registry" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="2050" y="410" width="320" height="72" as="geometry" /></mxCell>
-        <mxCell id="registry" value="&lt;b&gt;APPROVED TOOL REGISTRY&lt;/b&gt;&lt;br&gt;not graph nodes&lt;br&gt;&lt;br&gt;apply · cancel · status&lt;br&gt;approve · reject · education&lt;br&gt;entitlement · policy check&lt;br&gt;&lt;br&gt;reads run freely&lt;br&gt;writes refuse unless authorised" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A63B62;strokeWidth=2;dashed=1;fontColor=#17233F;fontSize=11;fontStyle=0;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="2050" y="600" width="320" height="180" as="geometry" /></mxCell>
-        <mxCell id="generate_greeting" value="&lt;b&gt;generate_greeting&lt;/b&gt;&lt;br&gt;approved fixed reply" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="2430" y="410" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="generate_document_upload_prompt" value="&lt;b&gt;generate_document_upload_prompt&lt;/b&gt;&lt;br&gt;approved fixed reply" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="2430" y="505" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="prepare_action_answer" value="&lt;b&gt;prepare_action_answer&lt;/b&gt;&lt;br&gt;hand the check the answer and what it came from" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="1500" y="1130" width="380" height="58" as="geometry" /></mxCell>
-        <mxCell id="validate_answer" value="&lt;b&gt;validate_answer&lt;/b&gt;&lt;br&gt;every figure traced to its evidence&lt;br&gt;no other employee · right language" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=4;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="1240" width="440" height="76" as="geometry" /></mxCell>
-        <mxCell id="finalize_verified_answer" value="&lt;b&gt;finalize_verified_answer&lt;/b&gt;&lt;br&gt;show it, with sources" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="840" y="1370" width="300" height="58" as="geometry" /></mxCell>
-        <mxCell id="build_safe_fallback" value="&lt;b&gt;build_safe_fallback&lt;/b&gt;&lt;br&gt;decline safely" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#FCEAEA;strokeColor=#B33A3A;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="300" y="1370" width="280" height="58" as="geometry" /></mxCell>
-        <mxCell id="record_conversation_turn" value="&lt;b&gt;record_conversation_turn&lt;/b&gt;&lt;br&gt;remember the turn" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1">
-          <mxGeometry x="690" y="1470" width="340" height="58" as="geometry" /></mxCell>
-        <mxCell id="end" value="&lt;b&gt;END&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#F6F8FB;strokeColor=#AEB8C7;strokeWidth=2;fontColor=#17233F;fontSize=13;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="770" y="1565" width="180" height="42" as="geometry" /></mxCell>
-        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="start" target="load_employee_facts">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="load_employee_facts" target="understand_query">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e2" value="too vague" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="compose_clarification_question">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="250" y="370" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e3" value="about the last reply" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="rephrase_previous_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="620" y="370" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e4" value="two questions" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="rewrite_and_decompose_query">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="990" y="370" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e5" value="apply for leave" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="handle_leave_application">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="1455" y="370" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e6" value="any other action" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="run_action">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="2210" y="370" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e7" value="greeting" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="generate_greeting">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="2580" y="370" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e8" value="one clear question" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="route_each_subquery">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="790" y="370" />
-              <mxPoint x="790" y="534" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e9" value="upload" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="generate_document_upload_prompt">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="2790" y="370" />
-              <mxPoint x="2790" y="534" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e10" value="out of scope" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="understand_query" target="build_safe_fallback">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1360" y="370" />
-              <mxPoint x="60" y="370" />
-              <mxPoint x="60" y="1399" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="compose_clarification_question" target="wait_for_clarification">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_clarification" target="merge_clarification_into_question">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e13" value="read it again" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="merge_clarification_into_question" target="understand_query">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="60" y="629" />
-              <mxPoint x="60" y="297" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="rewrite_and_decompose_query" target="route_each_subquery">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e15" value="one Send per part" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="route_each_subquery" target="gather_subquery_evidence">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e16" value="nothing servable" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="route_each_subquery" target="build_safe_fallback">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="790" y="548" />
-              <mxPoint x="790" y="1424" />
-              <mxPoint x="300" y="1424" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="gather_subquery_evidence" target="assemble_evidence">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="assemble_evidence" target="generate_answer">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="generate_answer" target="validate_answer">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rephrase_previous_answer" target="validate_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="620" y="1205" />
-              <mxPoint x="950" y="1205" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e21" value="no dates" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="handle_leave_application" target="request_leave_dates">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="request_leave_dates" target="wait_for_leave_dates">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e23" value="read it again" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="wait_for_leave_dates" target="handle_leave_application">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1250" y="629" />
-              <mxPoint x="1250" y="439" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e24" value="valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="handle_leave_application" target="compose_leave_confirmation">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1635" y="439" />
-              <mxPoint x="1635" y="534" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e25" value="policy says no" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="handle_leave_application" target="prepare_action_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1635" y="449" />
-              <mxPoint x="1635" y="1075" />
-              <mxPoint x="1690" y="1075" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="compose_leave_confirmation" target="wait_for_leave_confirmation">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_leave_confirmation" target="submit_leave_application">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="submit_leave_application" target="prepare_action_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1810" y="1075" />
-              <mxPoint x="1690" y="1075" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="run_action" target="prepare_action_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="2210" y="1075" />
-              <mxPoint x="1690" y="1075" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="generate_greeting" target="prepare_action_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="2790" y="451" />
-              <mxPoint x="2790" y="1093" />
-              <mxPoint x="1690" y="1093" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="generate_document_upload_prompt" target="prepare_action_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="2790" y="546" />
-              <mxPoint x="2790" y="1093" />
-              <mxPoint x="1690" y="1093" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="prepare_action_answer" target="validate_answer">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1690" y="1210" />
-              <mxPoint x="1180" y="1210" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e33" value="passes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="validate_answer" target="finalize_verified_answer">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e34" value="fails" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="validate_answer" target="build_safe_fallback">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="790" y="1278" />
-              <mxPoint x="790" y="1399" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="finalize_verified_answer" target="record_conversation_turn">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="990" y="1445" />
-              <mxPoint x="860" y="1445" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="build_safe_fallback" target="record_conversation_turn">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="440" y="1445" />
-              <mxPoint x="860" y="1445" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="e37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5A6B80;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#3A4A5E;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="record_conversation_turn" target="end">
-          <mxGeometry relative="1" as="geometry">
-          </mxGeometry>
-        </mxCell>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="title" value="HCS-01 Policy &amp; Leave Concierge — As-Built LangGraph" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#17233F;fontSize=30;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="50" y="20" width="3050" height="44" as="geometry"/></mxCell>
+        <mxCell id="subtitle" value="Compiled from Backend/app/workflow/conversation_workflow.py • 27 nodes including START/END • 38 edges • reflects code as of 2026-09-08" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#4A5A6E;fontSize=15;" vertex="1" parent="1"><mxGeometry x="50" y="68" width="3050" height="34" as="geometry"/></mxCell>
+
+        <mxCell id="lane_clarify" value="CLARIFICATION LOOP" style="swimlane;html=1;rounded=1;startSize=38;fillColor=#FFF9EE;swimlaneFillColor=#FFF9EE;strokeColor=#D79B00;strokeWidth=2;dashed=1;fontColor=#8A5A00;fontStyle=1;collapsible=0;container=0;" vertex="1" parent="1"><mxGeometry x="40" y="500" width="450" height="600" as="geometry"/></mxCell>
+        <mxCell id="lane_rag" value="INFORMATION / RAG" style="swimlane;html=1;rounded=1;startSize=38;fillColor=#F4FBF7;swimlaneFillColor=#F4FBF7;strokeColor=#82B366;strokeWidth=2;dashed=1;fontColor=#207A56;fontStyle=1;collapsible=0;container=0;" vertex="1" parent="1"><mxGeometry x="530" y="500" width="660" height="820" as="geometry"/></mxCell>
+        <mxCell id="lane_leave" value="LEAVE APPLICATION — CHECKPOINTED SUBFLOW" style="swimlane;html=1;rounded=1;startSize=38;fillColor=#FFF7FA;swimlaneFillColor=#FFF7FA;strokeColor=#D65A8A;strokeWidth=2;dashed=1;fontColor=#8F2D56;fontStyle=1;collapsible=0;container=0;" vertex="1" parent="1"><mxGeometry x="1230" y="500" width="680" height="820" as="geometry"/></mxCell>
+        <mxCell id="lane_action" value="OTHER ACTIONS" style="swimlane;html=1;rounded=1;startSize=38;fillColor=#FFF7FA;swimlaneFillColor=#FFF7FA;strokeColor=#D65A8A;strokeWidth=2;dashed=1;fontColor=#8F2D56;fontStyle=1;collapsible=0;container=0;" vertex="1" parent="1"><mxGeometry x="1950" y="500" width="450" height="420" as="geometry"/></mxCell>
+        <mxCell id="lane_direct" value="DIRECT RESPONSES" style="swimlane;html=1;rounded=1;startSize=38;fillColor=#F5F7FC;swimlaneFillColor=#F5F7FC;strokeColor=#6C8EBF;strokeWidth=2;dashed=1;fontColor=#2F5AA8;fontStyle=1;collapsible=0;container=0;" vertex="1" parent="1"><mxGeometry x="2440" y="500" width="700" height="420" as="geometry"/></mxCell>
+
+        <mxCell id="__start__" value="&lt;b&gt;START&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#FFFFFF;strokeColor=#AEB8C7;strokeWidth=2;fontColor=#17233F;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1460" y="120" width="180" height="44" as="geometry"/></mxCell>
+        <mxCell id="load_employee_facts" value="&lt;b&gt;load_employee_facts&lt;/b&gt;&lt;br&gt;Load full employee facts + profile&lt;br&gt;Reset per-question working state" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=14;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1"><mxGeometry x="1370" y="205" width="360" height="76" as="geometry"/></mxCell>
+        <mxCell id="understand_query" value="&lt;b&gt;understand_query&lt;/b&gt;&lt;br&gt;Regex overrides, otherwise structured LLM&lt;br&gt;One turn-wide intent + clarity/rewrite flags" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=4;fontColor=#17233F;fontSize=14;align=center;verticalAlign=middle;spacing=6;" vertex="1" parent="1"><mxGeometry x="1325" y="340" width="450" height="84" as="geometry"/></mxCell>
+
+        <mxCell id="compose_clarification_question" value="&lt;b&gt;compose_clarification_question&lt;/b&gt;&lt;br&gt;LLM writes one focused question" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="105" y="575" width="320" height="66" as="geometry"/></mxCell>
+        <mxCell id="wait_for_clarification" value="&lt;b&gt;wait_for_clarification&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="105" y="710" width="320" height="66" as="geometry"/></mxCell>
+        <mxCell id="merge_clarification_into_question" value="&lt;b&gt;merge_clarification_into_question&lt;/b&gt;&lt;br&gt;Fold reply into original question&lt;br&gt;Maximum one clarification round" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="105" y="845" width="320" height="78" as="geometry"/></mxCell>
+
+        <mxCell id="rewrite_and_decompose_query" value="&lt;b&gt;rewrite_and_decompose_query&lt;/b&gt;&lt;br&gt;Resolve follow-up context&lt;br&gt;Produce up to 5 subqueries" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="590" y="575" width="300" height="78" as="geometry"/></mxCell>
+        <mxCell id="rephrase_previous_answer" value="&lt;b&gt;rephrase_previous_answer&lt;/b&gt;&lt;br&gt;Rewrite previous reply without retrieval&lt;br&gt;Old reply becomes checkable evidence" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="920" y="575" width="230" height="78" as="geometry"/></mxCell>
+        <mxCell id="route_each_subquery" value="&lt;b&gt;route_each_subquery&lt;/b&gt;&lt;br&gt;LLM + deterministic corrections&lt;br&gt;POLICY / HR_DATA / BOTH / UNSUPPORTED" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="680" y="710" width="350" height="78" as="geometry"/></mxCell>
+        <mxCell id="gather_subquery_evidence" value="&lt;b&gt;gather_subquery_evidence&lt;/b&gt;&lt;br&gt;Dynamic Send: parallel branch per servable part&lt;br&gt;Dense + BM25/RRF search; authorised HR fields" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="630" y="845" width="450" height="92" as="geometry"/></mxCell>
+        <mxCell id="assemble_evidence" value="&lt;b&gt;assemble_evidence&lt;/b&gt;&lt;br&gt;Order findings; merge citations/facts&lt;br&gt;Build evidence_summary + checkable_evidence" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="655" y="980" width="400" height="84" as="geometry"/></mxCell>
+        <mxCell id="generate_answer" value="&lt;b&gt;generate_answer&lt;/b&gt;&lt;br&gt;LLM drafts one grounded answer&lt;br&gt;Optional calculations + chart data" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="655" y="1110" width="400" height="84" as="geometry"/></mxCell>
+
+        <mxCell id="handle_leave_application" value="&lt;b&gt;handle_leave_application&lt;/b&gt;&lt;br&gt;Structured LLM extraction&lt;br&gt;validate_leave_policy() read" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1400" y="575" width="340" height="78" as="geometry"/></mxCell>
+        <mxCell id="request_leave_dates" value="&lt;b&gt;request_leave_dates&lt;/b&gt;&lt;br&gt;Prepare calendar payload" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1265" y="725" width="280" height="66" as="geometry"/></mxCell>
+        <mxCell id="wait_for_leave_dates" value="&lt;b&gt;wait_for_leave_dates&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1265" y="850" width="280" height="66" as="geometry"/></mxCell>
+        <mxCell id="compose_leave_confirmation" value="&lt;b&gt;compose_leave_confirmation&lt;/b&gt;&lt;br&gt;Build card from leave_validation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1590" y="725" width="280" height="72" as="geometry"/></mxCell>
+        <mxCell id="wait_for_leave_confirmation" value="&lt;b&gt;wait_for_leave_confirmation&lt;/b&gt;&lt;br&gt;interrupt() + checkpoint" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1590" y="850" width="280" height="66" as="geometry"/></mxCell>
+        <mxCell id="submit_leave_application" value="&lt;b&gt;submit_leave_application&lt;/b&gt;&lt;br&gt;Re-check policy after pause&lt;br&gt;run_tool('apply_for_leave', authorised=True)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1565" y="990" width="330" height="84" as="geometry"/></mxCell>
+
+        <mxCell id="run_action" value="&lt;b&gt;run_action&lt;/b&gt;&lt;br&gt;ACTION_FOR_INTENT → handler function&lt;br&gt;cancel / own status / manager approve-reject&lt;br&gt;&lt;i&gt;Not a LangGraph ToolNode&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="2005" y="585" width="340" height="104" as="geometry"/></mxCell>
+        <mxCell id="action_note" value="Handlers own parsing, authorization, DB reads and response wording.&lt;br&gt;Only some operations pass through run_tool().&lt;br&gt;See page 02." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A63B62;strokeWidth=2;dashed=1;fontColor=#6B2A45;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="2005" y="735" width="340" height="100" as="geometry"/></mxCell>
+
+        <mxCell id="generate_greeting" value="&lt;b&gt;generate_greeting&lt;/b&gt;&lt;br&gt;Greeting / capability / conversation recap&lt;br&gt;Fixed or state-derived response" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="2480" y="585" width="300" height="84" as="geometry"/></mxCell>
+        <mxCell id="generate_document_upload_prompt" value="&lt;b&gt;generate_document_upload_prompt&lt;/b&gt;&lt;br&gt;Open HCS-11 upload UI via response&lt;br&gt;Actual API flow is outside LangGraph" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="2820" y="585" width="280" height="90" as="geometry"/></mxCell>
+
+        <mxCell id="prepare_action_answer" value="&lt;b&gt;prepare_action_answer&lt;/b&gt;&lt;br&gt;final_answer → draft_answer&lt;br&gt;payload, or fixed text itself, → checkable_evidence" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=4;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1860" y="1130" width="410" height="88" as="geometry"/></mxCell>
+        <mxCell id="validate_answer" value="&lt;b&gt;validate_answer&lt;/b&gt;&lt;br&gt;Evidence present • quantities grounded&lt;br&gt;no other employee ID/external email • correct language" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=4;fontColor=#17233F;fontSize=14;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1320" y="1370" width="500" height="92" as="geometry"/></mxCell>
+        <mxCell id="finalize_verified_answer" value="&lt;b&gt;finalize_verified_answer&lt;/b&gt;&lt;br&gt;Clean Markdown + build citations&lt;br&gt;Preserve action executed/rejected status" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1535" y="1535" width="350" height="84" as="geometry"/></mxCell>
+        <mxCell id="build_safe_fallback" value="&lt;b&gt;build_safe_fallback&lt;/b&gt;&lt;br&gt;Out of scope / no evidence / unsupported claims&lt;br&gt;Clear any action card" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#FCEAEA;strokeColor=#B33A3A;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="905" y="1535" width="350" height="84" as="geometry"/></mxCell>
+        <mxCell id="record_conversation_turn" value="&lt;b&gt;record_conversation_turn&lt;/b&gt;&lt;br&gt;Latency + remembered turn + previous full reply&lt;br&gt;Clear selected evidence fields" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;align=center;verticalAlign=middle;" vertex="1" parent="1"><mxGeometry x="1325" y="1700" width="450" height="84" as="geometry"/></mxCell>
+        <mxCell id="__end__" value="&lt;b&gt;END&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;fillColor=#E6E0FF;strokeColor=#6B4BA3;strokeWidth=2;fontColor=#17233F;fontSize=14;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="1460" y="1860" width="180" height="44" as="geometry"/></mxCell>
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;  Solid = unconditional • Dashed = conditional • Yellow = interrupt/HITL • Green = evidence/validation • Pink = action/write • Blue = deterministic orchestration • Purple = LLM-assisted" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#F6F8FB;strokeColor=#AEB8C7;fontColor=#334155;fontSize=13;align=left;verticalAlign=middle;spacing=8;" vertex="1" parent="1"><mxGeometry x="80" y="1935" width="3000" height="56" as="geometry"/></mxCell>
+
+        <mxCell id="e01" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="__start__" target="load_employee_facts"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e02" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="load_employee_facts" target="understand_query"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e03" value="needs clarification" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="compose_clarification_question"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e04" value="ABOUT_THE_LAST_ANSWER" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B4BA3;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="rephrase_previous_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e05" value="rewrite or multi-question" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B4BA3;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="rewrite_and_decompose_query"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e06" value="default information path" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2F5AA8;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="route_each_subquery"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e07" value="APPLY_LEAVE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A63B62;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="handle_leave_application"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e08" value="cancel / status / approve / reject" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A63B62;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="run_action"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e09" value="greeting / capability / conversation recap" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2F5AA8;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=10;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="generate_greeting"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="DOCUMENT_UPLOAD" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2F5AA8;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="generate_document_upload_prompt"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" value="out of scope / nothing to rephrase" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B33A3A;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="understand_query" target="build_safe_fallback"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="compose_clarification_question" target="wait_for_clarification"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" value="resume" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_clarification" target="merge_clarification_into_question"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e14" value="classify again" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B4BA3;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="merge_clarification_into_question" target="understand_query"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="rewrite_and_decompose_query" target="route_each_subquery"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" value="Send[] for servable parts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="route_each_subquery" target="gather_subquery_evidence"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e17" value="no servable part" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B33A3A;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="route_each_subquery" target="build_safe_fallback"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e18" value="fan-in after all sends" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="gather_subquery_evidence" target="assemble_evidence"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="assemble_evidence" target="generate_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e20" value="draft + evidence" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="generate_answer" target="validate_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e21" value="rephrased draft" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="rephrase_previous_answer" target="validate_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e22" value="NEEDS_DATES" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="handle_leave_application" target="request_leave_dates"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e23" value="AWAITING_CONFIRMATION" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="handle_leave_application" target="compose_leave_confirmation"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e24" value="declined / no dates" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A63B62;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="handle_leave_application" target="prepare_action_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="request_leave_dates" target="wait_for_leave_dates"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e26" value="resume with dates" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_leave_dates" target="handle_leave_application"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="compose_leave_confirmation" target="wait_for_leave_confirmation"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e28" value="resume with decision" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A76500;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="wait_for_leave_confirmation" target="submit_leave_application"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="submit_leave_application" target="prepare_action_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="run_action" target="prepare_action_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="generate_greeting" target="prepare_action_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="generate_document_upload_prompt" target="prepare_action_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e33" value="normalise validation contract" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="prepare_action_answer" target="validate_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e34" value="valid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="validate_answer" target="finalize_verified_answer"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e35" value="invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#B33A3A;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="validate_answer" target="build_safe_fallback"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="finalize_verified_answer" target="record_conversation_turn"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="build_safe_fallback" target="record_conversation_turn"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e38" value="checkpoint final state" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="record_conversation_turn" target="__end__"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="internals" name="02 - Tools, State and Boundaries">
+    <mxGraphModel dx="3200" dy="2050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2050" math="0" shadow="0">
+      <root>
+        <mxCell id="p2_0"/><mxCell id="p2_1" parent="p2_0"/>
+        <mxCell id="p2_title" value="As-Built Internals — Action Dispatch, Tool Layer, HCS-11 and Checkpoint State" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#17233F;fontSize=30;fontStyle=1;" vertex="1" parent="p2_1"><mxGeometry x="50" y="20" width="3050" height="44" as="geometry"/></mxCell>
+        <mxCell id="p2_subtitle" value="Graph nodes are shown in blue/pink; dashed components are ordinary Python or external systems. This page documents actual call paths and the controls that exist today." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontColor=#4A5A6E;fontSize=15;" vertex="1" parent="p2_1"><mxGeometry x="50" y="68" width="3050" height="34" as="geometry"/></mxCell>
+
+        <mxCell id="p2_actions_title" value="1  ACTION DISPATCH" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#17233F;strokeColor=#17233F;fontColor=#FFFFFF;fontSize=17;fontStyle=1;align=left;spacingLeft=12;" vertex="1" parent="p2_1"><mxGeometry x="70" y="135" width="1450" height="52" as="geometry"/></mxCell>
+        <mxCell id="p2_understand" value="&lt;b&gt;understand_query&lt;/b&gt;&lt;br&gt;one QuestionIntent" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#F0EAF9;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=14;" vertex="1" parent="p2_1"><mxGeometry x="100" y="240" width="300" height="72" as="geometry"/></mxCell>
+        <mxCell id="p2_decide" value="&lt;b&gt;decide_after_understanding&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;fontStyle=1;" vertex="1" parent="p2_1"><mxGeometry x="470" y="215" width="330" height="130" as="geometry"/></mxCell>
+        <mxCell id="p2_apply" value="&lt;b&gt;APPLY_LEAVE graph subflow&lt;/b&gt;&lt;br&gt;extract → policy check → date/confirm interrupts&lt;br&gt;→ re-check → run_tool apply_for_leave" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=3;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="860" y="215" width="610" height="105" as="geometry"/></mxCell>
+        <mxCell id="p2_run" value="&lt;b&gt;run_action graph node&lt;/b&gt;&lt;br&gt;ACTION_FOR_INTENT maps to handler functions&lt;br&gt;&lt;i&gt;not directly to TOOLS; not a ToolNode&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FAE9F0;strokeColor=#A63B62;strokeWidth=4;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="100" y="430" width="410" height="100" as="geometry"/></mxCell>
+        <mxCell id="p2_map" value="&lt;b&gt;ACTION_FOR_INTENT — handler registry&lt;/b&gt;&lt;br&gt;cancel → handle_leave_cancellation&lt;br&gt;status → handle_leave_status&lt;br&gt;approve/reject → handle_manager_approval&lt;br&gt;school intents absent" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A63B62;strokeWidth=2;dashed=1;fontColor=#17233F;fontSize=13;align=left;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="580" y="415" width="430" height="135" as="geometry"/></mxCell>
+        <mxCell id="p2_handlers" value="&lt;b&gt;Handler functions&lt;/b&gt;&lt;br&gt;Own regex parsing, scoped lookups, authorization decisions,&lt;br&gt;database/service reads, final wording and action_payload shape.&lt;br&gt;&lt;br&gt;handle_leave_status performs its main reads directly.&lt;br&gt;handle_manager_approval reads pending approvals directly.&lt;br&gt;Mutations generally use run_tool()." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=2;dashed=1;fontColor=#17233F;fontSize=13;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="1070" y="390" width="400" height="200" as="geometry"/></mxCell>
+
+        <mxCell id="p2_tools_title" value="2  CUSTOM TOOL LAYER" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#17233F;strokeColor=#17233F;fontColor=#FFFFFF;fontSize=17;fontStyle=1;align=left;spacingLeft=12;" vertex="1" parent="p2_1"><mxGeometry x="70" y="680" width="1450" height="52" as="geometry"/></mxCell>
+        <mxCell id="p2_dispatch" value="&lt;b&gt;run_tool(name, authorised_to_write=False, **args)&lt;/b&gt;&lt;br&gt;Registry lookup → required argument presence check → mutation gate&lt;br&gt;→ call service → catch exceptions → ToolOutcome&lt;br&gt;&lt;br&gt;Fail-closed codes: unknown_tool • missing_arguments • not_authorised&lt;br&gt;the_action_failed • declined" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=4;fontColor=#17233F;fontSize=13;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="100" y="785" width="650" height="190" as="geometry"/></mxCell>
+        <mxCell id="p2_reads" value="&lt;b&gt;TOOLS — reads&lt;/b&gt;&lt;br&gt;check_leave_status(employee_id)&lt;br&gt;list_pending_approvals(manager_id)&lt;br&gt;get_education_entitlement(employee_id)&lt;br&gt;check_leave_against_policy(employee_id, draft)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#207A56;strokeWidth=2;dashed=1;fontColor=#17233F;fontSize=13;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="820" y="775" width="330" height="190" as="geometry"/></mxCell>
+        <mxCell id="p2_writes" value="&lt;b&gt;TOOLS — writes&lt;/b&gt;&lt;br&gt;apply_for_leave(employee_id, validation)&lt;br&gt;cancel_leave(employee_id, request_id)&lt;br&gt;approve_leave(manager_id, request_id)&lt;br&gt;reject_leave(manager_id, request_id)" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A63B62;strokeWidth=2;dashed=1;fontColor=#17233F;fontSize=13;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="1190" y="775" width="300" height="190" as="geometry"/></mxCell>
+        <mxCell id="p2_map2" value="&lt;b&gt;TOOL_FOR_INTENT — second mapping&lt;/b&gt;&lt;br&gt;apply / cancel / approve / reject only.&lt;br&gt;tool_for_intent() exposes it, but run_action does not use it." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FCEAEA;strokeColor=#B33A3A;strokeWidth=2;dashed=1;fontColor=#8A1C1C;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="820" y="1015" width="670" height="105" as="geometry"/></mxCell>
+        <mxCell id="p2_limits" value="&lt;b&gt;Centralized by dispatcher&lt;/b&gt;: tool existence • required argument presence • mutation boolean • exception containment&lt;br&gt;&lt;b&gt;Still decentralized&lt;/b&gt;: role checks • ownership • confirmation • structured schema validation • idempotency • response formatting" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=2;fontColor=#6B4A00;fontSize=13;align=left;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="100" y="1030" width="650" height="105" as="geometry"/></mxCell>
+
+        <mxCell id="p2_hcs_title" value="3  HCS-11 BOUNDARY" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#17233F;strokeColor=#17233F;fontColor=#FFFFFF;fontSize=17;fontStyle=1;align=left;spacingLeft=12;" vertex="1" parent="p2_1"><mxGeometry x="1600" y="135" width="1530" height="52" as="geometry"/></mxCell>
+        <mxCell id="p2_upload" value="&lt;b&gt;DOCUMENT_UPLOAD graph node&lt;/b&gt;&lt;br&gt;Returns fixed text/action payload that opens UI&lt;br&gt;No document bytes enter the LLM or LangGraph" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="1660" y="230" width="480" height="100" as="geometry"/></mxCell>
+        <mxCell id="p2_frontend" value="&lt;b&gt;Frontend upload window&lt;/b&gt;&lt;br&gt;Calls REST endpoints outside the chat graph" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="2230" y="235" width="400" height="90" as="geometry"/></mxCell>
+        <mxCell id="p2_api" value="&lt;b&gt;hcs11_documents.py FastAPI endpoints&lt;/b&gt;&lt;br&gt;Health • cases • active case • document upload/remove&lt;br&gt;Guarded by hcs11_enabled" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=3;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="2710" y="225" width="370" height="110" as="geometry"/></mxCell>
+        <mxCell id="p2_client" value="&lt;b&gt;HCS11Client → external HCS-11 backend&lt;/b&gt;&lt;br&gt;Async httpx • typed schemas • ID mapping • error translation&lt;br&gt;Document verification may take 30–60 seconds" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#A76500;strokeWidth=3;dashed=1;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="2230" y="425" width="520" height="110" as="geometry"/></mxCell>
+        <mxCell id="p2_dead" value="&lt;b&gt;handle_school_verification.py is currently not in the graph&lt;/b&gt;&lt;br&gt;conversation_workflow and run_action do not import it.&lt;br&gt;Questions about education use normal RAG + the authorised education_plan field.&lt;br&gt;School document/status activity uses DOCUMENT_UPLOAD + the separate HCS-11 REST/UI flow." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FCEAEA;strokeColor=#B33A3A;strokeWidth=3;fontColor=#8A1C1C;fontSize=13;align=left;verticalAlign=middle;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="1660" y="640" width="1420" height="130" as="geometry"/></mxCell>
+
+        <mxCell id="p2_state_title" value="4  CHECKPOINTED STATE AND OUTPUT SAFETY" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#17233F;strokeColor=#17233F;fontColor=#FFFFFF;fontSize=17;fontStyle=1;align=left;spacingLeft=12;" vertex="1" parent="p2_1"><mxGeometry x="1600" y="860" width="1530" height="52" as="geometry"/></mxCell>
+        <mxCell id="p2_service" value="&lt;b&gt;answer_question_service&lt;/b&gt;&lt;br&gt;Versioned thread ID • reject cross-employee reuse&lt;br&gt;new-turn vs Command(resume=...) decision" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#E8EFFB;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="1660" y="975" width="420" height="100" as="geometry"/></mxCell>
+        <mxCell id="p2_sqlite" value="&lt;b&gt;SqliteSaver&lt;/b&gt;&lt;br&gt;conversation_checkpoints.sqlite • WAL&lt;br&gt;InMemorySaver fallback/tests" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#F6F8FB;strokeColor=#6B4BA3;strokeWidth=3;fontColor=#17233F;fontSize=13;" vertex="1" parent="p2_1"><mxGeometry x="1660" y="1160" width="420" height="120" as="geometry"/></mxCell>
+        <mxCell id="p2_state" value="&lt;b&gt;ConversationState v6 — total=False TypedDict&lt;/b&gt;&lt;br&gt;Memory: remembered_turns, previous_reply&lt;br&gt;Identity: IDs, question, language, timer&lt;br&gt;Full employee_facts + employee_profile&lt;br&gt;Understanding + clarification&lt;br&gt;Subqueries, routing, evidence reducer&lt;br&gt;Draft, calculations, chart, validation&lt;br&gt;Final answer, citations, UI action payload&lt;br&gt;Leave draft, validation, stage and pause replies" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFFFFF;strokeColor=#2F5AA8;strokeWidth=3;fontColor=#17233F;fontSize=13;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="2160" y="975" width="460" height="305" as="geometry"/></mxCell>
+        <mxCell id="p2_validation" value="&lt;b&gt;validate_answer — deterministic, first failure wins&lt;/b&gt;&lt;br&gt;1. evidence present&lt;br&gt;2. quantities grounded or declared from grounded inputs&lt;br&gt;3. no other EMP identifier or external email&lt;br&gt;4. requested language matches&lt;br&gt;&lt;br&gt;Valid → finalize; invalid → safe fallback" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#E7F4EC;strokeColor=#207A56;strokeWidth=3;fontColor=#17233F;fontSize=13;align=left;verticalAlign=top;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="2700" y="975" width="380" height="235" as="geometry"/></mxCell>
+        <mxCell id="p2_persist" value="&lt;b&gt;Persistence reality&lt;/b&gt;&lt;br&gt;record_conversation_turn clears selected heavy evidence fields, stores memory and latency, but the completed checkpoint can still contain employee facts/profile, routing plans, checkable evidence, leave draft/validation and UI state. Most working fields are cleared only when the next turn begins." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FCEAEA;strokeColor=#B33A3A;strokeWidth=2;fontColor=#8A1C1C;fontSize=13;align=left;verticalAlign=middle;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="1660" y="1370" width="1420" height="125" as="geometry"/></mxCell>
+        <mxCell id="p2_validator_limits" value="&lt;b&gt;Validator does not explicitly verify&lt;/b&gt; citation presence • tool provenance • external API status • centralized role/ownership. Action/direct replies with no payload use approved fixed text itself as evidence; a separate test forbids quantities in those fixed messages." style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#FFF2D9;strokeColor=#D79B00;strokeWidth=2;fontColor=#6B4A00;fontSize=13;align=left;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="1660" y="1555" width="1420" height="100" as="geometry"/></mxCell>
+
+        <mxCell id="p2_summary" value="&lt;b&gt;DOCUMENTATION VERDICT&lt;/b&gt;&lt;br&gt;The top-level graph is stable for the four registered non-pausing leave actions and the leave application interrupt boundaries are sound. However, the implementation is not a single generic ToolNode architecture: it has an intent→handler registry plus a separate tool registry, direct database/service reads remain, HCS-11 is outside LangGraph, and one shared total=False state carries every concern." style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#17233F;strokeColor=#17233F;strokeWidth=2;fontColor=#FFFFFF;fontSize=15;align=left;verticalAlign=middle;spacing=12;" vertex="1" parent="p2_1"><mxGeometry x="100" y="1740" width="2980" height="125" as="geometry"/></mxCell>
+        <mxCell id="p2_sources" value="&lt;b&gt;Source map&lt;/b&gt;  conversation_workflow.py • routing_rules.py • nodes/run_action.py • nodes/leave_application.py • nodes/handle_leave_action.py • workflow/tools/registry.py • workflow/tools/dispatcher.py • conversation_state.py • conversation_checkpointer.py • answer_validation.py • api/endpoints/hcs11_documents.py • integrations/hcs11_client.py" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#F6F8FB;strokeColor=#AEB8C7;fontColor=#334155;fontSize=13;align=left;verticalAlign=middle;spacing=10;" vertex="1" parent="p2_1"><mxGeometry x="100" y="1910" width="2980" height="70" as="geometry"/></mxCell>
+
+        <mxCell id="p2_e01" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#475569;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="p2_1" source="p2_understand" target="p2_decide"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e02" value="APPLY_LEAVE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A63B62;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_decide" target="p2_apply"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e03" value="ACTION_FOR_INTENT" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A63B62;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_decide" target="p2_run"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e04" value="lookup" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#A63B62;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_run" target="p2_map"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e05" value="handler(state)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_map" target="p2_handlers"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e06" value="some reads + writes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_handlers" target="p2_dispatch"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e07" value="apply write" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;dashed=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_apply" target="p2_dispatch"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e08" value="registry lookup" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_dispatch" target="p2_reads"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e09" value="registry lookup" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_dispatch" target="p2_writes"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e10" value="opens UI" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_upload" target="p2_frontend"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e11" value="REST" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_frontend" target="p2_api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e12" value="async httpx" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#D79B00;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_api" target="p2_client"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e13" value="get/save snapshot" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6B4BA3;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_service" target="p2_sqlite"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e14" value="checkpoint values" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#2F5AA8;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_service" target="p2_state"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="p2_e15" value="draft + evidence" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#207A56;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#FFFFFF;" edge="1" parent="p2_1" source="p2_state" target="p2_validation"><mxGeometry relative="1" as="geometry"/></mxCell>
       </root>
     </mxGraphModel>
   </diagram>

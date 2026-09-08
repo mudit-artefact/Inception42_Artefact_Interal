@@ -77,24 +77,41 @@ Choose one intent:
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
   balances, sick leave, remote work, expenses, probation, their line manager, benefits.
   This includes general questions ("How much leave do I have?", "What is the leave policy?").
-- "document_upload": the employee is SENDING school documents in, saying they already
-  have, or asking where their submitted claim has got to. This includes:
+- "document_upload": the employee wants to SEND school documents in, or has just
+  attached some. Only that:
   * Asking to send: "upload documents", "submit my school documents", "I want to upload"
   * A file arriving: "[file attached]", "[document uploaded]"
-  * Confirming they sent: "my documents were uploaded", "just submitted"
-  * Where their own claim stands: "what is the status of my verification?"
   Choosing this opens the upload window, so choose it only when that window is what the
-  employee wants. A question ABOUT the scheme is not — which fees are covered, what the
-  limit is, which documents are needed, when the deadline falls, who is eligible. Those
-  are "hr_question", answered from the education allowance policy, and answering them
-  with an upload button tells the employee nothing they asked.
+  employee wants. Two kinds of message look close and are not:
+  * A question ABOUT the scheme — which fees are covered, what the limit is, which
+    documents are needed, when the deadline falls, who is eligible.
+  * A question about a claim they have ALREADY made — "was my application submitted?",
+    "did my documents go through?", "where is my claim?", "have they been reviewed?",
+    "when will I be paid?", "was it approved?"
+  Both are "hr_question". The first is answered from the education allowance policy; the
+  second is answered by looking their claim up. Opening an upload window in reply to
+  either tells the employee nothing they asked.
+- "what_can_you_do": a question about you rather than about HR — "what can you help me
+  with?", "what do you do?", "how can you help?", "بماذا يمكنك مساعدتي؟". Not a greeting,
+  and not out of scope.
+- "about_this_conversation": a question about what has been said here rather than about
+  HR — "what was the first thing I asked you?", "what have we covered?", "remind me what
+  I asked", "ما الذي سألتك عنه أولاً؟". The conversation is in front of you; this is not
+  out of scope.
 - "out_of_scope": anything else — weather, general knowledge, coding, other companies.
+  Not this: another employee's pay, home address, personal contact details or performance
+  review. Those are "hr_question". They are refused further down, as **confidential** —
+  which is the true reason and the one the employee is owed. Calling a colleague's salary
+  "outside our HR policies" is simply wrong: it is inside HR, and it is private.
 - "about_the_last_answer": a request to change the *form* of the reply you just gave,
   asking nothing new — "make that shorter", "in Arabic please", "as bullet points",
   "explain that more simply", "say that again". Choose this only when the message asks
   for the same content presented differently. "Why?", "are you sure?", "which policy says
   that?" and "what about sick leave?" are NOT this: they ask for something you have not
   said yet, and are "hr_question".
+  Asking for a **chart, graph, visual or diagram** is NOT this either — "show me my
+  balance as a chart", "can I see that as a graph", "أرني ذلك كرسم بياني". Drawing needs
+  the figures looked up again, which this route cannot do, so these are "hr_question".
 
 Then judge three things:
 
@@ -120,6 +137,15 @@ Then judge three things:
       - "I want to take 5 days of annual leave" — type and duration specified
       - "Can I work from home on Friday?" — specific and actionable
       - "What is the annual leave policy?" — asking for information, not action
+      - "Can I work from home?" — asking WHETHER SOMETHING IS ALLOWED. Answer it from
+        the policy. A question about what the rules permit is answerable without a date,
+        and asking "one-off or ongoing?" back tells the employee nothing they wanted.
+        Offer to help arrange it *after* you have answered.
+
+      The line between the two: are they asking what the rule IS, or asking you to DO
+      something? "Can I...", "Am I allowed to...", "Is it possible to...", "هل يمكنني...",
+      "هل يحق لي..." ask what the rule is. "I want to...", "Book me...", "Apply for...",
+      "أريد..." ask you to act, and only those need the specifics filled in.
 
    When in doubt: if you cannot answer without guessing what they mean, ask.
 
@@ -162,29 +188,31 @@ too vague to answer. Ask about the one thing that matters most. Be warm and brie
 list more than three options, and never answer the original question.\
 """
 
+# These two say nothing about which documents are needed, on purpose.
+#
+# They used to list four, and two of them were wrong: they asked for a birth certificate,
+# which HCS-11 does not accept and flags as a file it cannot place, and they never
+# mentioned the employee declaration, without which a claim is incomplete. An employee
+# following these instructions exactly sent the wrong set and their claim failed.
+#
+# The list now lives in two places that cannot go stale: the upload window itself, which
+# reads the checklist live from HCS-11 and ticks off what has arrived, and HC-PC-012 §12.5
+# for anyone who asks. Repeating it in a third place is how it went wrong the first time.
 DOCUMENT_UPLOAD_RESPONSE = """\
-I can help you upload your school verification documents for HCS-11.
+I can open the upload window for your school verification documents.
 
-To proceed, please use the **Upload Documents** button below. You'll need to upload:
+Use the **Upload Documents** button below. The window lists what your claim still needs and \
+ticks each document off as it arrives.
 
-• **School Enrollment Letter** — official letter confirming your child's enrollment
-• **Fee Receipt** — proof of payment to the school
-• **Invoice** — the school's fee invoice
-• **Birth Certificate** — your child's birth certificate
-
-Once uploaded, I'll verify your documents and let you know the status of your claim.\
+If you would like to know what is required before you start, just ask.\
 """
 
 DOCUMENT_UPLOAD_RESPONSE_WITH_FILES = """\
-I see you've attached documents for school verification.
+I can see you have attached something for school verification.
 
-Please use the **Upload Documents** button below to submit them through the HCS-11 verification system. This ensures your documents are properly verified and matched to your employee record.
-
-Required documents:
-• School Enrollment Letter
-• Fee Receipt
-• Invoice
-• Birth Certificate\
+Please send it through the **Upload Documents** button below rather than in the chat, so it \
+reaches the verification system and is matched to your record. The window shows what your \
+claim still needs.\
 """
 
 LEAVE_EXTRACTION_INSTRUCTIONS = """\
@@ -213,6 +241,12 @@ Every query you return must:
   has to be read alongside anything else to make sense.
 - Spell out abbreviations: AL is annual leave, SL is sick leave, WFH is working from
   home, MC is a medical certificate.
+- **Be written in the language the employee wrote in.** An Arabic follow-up needs the
+  same work as an English one and does not get it by being left alone:
+    "and sick leave?"            -> "How many sick leave days do I have left?"
+    "وماذا عن الإجازة المرضية؟"    -> "كم يوماً من الإجازة المرضية المتبقية لدي؟"
+    "وما المستندات المطلوبة؟"      -> "ما المستندات المطلوبة لصرف بدل التعليم؟"
+  A short Arabic message that leans on the turn before it is a rewrite, not an exception.
 - Keep the employee's language and their intent. Never add a question they did not ask
   in this message — an earlier turn's question has already been answered and must not be
   asked again — and never drop one they did ask.
@@ -243,6 +277,12 @@ When you need the employee's own facts, name every label whose contents the answ
 draw on. Naming too few is the common mistake: a label that is not asked for is not read,
 and the answer then says the information is not in the record when it is.
 
+This is decided by what the question asks for, never by the language it is written in.
+"How many sick days do I have left?" and "كم يوماً من الإجازة المرضية المتبقية لدي؟" are one
+question and both need sick_leave_balance. An Arabic question about a balance, a manager,
+a plan or a date in the employee's own record needs "hr_data" or "both", exactly as the
+English one does.
+
 - annual_leave_balance: entitlement, days used and days remaining, for this year and the
   one before it. Ask for this for anything about how much leave they have or have taken,
   including comparisons between years.
@@ -262,6 +302,13 @@ and the answer then says the information is not in the record when it is.
 - education_plan: which education allowance plan they are on. The policy states a ceiling
   for each plan; this says which one is theirs, so ask for it alongside the policy for
   anything about school fees, the education allowance or what a claim may cover.
+- school_claim_status: where the employee's school verification claim has got to — one
+  per child — with the status, the dates, whether anything further is wanted from them,
+  and whether payment is ready. Ask for it whenever the employee asks about a claim they
+  have already made: "did my documents go through?", "was my application submitted?",
+  "where is my claim?", "have they been reviewed?", "when will I be paid?". Ask for the
+  policy as well when they ask **why** a claim stands where it does, because the reason
+  is in HC-PC-012 and the claim only says which reason applies.
 
 Nothing outside that list can be read, so do not invent labels.\
 """
@@ -286,6 +333,26 @@ Rework the previous reply exactly as asked, and keep to these rules:
    they are; only the words around them change language.
 7. Report the language you wrote in as "en" or "ar".\
 """
+
+# What the employee has asked so far. The questions themselves are filled in from the
+# remembered turns, so no figure is ever typed into these — see the test that forbids it.
+CONVERSATION_RECAP_MESSAGES = {
+    "en": {
+        "heading": "So far in this conversation you have asked me:",
+        "footer": "Ask me any of them again and I will look it up afresh.",
+        "nothing_yet": (
+            "This is the first thing you have asked me in this conversation, so there is "
+            "nothing to look back on yet."
+        ),
+    },
+    "ar": {
+        "heading": "إليك ما سألتني عنه في هذه المحادثة حتى الآن:",
+        "footer": "اسألني أياً منها مرة أخرى وسأبحث عنه من جديد.",
+        "nothing_yet": (
+            "هذا أول ما سألتني عنه في هذه المحادثة، لذا لا يوجد ما يمكن العودة إليه بعد."
+        ),
+    },
+}
 
 NOTHING_TO_REPHRASE_MESSAGES = {
     "en": (
@@ -486,6 +553,46 @@ GREETING_MESSAGES = {
 GREETING_BODY = {
     "en": "Hi, I am Dalil. How can I help you today?",
     "ar": "أنا دليل. كيف يمكنني مساعدتك اليوم؟",
+}
+
+# What the assistant says it can do. Only what it can actually do: it holds the HR policy
+# documents, the employee's own record, and the leave and schooling processes. There is no
+# medical insurance policy and no visa policy, so it offers neither — promising and then
+# declining is worse than not promising.
+#
+# No figures here, and none may be added. A day count or an amount in a fixed sentence is
+# grounded in nothing but itself, and a test enforces that.
+WHAT_I_CAN_DO = {
+    "en": (
+        "I am Dalil, the HC Services HR assistant. I can help you with:\n\n"
+        "* **HR policy** — annual and sick leave, probation, working from home, expenses, "
+        "conduct, capability and grievances. I answer from the policy documents and show "
+        "you the clause.\n"
+        "* **Your own record** — your leave balance, who your line manager is, your "
+        "probation status, your length of service.\n"
+        "* **Leave** — applying, cancelling, checking where a request has got to. If you "
+        "manage people, approving and rejecting theirs.\n"
+        "* **The education allowance** — what your plan covers, which fees you can claim, "
+        "which documents are needed and by when.\n"
+        "* **Sending school documents in** — I can open the upload window for you.\n\n"
+        "Anything outside that, including medical insurance and visa or residency "
+        "questions, is best taken to People & Culture at people@hcservices.ae."
+    ),
+    "ar": (
+        "أنا دليل، مساعد الموارد البشرية في إتش سي سيرفيسز. يمكنني مساعدتك في:\n\n"
+        "* **سياسات الموارد البشرية** — الإجازات السنوية والمرضية وفترة التجربة والعمل عن "
+        "بُعد والمصروفات والسلوك والأداء والتظلمات. أجيب من وثائق السياسات وأعرض لك "
+        "البند.\n"
+        "* **سجلك الوظيفي** — رصيد إجازاتك ومديرك المباشر وحالة فترة التجربة ومدة "
+        "خدمتك.\n"
+        "* **الإجازات** — تقديم طلب إجازة أو إلغاؤه أو متابعة حالته. وإن كنت مديراً، "
+        "اعتماد طلبات فريقك أو رفضها.\n"
+        "* **بدل التعليم** — ما تغطيه خطتك وأي الرسوم يمكن المطالبة بها وما المستندات "
+        "المطلوبة وموعدها.\n"
+        "* **إرسال مستندات الدراسة** — أستطيع فتح نافذة الرفع لك.\n\n"
+        "أما ما عدا ذلك، ومنه التأمين الطبي وأسئلة الإقامة والتأشيرات، فيُوجَّه إلى قسم "
+        "شؤون الموظفين على people@hcservices.ae."
+    ),
 }
 
 ACKNOWLEDGMENT_MESSAGES = {

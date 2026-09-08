@@ -39,7 +39,13 @@ def decide_after_understanding(state: ConversationState) -> str:
     """
     intent = state.get("question_intent")
 
-    if intent == QuestionIntent.GREETING:
+    # All three are a short reply with nothing to retrieve, so they share a step. The
+    # recap reads the conversation, which is already in the state.
+    if intent in (
+        QuestionIntent.GREETING,
+        QuestionIntent.WHAT_CAN_YOU_DO,
+        QuestionIntent.ABOUT_THIS_CONVERSATION,
+    ):
         return "generate_greeting"
 
     if intent == QuestionIntent.OUT_OF_SCOPE:

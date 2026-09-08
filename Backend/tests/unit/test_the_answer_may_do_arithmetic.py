@@ -242,3 +242,117 @@ def test_the_employees_own_dirham_ceiling_passes():
     )
 
     assert outcome.is_valid, outcome.reason
+
+
+# ── One fact, written two ways ───────────────────────────────────────────────
+#
+# Both of these threw away a correct answer in the seven-conversation test round, and
+# both told the employee "I could not confirm this from the current policy documents"
+# over a figure that was sitting in the evidence in a different notation.
+
+
+def test_a_percentage_may_stand_on_the_fraction_it_means():
+    """
+    Shamma is part-time. Her record prints "Works 0.6 of full time"; the sentence anybody
+    would write is "you work 60% of full time". Rejecting it told a part-time employee
+    that her own working pattern could not be confirmed.
+    """
+    outcome = validate_answer(
+        answer="You work 60% of full time, so your entitlement is pro-rata.",
+        evidence_text="Job title: Facilities Supervisor. Works 0.6 of full time.",
+        employee_id="EMP007",
+        requested_language="en",
+        has_any_evidence=True,
+    )
+
+    assert outcome.is_valid, outcome.reason
+
+
+def test_only_a_percentage_may_do_that():
+    """
+    The narrowness is the point. If a fraction could ground any unit, a 0.3 anywhere in
+    the evidence would license "you may carry over 30 days" — the invented figure this
+    whole check exists to catch.
+    """
+    outcome = validate_answer(
+        answer="You may carry over 30 days.",
+        evidence_text="Job title: Facilities Supervisor. Works 0.3 of full time.",
+        employee_id="EMP007",
+        requested_language="en",
+        has_any_evidence=True,
+    )
+
+    assert not outcome.is_valid
+    assert outcome.unsupported_claims == ["30 days"]
+
+
+def test_a_figure_the_policy_wrote_in_words_still_counts_as_that_figure():
+    """
+    HC-PC-002 §2.2.1 in Arabic sets the sick leave window as "فترة اثني عشر شهراً" — a
+    twelve-month period, containing no 12. An answer quoting it as "12 شهراً" was quoting
+    the policy, and was rejected for inventing.
+    """
+    outcome = validate_answer(
+        answer="يُحتسب الاستحقاق على مدى فترة 12 شهراً متحركة.",
+        evidence_text="يُحتسب استحقاق التسعين يوماً على مدى فترة اثني عشر شهراً متحركة.",
+        employee_id="EMP001",
+        requested_language="ar",
+        has_any_evidence=True,
+    )
+
+    assert outcome.is_valid, outcome.reason
+
+
+def test_the_same_holds_in_english():
+    outcome = validate_answer(
+        answer="The entitlement is counted over a 12 month rolling period.",
+        evidence_text="The entitlement is counted over a twelve-month rolling period.",
+        employee_id="EMP001",
+        requested_language="en",
+        has_any_evidence=True,
+    )
+
+    assert outcome.is_valid, outcome.reason
+
+
+def test_a_number_word_in_ordinary_prose_grounds_nothing():
+    """
+    Which is why a number word only counts where a unit follows it, exactly as a digit
+    does. Otherwise the "one" in "one of the following" would ground any "1 day" an
+    answer cared to state, and the word is everywhere.
+    """
+    outcome = validate_answer(
+        answer="You must give 1 day of notice.",
+        evidence_text="Approval is required in one of the following circumstances.",
+        employee_id="EMP001",
+        requested_language="en",
+        has_any_evidence=True,
+    )
+
+    assert not outcome.is_valid
+    assert outcome.unsupported_claims == ["1 day"]
+
+
+def test_the_arabic_decimal_mark_is_read_as_a_decimal_point():
+    """Before this, "14٫4 يوماً" parsed as the number 4 and was checked against that."""
+    outcome = validate_answer(
+        answer="رصيدك المتبقي هو 14٫4 يوماً.",
+        evidence_text="الرصيد السنوي المتبقي: 14.4 يوماً",
+        employee_id="EMP007",
+        requested_language="ar",
+        has_any_evidence=True,
+    )
+
+    assert outcome.is_valid, outcome.reason
+
+
+def test_a_rejection_names_the_figure_that_caused_it():
+    """
+    A rejection that says only "the answer states figures that are not in the evidence"
+    cannot be diagnosed from a log — which is how two false rejections sat unnoticed
+    through a whole test round.
+    """
+    outcome = checked("You may carry over 30 days and 12 hours.")
+
+    assert not outcome.is_valid
+    assert outcome.unsupported_claims == ["30 days", "12 hours"]

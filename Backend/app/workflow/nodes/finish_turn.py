@@ -15,7 +15,9 @@ from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
 import re
 from app.workflow.prompts import (
+    WHAT_I_CAN_DO,
     ACKNOWLEDGMENT_MESSAGES,
+    CONVERSATION_RECAP_MESSAGES,
     ESCALATION_MESSAGES,
     GRATITUDE_MESSAGES,
     GREETING_BODY,
@@ -35,74 +37,35 @@ logger = logging.getLogger(__name__)
 
 def generate_document_upload_prompt(state: ConversationState) -> dict:
     """
-    Respond to a document upload request with instructions and trigger the upload UI.
+    Open the upload window.
 
-    The intent is set to 'document_upload' so the frontend knows to show the upload button.
+    This step used to do two jobs. Alongside the button it carried a second reply for
+    employees asking where their claim had got to, matched by a list of thirty spellings
+    of that question — "submitted successfully", "are they approved", "when will". An
+    employee who wrote "successfuly" with one l matched none of them and got the button.
+    One who spelled it correctly got a fixed paragraph that told them to click the button
+    anyway, and promised a review in "2-3 business days" — a figure typed into this file,
+    grounded in nothing.
+
+    Neither is this step's job. Asking where a claim stands is a question about the
+    employee's own record, and is answered like every other one: the claim is read from
+    the school verification service, cited, and checked. This step now only does the one
+    thing the button is for.
     """
     question = (state.get("employee_question") or "").lower()
-
-    # Check if this is a status check or confirmation (not an upload request)
-    status_indicators = [
-        "uploaded successfully",
-        "were just uploaded",
-        "have been submitted",
-        "just submitted",
-        "submitted successfully",
-        "documents were uploaded",
-        "confirm the status",
-        "confirmation",
-        "are documents reviewed",
-        "are my documents reviewed",
-        "documents reviewed",
-        "is my verification",
-        "what is the status",
-        "check status",
-        "check the status",
-        "verification status",
-        "document status",
-        "have my documents been",
-        "were my documents",
-        "did you receive",
-        "did my documents",
-        "are they approved",
-        "is it approved",
-        "when will",
-        "how long",
-    ]
-    is_status_check = any(indicator in question for indicator in status_indicators)
-
-    if is_status_check:
-        response = """\
-To check the current status of your school verification documents, please click the **Upload Documents** button below.
-
-This will show you:
-• Which documents have been received
-• Any issues that need to be fixed
-• The current review status of your case
-
-If your documents are under review, our team typically completes the review within 2-3 business days. Once approved, the payment will be processed through payroll.\
-"""
-        return {
-            "final_answer": response,
-            "citations": [],
-            "answer_status": AnswerStatus.VERIFIED.value,
-        }
 
     has_files_attached = any(
         indicator in question
         for indicator in ["[file", "[document", "[attached", "[uploaded", "attached file"]
     )
-
-    if has_files_attached:
-        response = DOCUMENT_UPLOAD_RESPONSE_WITH_FILES
-    else:
-        response = DOCUMENT_UPLOAD_RESPONSE
+    response = DOCUMENT_UPLOAD_RESPONSE_WITH_FILES if has_files_attached else DOCUMENT_UPLOAD_RESPONSE
 
     return {
         "final_answer": response,
         "citations": [],
         "answer_status": AnswerStatus.VERIFIED.value,
     }
+
 
 # Match Arabic script greetings or transliterated Islamic greetings (salam, salam e walekum, etc.)
 ISLAMIC_GREETING_PATTERN = re.compile(
@@ -127,6 +90,30 @@ GRATITUDE_PATTERN = re.compile(
 )
 
 
+def _recap_of_the_conversation(remembered_turns: list[dict] | None, lang: str) -> str:
+    """
+    The employee's own questions, oldest first and numbered.
+
+    One reply serves every way of asking: the first thing they asked is number 1, what
+    they have covered is the list, and what they asked about a particular subject is in
+    front of them. Nothing here is generated — each line is a question they typed, already
+    shortened and made safe when it was remembered — so there is no figure to ground and
+    nothing to invent.
+    """
+    copy = message_in_language(CONVERSATION_RECAP_MESSAGES, lang)
+    asked = [
+        (turn.get("question") or "").strip()
+        for turn in (remembered_turns or [])
+        if (turn.get("question") or "").strip()
+    ]
+    if not asked:
+        return copy["nothing_yet"]
+
+    numbered = [f"{position}. \u201c{question}\u201d"
+                for position, question in enumerate(asked, start=1)]
+    return "\n".join([copy["heading"], "", *numbered, "", copy["footer"]])
+
+
 def generate_greeting(state: ConversationState) -> dict:
     """Greet the employee by name or respond naturally to pleasantries, gratitude, and acknowledgments."""
     requested_language = state.get("requested_language", "en")
@@ -136,6 +123,26 @@ def generate_greeting(state: ConversationState) -> dict:
     is_arabic_script = bool(re.search(r"[\u0600-\u06FF]", question))
     lang = "ar" if (is_arabic_script or requested_language == "ar") else "en"
     employee_name = (facts.get("name_ar") if lang == "ar" else facts.get("name")) or (facts.get("name") or "there")
+
+    # 0a. A question about this conversation. Everything it needs is already in the
+    # state — nothing is retrieved, nothing is worked out, and nothing is written that
+    # the employee did not type themselves.
+    if state.get("question_intent") == QuestionIntent.ABOUT_THIS_CONVERSATION.value:
+        return {
+            "final_answer": _clean_and_format_markdown(
+                _recap_of_the_conversation(state.get("remembered_turns"), lang)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
+
+    # 0b. A question about the assistant itself, rather than about HR.
+    if state.get("question_intent") == QuestionIntent.WHAT_CAN_YOU_DO.value:
+        return {
+            "final_answer": _clean_and_format_markdown(message_in_language(WHAT_I_CAN_DO, lang)),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+        }
 
     # 1. Acknowledgment (e.g. "ok", "got it", "noted")
     if ACKNOWLEDGMENT_PATTERN.match(question):

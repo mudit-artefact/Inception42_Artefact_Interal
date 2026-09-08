@@ -44,7 +44,11 @@ class Settings(BaseSettings):
     qdrant_port: int = Field(default=6333, alias="QDRANT_PORT")
     qdrant_collection: str = Field(default="hcs01_policies", alias="QDRANT_COLLECTION")
     qdrant_in_memory: bool = Field(default=False, alias="QDRANT_IN_MEMORY")
-    rag_top_k: int = Field(default=5, alias="RAG_TOP_K")
+    # Raised from 5. HC-PC-012 §12.6 holds the education allowance submission deadline;
+    # §12.5 holds the list of documents. On "when do the documents have to be in by?" the
+    # document list outranks the dates, so at five the deadline never made the cut and the
+    # answer said the policy did not state one. It does: 15 October 2026.
+    rag_top_k: int = Field(default=8, alias="RAG_TOP_K")
 
     # ── Web server ────────────────────────────────────────────────
     api_host: str = Field(default="0.0.0.0", alias="API_HOST")

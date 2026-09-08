@@ -102,6 +102,9 @@ The enrolment certificate must carry either the school's stamp or the name and r
 **12.5.4 Partial Submissions**  
 A claim may be submitted in parts. It is not assessed until all four documents have arrived; until then the employee is told which are still needed.
 
+**12.5.5 Where to Send Them**  
+Documents are submitted through the HCS Concierge, which opens the school verification window and shows what the claim still needs. An education allowance claim is **not** an expense claim: it does not go through the Omni Expense portal, and the approval thresholds and submission deadlines at HC-PC-005 §5.7 do not apply to it.
+
 ---
 
 ### 12.6 The Academic Cycle

@@ -7,7 +7,7 @@ employee was found, and callers reached into it by string key, so a missing key 
 as a crash deep inside prompt formatting.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -64,6 +64,28 @@ class ExpenseClaim:
 
 
 @dataclass(frozen=True)
+class SchoolClaim:
+    """
+    One school verification claim, as HCS-11 holds it.
+
+    Read from HCS-11 rather than the HR database, because HCS-11 owns it. Only what the
+    employee is owed about their own claim is carried: the reviewer's name, the internal
+    routing verdict and the rule codes stay where they are.
+    """
+
+    case_id: str
+    child_name: str
+    academic_year: str
+    status: str
+    recommendation: str = ""
+    submitted_on: str = ""
+    submission_deadline: str = ""
+    approved_on: str = ""
+    payment_status: str = ""
+    awaiting_review: bool = False
+
+
+@dataclass(frozen=True)
 class EmployeeFacts:
     """One employee's record, as read from the HR database."""
 
@@ -95,6 +117,10 @@ class EmployeeFacts:
     manager_history: list[ManagerChange] = field(default_factory=list)
     recent_leave_requests: list[LeaveRequest] = field(default_factory=list)
     recent_expense_claims: list[ExpenseClaim] = field(default_factory=list)
+    # None until HCS-11 has been asked, and after asking if it could not be reached. An
+    # empty list means it answered and this employee has no claims — a different thing,
+    # and the employee must not be told one when the truth is the other.
+    school_claims: list[SchoolClaim] | None = None
 
     @classmethod
     def from_dictionary(cls, stored: dict[str, Any]) -> "EmployeeFacts":
@@ -153,6 +179,11 @@ class EmployeeFacts:
                 )
                 for claim in stored.get("recent_expense_claims", [])
             ],
+            school_claims=(
+                [SchoolClaim(**claim) for claim in stored["school_claims"]]
+                if stored.get("school_claims") is not None
+                else None
+            ),
         )
 
     def as_dictionary(self) -> dict[str, Any]:
@@ -226,4 +257,11 @@ class EmployeeFacts:
                 }
                 for claim in self.recent_expense_claims
             ],
+            # None survives the round trip, because "not asked" and "asked, and there are
+            # none" are different answers and the reply turns on which one it is.
+            "school_claims": (
+                [asdict(claim) for claim in self.school_claims]
+                if self.school_claims is not None
+                else None
+            ),
         }

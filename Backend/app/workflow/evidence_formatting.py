@@ -119,6 +119,49 @@ EDUCATION_PLAN_NAMES = {
 }
 
 
+# What HCS-11 calls a claim, said the way an employee would say it. "request_documents"
+# is the recommendation that decides whether they still have something to do, and it is
+# the one word in the record they most need translated.
+CLAIM_NEEDS_MORE_FROM_YOU = "request_documents"
+
+
+def _school_claim_lines(claims: list | None) -> list[str]:
+    """
+    Where each claim has got to, or an honest account of why that is not known.
+
+    Three outcomes, and they are not interchangeable. `None` means HCS-11 could not be
+    asked — saying "you have no claims" in that case would be telling an employee their
+    submitted claim does not exist. An empty list means it answered and there are none.
+    """
+    if claims is None:
+        return [
+            "School verification: the school verification service could not be reached, "
+            "so the current status of any claim is unknown. Do not state or guess it."
+        ]
+    if not claims:
+        return ["School verification: no claim has been submitted for this employee."]
+
+    lines = ["School verification claims (from the school verification service):"]
+    for claim in claims:
+        detail = [f"status {claim.status}"]
+        if claim.submitted_on:
+            detail.append(f"submitted {claim.submitted_on}")
+        if claim.approved_on:
+            detail.append(f"approved {claim.approved_on}")
+        if claim.recommendation == CLAIM_NEEDS_MORE_FROM_YOU:
+            detail.append("further documents have been requested from the employee")
+        elif claim.awaiting_review:
+            detail.append("waiting on a reviewer, nothing further needed from the employee")
+        if claim.payment_status:
+            detail.append(f"payment {claim.payment_status}")
+        if claim.submission_deadline:
+            detail.append(f"deadline {claim.submission_deadline}")
+        lines.append(
+            f"  - {claim.child_name} ({claim.academic_year}): {', '.join(detail)}"
+        )
+    return lines
+
+
 def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> str:
     """
     Only the facts the routing step asked for, written out for the model.
@@ -158,6 +201,9 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
         # The plan's own name, not its code, because that is how the policy names it —
         # a model given "EDU_ENHANCED" has to guess which row of the table is theirs.
         lines.append(f"Education plan: {EDUCATION_PLAN_NAMES.get(facts.education_plan_code, 'none')}")
+
+    if HrDataField.SCHOOL_CLAIM_STATUS in requested:
+        lines.extend(_school_claim_lines(facts.school_claims))
 
     if HrDataField.MANAGER_HISTORY in requested and facts.manager_history:
         lines.append("Previous line managers:")
