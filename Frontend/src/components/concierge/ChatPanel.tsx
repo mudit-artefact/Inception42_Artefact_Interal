@@ -1,6 +1,5 @@
 import { useState, useRef } from "react";
 import {
-  AlertTriangle,
   CalendarPlus,
   CheckCircle2,
   Clock,
@@ -184,44 +183,12 @@ export function ChatPanel({
                 <MessageContent>
                   <MessageResponse>{formatMessageContent(messageText)}</MessageResponse>
 
-                {/* Clarification Indicator for Ambiguous Queries */}
-                {m.role === "assistant" && m.is_awaiting_clarification && !m.action_payload ? (
-                  <div className="mt-3 flex items-center gap-2 pt-2 border-t border-primary/20">
-                    <Badge variant="outline" className="gap-1 border-primary/30 bg-primary/10 text-primary text-[10px]">
-                      <AlertTriangle className="size-2.5" />
-                      <span>Clarification Needed</span>
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      Please provide more details so I can give you an accurate answer.
-                    </span>
-                  </div>
-                ) : null}
 
                 {/* Chart visualization for numeric data */}
                 {m.role === "assistant" && m.chart ? (
                   <DataChart chart={m.chart} />
                 ) : null}
 
-                {/* Proactive Leave Application Suggestion Pill (for non-greeting messages) */}
-                {m.role === "assistant" &&
-                m.intent !== "greeting" &&
-                i === messages.length - 1 &&
-                !m.action_payload &&
-                (m.content.toLowerCase().includes("leave") ||
-                  m.content.toLowerCase().includes("balance") ||
-                  m.content.toLowerCase().includes("vacation") ||
-                  m.content.toLowerCase().includes("إجازة")) ? (
-                  <div className="mt-2.5 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => onSend("I want to apply for leave")}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] shadow-2xs cursor-pointer"
-                    >
-                      <span>🌴</span>
-                      <span>Do you want to apply for leave?</span>
-                    </button>
-                  </div>
-                ) : null}
 
                 {/* Calendar Date-Range Picker */}
                 {m.action_payload?.action_type === "SHOW_LEAVE_CALENDAR_PICKER" ? (
