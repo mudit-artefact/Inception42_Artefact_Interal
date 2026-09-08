@@ -89,20 +89,30 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
     """Build status list for each required document."""
     statuses = []
 
-    doc_issues = {
-        issue.kind: issue.what_to_do
-        for issue in case.employee_issues
-    }
+    # Build a map of document_id -> issue for quick lookup
+    doc_id_to_issue: dict[str, EmployeeIssueOut] = {}
+    for issue in case.employee_issues:
+        for doc_id in issue.document_ids:
+            doc_id_to_issue[doc_id] = issue
+
+    # Also build document_id -> document for finding the doc for each required type
+    doc_by_kind: dict[str, str] = {}  # kind -> document_id
+    for doc in case.documents:
+        if doc.kind:
+            doc_by_kind[doc.kind] = doc.document_id
 
     for req in case.required_documents:
-        has_issue = req.kind in doc_issues
+        # Find if this document type has an issue
+        doc_id = doc_by_kind.get(req.kind)
+        issue = doc_id_to_issue.get(doc_id) if doc_id else None
+
         statuses.append(DocumentStatus(
             kind=req.kind,
             label=req.label,
             filename=req.file_name,
             received=req.received,
-            has_issues=has_issue,
-            issue_message=doc_issues.get(req.kind),
+            has_issues=issue is not None,
+            issue_message=f"{issue.title}: {issue.what_to_do}" if issue else None,
         ))
 
     return statuses

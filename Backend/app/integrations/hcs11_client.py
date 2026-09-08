@@ -37,6 +37,20 @@ def map_hcs01_to_hcs11_employee_id(employee_id: str) -> str:
     return employee_id
 
 
+def map_hcs11_to_hcs01_employee_id(employee_id: str) -> str:
+    """
+    Map HCS-11 employee IDs (E0001) back to HCS-01 format (EMP001).
+
+    HCS-11 uses E0001, E0002, etc.
+    HCS-01 uses EMP001, EMP002, etc.
+    """
+    if employee_id.startswith("E") and employee_id[1:].isdigit():
+        number = int(employee_id[1:])
+        return f"EMP{number:03d}"
+    # Already in HCS-01 format or unknown format - return as-is
+    return employee_id
+
+
 class HCS11Client:
     """
     Async HTTP client for the HCS-11 document verification API.

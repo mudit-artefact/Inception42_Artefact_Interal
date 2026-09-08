@@ -84,6 +84,8 @@ export interface CaseDetail extends CaseSummary {
     kind: string;
     title: string;
     what_to_do: string;
+    documents: string[];       // File names this issue is about
+    document_ids: string[];    // Document IDs for matching to uploads
   }>;
   match_checks: MatchCheck[];
 }

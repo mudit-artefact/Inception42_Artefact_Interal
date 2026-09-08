@@ -37,6 +37,8 @@ from app.integrations import (
     format_upload_result,
     get_hcs11_client,
 )
+from app.integrations.hcs11_client import map_hcs11_to_hcs01_employee_id
+from app.services.notification_service import create_notification
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +93,70 @@ def require_hcs11_enabled():
             status_code=503,
             detail="Document verification service is not enabled",
         )
+
+
+# ─── Notification Helpers ───────────────────────────────────────────────────
+
+
+def _create_hcs11_notification(case: CaseDetail, result: UploadResult) -> None:
+    """
+    Create a notification based on the upload result.
+
+    Three scenarios:
+    1. Auto-approved: Case immediately approved without review
+    2. Issues found: Documents have problems that need fixing
+    3. Submitted: Documents received and under review
+    """
+    try:
+        child_name = case.dependent_name
+        # Convert HCS-11 employee ID (E0001) to HCS-01 format (EMP001) for notifications
+        employee_id = map_hcs11_to_hcs01_employee_id(case.employee_id)
+        logger.info(f"Creating HCS-11 notification: case_employee_id={case.employee_id}, mapped_to={employee_id}, case_status={case.case_status}, issues={len(case.employee_issues)}")
+
+        # Determine notification type based on result
+        if case.case_status == "Approved":
+            # Auto-approved - all checks passed
+            create_notification(
+                recipient_id=employee_id,
+                event_type="HCS11_APPROVED",
+                title="Claim Approved",
+                message=f"Your education allowance claim for {child_name} has been approved! Finance will process the payment.",
+                action_payload={
+                    "case_id": case.case_id,
+                    "child_name": child_name,
+                    "amount": case.schooling_aed,
+                },
+            )
+        elif len(case.employee_issues) > 0:
+            # Has issues that need attention
+            issue_count = len(case.employee_issues)
+            create_notification(
+                recipient_id=employee_id,
+                event_type="HCS11_ISSUES_FOUND",
+                title="Documents Need Attention",
+                message=f"Your documents for {child_name} have {issue_count} issue{'s' if issue_count > 1 else ''} that need fixing.",
+                action_payload={
+                    "case_id": case.case_id,
+                    "child_name": child_name,
+                    "issue_count": issue_count,
+                },
+            )
+        else:
+            # Submitted and under review
+            create_notification(
+                recipient_id=employee_id,
+                event_type="HCS11_SUBMITTED",
+                title="Documents Submitted",
+                message=f"Your documents for {child_name} have been submitted and are under review.",
+                action_payload={
+                    "case_id": case.case_id,
+                    "child_name": child_name,
+                },
+            )
+        logger.info(f"HCS-11 notification created successfully for {employee_id}")
+    except Exception as e:
+        # Don't fail the upload if notification fails
+        logger.warning(f"Failed to create HCS-11 notification: {e}", exc_info=True)
 
 
 # ─── Endpoints ──────────────────────────────────────────────────────────────
@@ -254,6 +320,10 @@ async def upload_documents(
 
             # Format result for chat display
             result = format_upload_result(case)
+
+            # Create notification for the employee
+            _create_hcs11_notification(case, result)
+
             return UploadResponse(
                 status=result.status,
                 title=result.title,
@@ -399,6 +469,10 @@ async def upload_documents_streaming(
                 )
 
                 result = format_upload_result(case)
+
+                # Create notification for the employee
+                _create_hcs11_notification(case, result)
+
                 yield _sse_event("complete", {
                     "status": result.status.value,
                     "title": result.title,

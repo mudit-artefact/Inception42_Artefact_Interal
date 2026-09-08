@@ -43,11 +43,14 @@ function getStepStatus(
   step: ProgressStep,
   caseStatus: string | null,
   paymentStatus: string | null,
-  allDocsReceived: boolean
-): "complete" | "active" | "pending" {
+  allDocsReceived: boolean,
+  hasIssues: boolean
+): "complete" | "warning" | "active" | "pending" {
   switch (step) {
     case "documents":
-      return allDocsReceived ? "complete" : "active";
+      if (!allDocsReceived) return "active";
+      // All received but some have issues = warning
+      return hasIssues ? "warning" : "complete";
     case "checks":
       if (!allDocsReceived) return "pending";
       if (caseStatus === "Under Review" || caseStatus === "Pending Review") return "active";
@@ -67,120 +70,58 @@ function getStepStatus(
   }
 }
 
-// Map check codes to the document kind they apply to
-// Based on HCS-11 matching.py and cross_document.py
-const CHECK_CODE_TO_DOC_KIND: Record<string, string> = {
-  // Per-document checks from matching.py (certificate-specific)
-  DEPENDENT_NAME: "enrolment_certificate",
-  DEPENDENT_DOB: "enrolment_certificate",
-  PARENT_NAME: "enrolment_certificate",
-  ENROLMENT_CONFLICT: "enrolment_certificate",
-  // Cross-document checks from cross_document.py
-  INVOICE_IS_SAME_CHILD: "school_invoice",
-  RECEIPT_REFERENCES_INVOICE: "payment_receipt",
-  PAID_NOT_MORE_THAN_INVOICED: "payment_receipt",
-  RECEIPT_NOT_BEFORE_INVOICE: "payment_receipt",
-  DECLARATION_IS_THIS_EMPLOYEE: "employee_declaration",
-};
-
-// Cross-document checks that compare MULTIPLE documents - show separately
-const CROSS_DOC_CHECKS = new Set([
-  "SAME_ACADEMIC_YEAR",  // Compares all documents
-  "SAME_SCHOOL",         // Compares certificate vs invoice
-]);
-
-// Map employee_issues kind to document kind
-const ISSUE_KIND_TO_DOC_KIND: Record<string, string> = {
-  wrong_signer: "employee_declaration",
-  name_mismatch: "enrolment_certificate",
-  dob_mismatch: "enrolment_certificate",
-};
-
 interface DocumentIssue {
   title: string;
   message: string;
-  code?: string;
+  documents: string[];      // File names
+  document_ids: string[];   // Document IDs
 }
 
+/**
+ * Get issues for a specific document by its document_id.
+ * Uses employee_issues from the API which already has proper document attribution.
+ */
+function getDocumentIssuesByDocId(
+  caseData: CaseDetail,
+  documentId: string
+): DocumentIssue[] {
+  const issues: DocumentIssue[] = [];
+
+  for (const issue of caseData.employee_issues || []) {
+    // Check if this issue applies to this document
+    if (issue.document_ids?.includes(documentId)) {
+      issues.push({
+        title: issue.title,
+        message: issue.what_to_do,
+        documents: issue.documents || [],
+        document_ids: issue.document_ids || [],
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Get issues for a document kind by finding the document_id for that kind first.
+ */
 function getDocumentIssues(
   caseData: CaseDetail,
   docKind: string
 ): DocumentIssue[] {
-  const issues: DocumentIssue[] = [];
+  // Find the document_id for this kind
+  const doc = caseData.documents.find((d) => d.kind === docKind);
+  if (!doc) return [];
 
-  // Check employee_issues (map kind to document type)
-  for (const issue of caseData.employee_issues || []) {
-    const mappedDocKind = ISSUE_KIND_TO_DOC_KIND[issue.kind];
-    if (mappedDocKind === docKind) {
-      issues.push({
-        title: issue.title,
-        message: issue.what_to_do,
-      });
-    }
-  }
-
-  // Check match_checks for failures - map by check code to document kind
-  for (const check of caseData.match_checks || []) {
-    if (check.result !== "fail" && check.result !== "review") continue;
-    // Skip cross-document checks - they go in a separate section
-    if (CROSS_DOC_CHECKS.has(check.code)) continue;
-
-    // Map check code to document kind
-    const checkDocKind = CHECK_CODE_TO_DOC_KIND[check.code];
-    if (checkDocKind === docKind) {
-      issues.push({
-        title: formatCheckCode(check.code),
-        message: check.detail,
-        code: check.code,
-      });
-    }
-  }
-
-  return issues;
+  return getDocumentIssuesByDocId(caseData, doc.document_id);
 }
 
-// Get cross-document issues (compare multiple documents)
-function getCrossDocumentIssues(caseData: CaseDetail): DocumentIssue[] {
-  const issues: DocumentIssue[] = [];
-
-  for (const check of caseData.match_checks || []) {
-    if (check.result !== "fail" && check.result !== "review") continue;
-    // Only include checks that compare multiple documents
-    if (CROSS_DOC_CHECKS.has(check.code)) {
-      issues.push({
-        title: formatCheckCode(check.code),
-        message: check.detail,
-        code: check.code,
-      });
-    }
-  }
-
-  return issues;
-}
-
-function formatCheckCode(code: string): string {
-  const labels: Record<string, string> = {
-    DEPENDENT_NAME: "Student name mismatch",
-    DEPENDENT_DOB: "Date of birth mismatch",
-    PARENT_NAME: "Parent name mismatch",
-    SAME_ACADEMIC_YEAR: "Academic year conflict",
-    INVOICE_IS_SAME_CHILD: "Invoice student mismatch",
-    SAME_SCHOOL: "School mismatch",
-    DECLARATION_IS_THIS_EMPLOYEE: "Wrong signer",
-    ENROLMENT_CONFLICT: "Enrolment status issue",
-    RECEIPT_REFERENCES_INVOICE: "Receipt reference mismatch",
-    PAID_NOT_MORE_THAN_INVOICED: "Payment amount issue",
-    RECEIPT_NOT_BEFORE_INVOICE: "Payment date issue",
-  };
-  return labels[code] || code.replace(/_/g, " ").toLowerCase();
-}
-
-function getDocumentIdByKind(
+function getDocumentByKind(
   caseData: CaseDetail,
   docKind: string
-): string | null {
+): { document_id: string; file_name: string } | null {
   const doc = caseData.documents.find((d) => d.kind === docKind);
-  return doc?.document_id ?? null;
+  return doc ? { document_id: doc.document_id, file_name: doc.file_name } : null;
 }
 
 function ProgressTracker({
@@ -189,27 +130,37 @@ function ProgressTracker({
   allDocsReceived,
   receivedCount,
   totalCount,
+  issueCount,
 }: {
   caseStatus: string | null;
   paymentStatus: string | null;
   allDocsReceived: boolean;
   receivedCount: number;
   totalCount: number;
+  issueCount: number;
 }) {
+  const hasIssues = issueCount > 0;
+
   return (
     <div className="space-y-2">
       {PROGRESS_STEPS.map((step) => {
-        const status = getStepStatus(step.key, caseStatus, paymentStatus, allDocsReceived);
+        const status = getStepStatus(step.key, caseStatus, paymentStatus, allDocsReceived, hasIssues);
         const isComplete = status === "complete";
+        const isWarning = status === "warning";
         const isActive = status === "active";
 
         let sublabel = step.sublabel;
+        let sublabel2: string | null = null;  // Second line for warnings
         if (step.key === "documents") {
           sublabel = `${receivedCount} of ${totalCount} received`;
+          if (isWarning) {
+            sublabel2 = `${issueCount} need${issueCount === 1 ? "s" : ""} attention`;
+          }
         } else if (step.key === "checks" && isComplete) {
           sublabel = "Done";
         } else if (step.key === "decision" && caseStatus === "Approved") {
-          sublabel = "Approved. Finance will confirm the amount";
+          sublabel = "Approved";
+          sublabel2 = "Finance will confirm";
         } else if (step.key === "decision" && caseStatus === "Rejected") {
           sublabel = "Rejected";
         }
@@ -221,6 +172,10 @@ function ProgressTracker({
                 <div className="size-4 rounded-full bg-green-500 flex items-center justify-center">
                   <CheckCircle2 className="size-3 text-white" />
                 </div>
+              ) : isWarning ? (
+                <div className="size-4 rounded-full bg-amber-500 flex items-center justify-center">
+                  <AlertTriangle className="size-3 text-white" />
+                </div>
               ) : isActive ? (
                 <div className="size-4 rounded-full bg-pink flex items-center justify-center">
                   <Circle className="size-2 text-white fill-white" />
@@ -230,11 +185,23 @@ function ProgressTracker({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`text-xs font-medium ${isComplete ? "text-green-700" : isActive ? "text-foreground" : "text-muted-foreground"}`}>
+              <p className={`text-xs font-medium ${
+                isComplete ? "text-green-700" :
+                isWarning ? "text-amber-700" :
+                isActive ? "text-foreground" :
+                "text-muted-foreground"
+              }`}>
                 {step.label}
               </p>
               {sublabel && (
-                <p className="text-[10px] text-muted-foreground truncate">{sublabel}</p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {sublabel}
+                </p>
+              )}
+              {sublabel2 && (
+                <p className={`text-[10px] truncate ${isWarning ? "text-amber-600" : "text-muted-foreground"}`}>
+                  {sublabel2}
+                </p>
               )}
             </div>
           </div>
@@ -325,13 +292,10 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
     return count;
   }, [caseData]);
 
-  // Get cross-document issues (affect multiple documents)
-  const crossDocIssues = useMemo(() => {
-    if (!caseData) return [];
-    return getCrossDocumentIssues(caseData.case);
-  }, [caseData]);
+  // Total number of employee issues (for display)
+  const totalEmployeeIssues = caseData?.case.employee_issues?.length ?? 0;
 
-  const hasIssues = totalIssueCount > 0 || crossDocIssues.length > 0;
+  const hasIssues = totalIssueCount > 0 || totalEmployeeIssues > 0;
 
   // Loading state
   if (status === "loading_cases") {
@@ -449,7 +413,7 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
                 {caseData.case.required_documents.map((doc) => {
                   const docIssues = getDocumentIssues(caseData.case, doc.kind);
                   const docHasIssues = docIssues.length > 0;
-                  const documentId = getDocumentIdByKind(caseData.case, doc.kind);
+                  const docInfo = getDocumentByKind(caseData.case, doc.kind);
 
                   return (
                     <div
@@ -487,15 +451,15 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
                           )}
                         </div>
                         {/* Remove button for documents with issues */}
-                        {docHasIssues && documentId && (
+                        {docHasIssues && docInfo && (
                           <Button
                             variant="ghost"
                             size="sm"
                             className="shrink-0 text-amber-600 hover:text-amber-700 hover:bg-amber-100"
-                            onClick={() => removeServerDocument(documentId)}
-                            disabled={isRemoving === documentId || isUploading}
+                            onClick={() => removeServerDocument(docInfo.document_id)}
+                            disabled={isRemoving === docInfo.document_id || isUploading}
                           >
-                            {isRemoving === documentId ? (
+                            {isRemoving === docInfo.document_id ? (
                               <Loader2 className="size-3 animate-spin" />
                             ) : (
                               <X className="size-4" />
@@ -529,30 +493,6 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
               >
                 Send another
               </Button>
-            </div>
-          )}
-
-          {/* Cross-document issues (affect multiple documents) */}
-          {crossDocIssues.length > 0 && (
-            <div className="space-y-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-700">
-                    Documents don't match each other
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    These issues affect multiple documents — check which ones need replacing.
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-1 pt-2">
-                {crossDocIssues.map((issue, idx) => (
-                  <p key={idx} className="text-sm text-amber-700">
-                    <span className="font-medium">{issue.title}:</span> {issue.message}
-                  </p>
-                ))}
-              </div>
             </div>
           )}
 
@@ -725,6 +665,7 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
               allDocsReceived={allDocumentsReceived}
               receivedCount={receivedCount}
               totalCount={totalCount}
+              issueCount={totalIssueCount}
             />
           </div>
         )}

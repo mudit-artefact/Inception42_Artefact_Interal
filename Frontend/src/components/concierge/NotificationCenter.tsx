@@ -1,4 +1,4 @@
-import { Bell, Calendar, CheckCircle2, Clock, Mail, XCircle } from "lucide-react";
+import { AlertTriangle, Bell, Calendar, CheckCircle2, Clock, FileText, Mail, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -252,6 +252,11 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                 const isLeaveReq = n.event_type === "LEAVE_REQUESTED";
                 const isApproved = n.event_type === "LEAVE_APPROVED";
                 const isRejected = n.event_type === "LEAVE_REJECTED";
+                // HCS-11 document verification notifications
+                const isHcs11Approved = n.event_type === "HCS11_APPROVED";
+                const isHcs11Issues = n.event_type === "HCS11_ISSUES_FOUND";
+                const isHcs11Submitted = n.event_type === "HCS11_SUBMITTED";
+                const isHcs11 = isHcs11Approved || isHcs11Issues || isHcs11Submitted;
 
                 return (
                   <div
@@ -265,7 +270,10 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                         {isLeaveReq && <Clock className="size-4 text-primary" />}
                         {isApproved && <CheckCircle2 className="size-4 text-emerald-500" />}
                         {isRejected && <XCircle className="size-4 text-rose-500" />}
-                        {!isLeaveReq && !isApproved && !isRejected && (
+                        {isHcs11Approved && <CheckCircle2 className="size-4 text-emerald-500" />}
+                        {isHcs11Issues && <AlertTriangle className="size-4 text-amber-500" />}
+                        {isHcs11Submitted && <FileText className="size-4 text-primary" />}
+                        {!isLeaveReq && !isApproved && !isRejected && !isHcs11 && (
                           <Bell className="size-4 text-primary" />
                         )}
                       </div>
@@ -337,6 +345,33 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                                 Email
                               </Button>
                             </>
+                          )}
+
+                          {/* HCS-11 Document Verification Actions */}
+                          {(isHcs11Issues || isHcs11Submitted) && onActionClick && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-6 px-2 text-[11px] font-medium cursor-pointer"
+                              onClick={() => {
+                                setIsOpen(false);
+                                onActionClick("Show me my document verification status");
+                                handleMarkAsRead(n.id);
+                              }}
+                            >
+                              View Status
+                            </Button>
+                          )}
+
+                          {isHcs11Approved && (
+                            <Button
+                              size="sm"
+                              className="h-6 px-2 text-[11px] gap-1 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+                              onClick={() => handleMarkAsRead(n.id)}
+                            >
+                              <CheckCircle2 className="size-3" />
+                              Great!
+                            </Button>
                           )}
 
                           {!n.is_read && (

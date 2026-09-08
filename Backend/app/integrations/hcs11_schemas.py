@@ -36,6 +36,8 @@ class EmployeeIssueOut(BaseModel):
     kind: str
     title: str
     what_to_do: str
+    documents: list[str] = []      # File names this issue is about
+    document_ids: list[str] = []   # Document IDs for matching to uploads
 
 
 class ExtractedField(BaseModel):
