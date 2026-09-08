@@ -86,6 +86,47 @@ def format_upload_result(case: CaseDetail) -> UploadResult:
     )
 
 
+# A check or rule HCS-11 has settled in the claim's favour. Everything else is something
+# the employee has to be told, including "review" and "missing" — a check HCS-11 could not
+# complete is not a check that passed. Reading only "fail" was half of why a claim HCS-11
+# had sent back for better documents arrived here looking clean.
+SETTLED_IN_YOUR_FAVOUR = {"pass", "not_comparable"}
+
+
+def _worth_telling_the_employee(check, case: CaseDetail) -> bool:
+    """
+    Is this check something the employee has to act on?
+
+    `missing` carries two meanings on HCS-11's side, and only one of them is a problem.
+    Where the document has arrived, it means the document does not state something it
+    should — real, and the employee must be told. Where the document has not arrived, it
+    means there was nothing to compare against yet, and saying so produces lines like
+    "There is no declaration to check this against" on a claim whose checklist already
+    shows the declaration as still to come. Machine chatter beside a row that says
+    "waiting" teaches people to skim past the warnings, which is how the same harm comes
+    back by another route.
+
+    So a `missing` check is held back only while documents are still outstanding.
+    Nothing else is: `fail` and `review` are always shown, whatever else is going on.
+    """
+    if check.result in SETTLED_IN_YOUR_FAVOUR:
+        return False
+    if check.result == "missing" and case.missing_documents:
+        return False
+    return True
+
+
+def _say(issue) -> str:
+    """
+    One problem, worded once.
+
+    The checklist row and the claim-level list used to build this sentence separately and
+    punctuate it differently, so the same problem read as two and could not be recognised
+    as a repeat when the two lists were shown together.
+    """
+    return f"{issue.title}. {issue.what_to_do}"
+
+
 def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
     """
     The checklist, with each problem shown against the file it is about.
@@ -97,20 +138,36 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
 
     HCS-11 says which files each problem is about, by id and by name. Ids are preferred
     where they resolve, because a replaced file keeps the name it was sent under.
+
+    Two sources, not one. `employee_issues` is HCS-11's own curated list of what the
+    employee must be told, and it was the only thing read here — so a failing check that
+    HCS-11 had not also written a plain-English issue for was attached to nothing and
+    shown nowhere. `match_checks` carries the rest, each already naming the document it
+    belongs against.
+
+    Whatever cannot be attached to a row is not dropped: `_extract_issues` gathers every
+    problem regardless, so the claim-level list is the floor beneath this one.
     """
     name_for_id = {
         document.document_id: document.file_name for document in case.documents
     }
 
     problems_by_filename: dict[str, list[str]] = {}
+
+    def note(filename: str | None, message: str) -> None:
+        if filename:
+            problems_by_filename.setdefault(filename, []).append(message)
+
     for issue in case.employee_issues:
         named_files = {name_for_id.get(document_id) for document_id in issue.document_ids}
         named_files.update(issue.documents)
         for filename in named_files:
-            if filename:
-                problems_by_filename.setdefault(filename, []).append(
-                    f"{issue.title}. {issue.what_to_do}"
-                )
+            note(filename, _say(issue))
+
+    for check in case.match_checks:
+        if not _worth_telling_the_employee(check, case):
+            continue
+        note(name_for_id.get(check.document_id or ""), _format_match_failure(check))
 
     return [
         DocumentStatus(
@@ -120,7 +177,7 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
             received=required.received,
             has_issues=bool(problems_by_filename.get(required.file_name)),
             issue_message=(
-                " ".join(problems_by_filename[required.file_name])
+                " ".join(dict.fromkeys(problems_by_filename[required.file_name]))
                 if problems_by_filename.get(required.file_name)
                 else None
             ),
@@ -130,43 +187,49 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
 
 
 def _extract_issues(case: CaseDetail) -> list[str]:
-    """Extract user-facing issue messages."""
+    """
+    Every problem on the claim, in the employee's words where HCS-11 wrote them.
+
+    This is the floor: a problem that could not be attached to a particular file still
+    appears here, so nothing HCS-11 found can fall out of the answer entirely. That
+    matters most for the eligibility rules, which are about the claim rather than about
+    one document and so have no row to sit against.
+    """
     messages = []
 
     for issue in case.employee_issues:
-        messages.append(f"{issue.title}: {issue.what_to_do}")
+        messages.append(_say(issue))
 
     for check in case.match_checks:
-        if check.result == "fail":
+        if _worth_telling_the_employee(check, case):
             messages.append(_format_match_failure(check))
 
-    return messages
+    for rule in case.rule_results + case.unresolved:
+        if rule.result not in SETTLED_IN_YOUR_FAVOUR:
+            messages.append(rule.detail)
+
+    return list(dict.fromkeys(messages))
 
 
 def _format_match_failure(check) -> str:
-    """Convert a matching check failure into a readable message."""
-    code = check.code
+    """
+    HCS-11's own sentence about the check, with both sides named truthfully.
 
-    if "name" in code.lower():
+    This used to rewrite the sentence from the check's code — anything with "name" in it
+    became "your HR record has ...", which is wrong for the three checks that compare one
+    document against another rather than against the record. HCS-11 sends the real labels
+    for exactly that reason. Its own wording is kept, and the values are appended only
+    where it has labels to name them by.
+    """
+    both_sides_are_known = check.document_value and check.master_value
+    if check.document_label and check.master_label and both_sides_are_known:
         return (
-            f"Name mismatch: The document shows '{check.document_value}' "
-            f"but your HR record has '{check.master_value}'. "
-            "Please upload a document with the correct name."
+            f"{check.detail} "
+            f"({check.document_label}: '{check.document_value}'; "
+            f"{check.master_label}: '{check.master_value}')"
         )
-
-    if "date" in code.lower() or "year" in code.lower():
-        return (
-            f"Date issue: The document shows '{check.document_value}' "
-            f"but we expected '{check.master_value}'. "
-            "Please check the document dates."
-        )
-
-    if "school" in code.lower():
-        return (
-            f"School mismatch: The documents reference different schools. "
-            f"Please ensure all documents are from the same school."
-        )
-
+    # A missing value has no side to show. Printing it anyway produced "On the enrolment
+    # certificate: 'None'", which reads as a value the document holds.
     return check.detail
 
 

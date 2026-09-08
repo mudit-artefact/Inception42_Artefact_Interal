@@ -106,7 +106,9 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
       // Auto-select the first case and load its details
       const firstCase = activeCases[0]!;
       const details = await getCaseDetail(firstCase.case_id);
-      setCaseData({ case: details.case, status_message: details.status_message });
+      // Kept whole. Picking the two fields out by hand dropped the server's per-document
+      // verdicts the moment they were added, which is the habit that hid them before.
+      setCaseData(details);
 
       // Extract unrecognized files from case documents
       // HCS-11 marks unplaceable files with kind = null, undefined, empty, or "other"
@@ -144,7 +146,9 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
 
     try {
       const details = await getCaseDetail(caseId);
-      setCaseData({ case: details.case, status_message: details.status_message });
+      // Kept whole. Picking the two fields out by hand dropped the server's per-document
+      // verdicts the moment they were added, which is the habit that hid them before.
+      setCaseData(details);
 
       // Extract unrecognized files
       // HCS-11 marks unplaceable files with kind = null, undefined, empty, or "other"
@@ -170,7 +174,9 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
 
     try {
       const details = await getCaseDetail(caseData.case.case_id);
-      setCaseData({ case: details.case, status_message: details.status_message });
+      // Kept whole. Picking the two fields out by hand dropped the server's per-document
+      // verdicts the moment they were added, which is the habit that hid them before.
+      setCaseData(details);
 
       // Update unrecognized files
       // HCS-11 marks unplaceable files with kind = null, undefined, empty, or "other"

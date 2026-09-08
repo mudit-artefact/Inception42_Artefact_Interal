@@ -92,6 +92,19 @@ export interface CaseDetail extends CaseSummary {
 export interface CaseDetailResponse {
   case: CaseDetail;
   status_message: string;
+  /**
+   * The checklist, already decided by the server from what HCS-11 sent.
+   *
+   * The panel used to work this out itself, from hand-written lists of check codes and
+   * problem kinds. Those lists named two kinds HCS-11 has never emitted and missed six it
+   * does, so a document HCS-11 had rejected was drawn with a green tick. Read `has_issues`
+   * — do not re-derive it.
+   */
+  documents: DocumentStatus[];
+  /** Every problem on the claim, including the ones that belong to no single file. */
+  problems: string[];
+  /** HCS-11 itself considers the claim finished. The only safe basis for a green banner. */
+  everything_is_settled: boolean;
 }
 
 export interface UploadStage {
@@ -261,7 +274,9 @@ export async function uploadDocumentsWithProgress(
           status: payload.status as UploadStatus,
           title: payload.title,
           message: payload.message,
-          documents: [],
+          // Was hardcoded empty, which threw away every per-file verdict on the only
+          // upload path the panel uses. The server sends them now; read them.
+          documents: payload.documents || [],
           issues: payload.issues || [],
           missing_documents: payload.missing_documents || [],
           can_reupload: payload.can_reupload || false,

@@ -66,13 +66,30 @@ class ExtractionOut(BaseModel):
 
 
 class CheckOut(BaseModel):
-    """One matching check result."""
+    """
+    One matching check result.
+
+    `document_id` is the document to show the check against, and HCS-11 works it out per
+    claim rather than reading it off the stored row — every row it stores carries the
+    certificate's id, whatever the check compared. Reading the stored one put "your
+    declaration is signed by somebody else" beside the certificate; this field is the
+    answer to that, and it is the reason no lookup table is needed on our side.
+
+    `result` is one of pass, fail, review, missing, not_comparable. Only `pass` and
+    `not_comparable` mean there is nothing to tell the employee.
+    """
     code: str
     result: str
     document_value: str | None = None
     master_value: str | None = None
     detail: str
-    document_id: str | None = None  # Which document this check applies to
+    document_id: str | None = None
+    # What the two values above actually are. A cross-document check compares one document
+    # against another, and both sides were being labelled "on the document" and "in the HR
+    # record" — the second of which is simply untrue when the comparison was invoice
+    # against certificate. HCS-11 sends the real labels; we used to drop them.
+    document_label: str | None = None
+    master_label: str | None = None
 
 
 class RuleOut(BaseModel):

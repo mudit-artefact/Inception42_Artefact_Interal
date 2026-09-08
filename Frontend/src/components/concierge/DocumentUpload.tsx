@@ -12,7 +12,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import type { CaseDetail } from "@/lib/api/hcs11";
+import type { CaseDetail, DocumentStatus } from "@/lib/api/hcs11";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -67,113 +67,21 @@ function getStepStatus(
   }
 }
 
-// Map check codes to the document kind they apply to
-// Based on HCS-11 matching.py and cross_document.py
-const CHECK_CODE_TO_DOC_KIND: Record<string, string> = {
-  // Per-document checks from matching.py (certificate-specific)
-  DEPENDENT_NAME: "enrolment_certificate",
-  DEPENDENT_DOB: "enrolment_certificate",
-  PARENT_NAME: "enrolment_certificate",
-  ENROLMENT_CONFLICT: "enrolment_certificate",
-  // Cross-document checks from cross_document.py
-  INVOICE_IS_SAME_CHILD: "school_invoice",
-  RECEIPT_REFERENCES_INVOICE: "payment_receipt",
-  PAID_NOT_MORE_THAN_INVOICED: "payment_receipt",
-  RECEIPT_NOT_BEFORE_INVOICE: "payment_receipt",
-  DECLARATION_IS_THIS_EMPLOYEE: "employee_declaration",
-};
-
-// Cross-document checks that compare MULTIPLE documents - show separately
-const CROSS_DOC_CHECKS = new Set([
-  "SAME_ACADEMIC_YEAR",  // Compares all documents
-  "SAME_SCHOOL",         // Compares certificate vs invoice
-]);
-
-// Map employee_issues kind to document kind
-const ISSUE_KIND_TO_DOC_KIND: Record<string, string> = {
-  wrong_signer: "employee_declaration",
-  name_mismatch: "enrolment_certificate",
-  dob_mismatch: "enrolment_certificate",
-};
-
-interface DocumentIssue {
-  title: string;
-  message: string;
-  code?: string;
-}
-
-function getDocumentIssues(
-  caseData: CaseDetail,
-  docKind: string
-): DocumentIssue[] {
-  const issues: DocumentIssue[] = [];
-
-  // Check employee_issues (map kind to document type)
-  for (const issue of caseData.employee_issues || []) {
-    const mappedDocKind = ISSUE_KIND_TO_DOC_KIND[issue.kind];
-    if (mappedDocKind === docKind) {
-      issues.push({
-        title: issue.title,
-        message: issue.what_to_do,
-      });
-    }
-  }
-
-  // Check match_checks for failures - map by check code to document kind
-  for (const check of caseData.match_checks || []) {
-    if (check.result !== "fail" && check.result !== "review") continue;
-    // Skip cross-document checks - they go in a separate section
-    if (CROSS_DOC_CHECKS.has(check.code)) continue;
-
-    // Map check code to document kind
-    const checkDocKind = CHECK_CODE_TO_DOC_KIND[check.code];
-    if (checkDocKind === docKind) {
-      issues.push({
-        title: formatCheckCode(check.code),
-        message: check.detail,
-        code: check.code,
-      });
-    }
-  }
-
-  return issues;
-}
-
-// Get cross-document issues (compare multiple documents)
-function getCrossDocumentIssues(caseData: CaseDetail): DocumentIssue[] {
-  const issues: DocumentIssue[] = [];
-
-  for (const check of caseData.match_checks || []) {
-    if (check.result !== "fail" && check.result !== "review") continue;
-    // Only include checks that compare multiple documents
-    if (CROSS_DOC_CHECKS.has(check.code)) {
-      issues.push({
-        title: formatCheckCode(check.code),
-        message: check.detail,
-        code: check.code,
-      });
-    }
-  }
-
-  return issues;
-}
-
-function formatCheckCode(code: string): string {
-  const labels: Record<string, string> = {
-    DEPENDENT_NAME: "Student name mismatch",
-    DEPENDENT_DOB: "Date of birth mismatch",
-    PARENT_NAME: "Parent name mismatch",
-    SAME_ACADEMIC_YEAR: "Academic year conflict",
-    INVOICE_IS_SAME_CHILD: "Invoice student mismatch",
-    SAME_SCHOOL: "School mismatch",
-    DECLARATION_IS_THIS_EMPLOYEE: "Wrong signer",
-    ENROLMENT_CONFLICT: "Enrolment status issue",
-    RECEIPT_REFERENCES_INVOICE: "Receipt reference mismatch",
-    PAID_NOT_MORE_THAN_INVOICED: "Payment amount issue",
-    RECEIPT_NOT_BEFORE_INVOICE: "Payment date issue",
-  };
-  return labels[code] || code.replace(/_/g, " ").toLowerCase();
-}
+// There used to be three tables here, mapping HCS-11's check codes and problem kinds onto
+// the document each belonged against, and a `getDocumentIssues` that read them.
+//
+// They were wrong, and wrong in the direction that hides failures. The list of problem
+// kinds named `name_mismatch` and `dob_mismatch`, neither of which HCS-11 has ever sent,
+// and missed `unreadable`, `wrong_kind`, `wrong_child`, `wrong_reference`, `wrong_year`
+// and `wrong_school`, all of which it does. A problem whose name was not in the table
+// matched no row and no cross-document section: it was dropped in silence, and the
+// document kept its green tick while HCS-11's own record said the claim had been sent
+// back. Sixteen problems across the demo claims were being hidden this way.
+//
+// The tables are gone. HCS-11 already works out which document each finding belongs
+// against — it says so in its own code, having fixed the same bug on their side — and the
+// server now reads that and sends the answer with the case. `caseData.documents` is that
+// answer. Read it; do not reconstruct it.
 
 function getDocumentIdByKind(
   caseData: CaseDetail,
@@ -313,25 +221,34 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
   const totalCount = caseData?.case.required_documents.length ?? 0;
   const isUploading = status === "uploading";
 
-  // Count documents with issues (not total issues)
-  const totalIssueCount = useMemo(() => {
-    if (!caseData) return 0;
-    let count = 0;
-    for (const doc of caseData.case.required_documents) {
-      if (getDocumentIssues(caseData.case, doc.kind).length > 0) {
-        count += 1;
-      }
-    }
-    return count;
+  // The server's reading of each file, keyed by which document it is. One answer, decided
+  // where HCS-11's own is, rather than worked out again here from a table that was wrong.
+  const verdictFor = useMemo(() => {
+    const byKind = new Map<string, DocumentStatus>();
+    for (const row of caseData?.documents ?? []) byKind.set(row.kind, row);
+    return byKind;
   }, [caseData]);
 
-  // Get cross-document issues (affect multiple documents)
-  const crossDocIssues = useMemo(() => {
+  const totalIssueCount = useMemo(
+    () => (caseData?.documents ?? []).filter((row) => row.has_issues).length,
+    [caseData]
+  );
+
+  // Problems HCS-11 raised about the claim rather than about one file — the eligibility
+  // rules, mostly. They belong to no row, and before this they were shown nowhere at all.
+  const claimWideProblems = useMemo(() => {
     if (!caseData) return [];
-    return getCrossDocumentIssues(caseData.case);
+    const alreadyShown = new Set(
+      (caseData.documents ?? []).flatMap((row) => (row.issue_message ? [row.issue_message] : []))
+    );
+    return (caseData.problems ?? []).filter((problem) => !alreadyShown.has(problem));
   }, [caseData]);
 
-  const hasIssues = totalIssueCount > 0 || crossDocIssues.length > 0;
+  const hasIssues = totalIssueCount > 0 || claimWideProblems.length > 0;
+
+  // HCS-11 says the claim is finished. Counting files that arrived said nothing about
+  // whether they were any good, which is how a claim it had rejected showed as complete.
+  const everythingIsSettled = caseData?.everything_is_settled ?? false;
 
   // Loading state
   if (status === "loading_cases") {
@@ -447,8 +364,8 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
               </div>
               <div className="border rounded-lg divide-y">
                 {caseData.case.required_documents.map((doc) => {
-                  const docIssues = getDocumentIssues(caseData.case, doc.kind);
-                  const docHasIssues = docIssues.length > 0;
+                  const verdict = verdictFor.get(doc.kind);
+                  const docHasIssues = verdict?.has_issues ?? false;
                   const documentId = getDocumentIdByKind(caseData.case, doc.kind);
 
                   return (
@@ -475,15 +392,9 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
                           {doc.file_name && (
                             <p className="text-xs text-muted-foreground truncate">{doc.file_name}</p>
                           )}
-                          {/* Show issues inline under the document */}
-                          {docHasIssues && (
-                            <div className="mt-2 space-y-1">
-                              {docIssues.map((issue, idx) => (
-                                <p key={idx} className="text-xs text-amber-600">
-                                  <span className="font-medium">{issue.title}:</span> {issue.message}
-                                </p>
-                              ))}
-                            </div>
+                          {/* HCS-11's own sentence, against the row HCS-11 named */}
+                          {docHasIssues && verdict?.issue_message && (
+                            <p className="mt-2 text-xs text-amber-600">{verdict.issue_message}</p>
                           )}
                         </div>
                         {/* Remove button for documents with issues */}
@@ -510,8 +421,11 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
             </div>
           )}
 
-          {/* Success message when all documents received */}
-          {allDocumentsReceived && !hasIssues && (
+          {/* Only when HCS-11 has actually settled the claim. This used to fire on
+              "every file arrived and nothing we recognised was wrong", which told
+              employees their claim was complete while HCS-11 was asking for better
+              copies of it. */}
+          {allDocumentsReceived && !hasIssues && everythingIsSettled && (
             <div className="flex items-start gap-2 p-3 rounded-lg border border-green-500/30 bg-green-500/5">
               <CheckCircle2 className="size-4 text-green-500 mt-0.5 shrink-0" />
               <div>
@@ -532,25 +446,25 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
             </div>
           )}
 
-          {/* Cross-document issues (affect multiple documents) */}
-          {crossDocIssues.length > 0 && (
+          {/* Everything HCS-11 raised that belongs to no single file: the eligibility
+              rules, and any finding it could not pin to one document. There was no
+              section for these at all, so they were shown nowhere. */}
+          {claimWideProblems.length > 0 && (
             <div className="space-y-2 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-amber-700">
-                    Documents don't match each other
+                    About this claim
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    These issues affect multiple documents — check which ones need replacing.
+                    These affect the claim as a whole rather than one document.
                   </p>
                 </div>
               </div>
               <div className="space-y-1 pt-2">
-                {crossDocIssues.map((issue, idx) => (
-                  <p key={idx} className="text-sm text-amber-700">
-                    <span className="font-medium">{issue.title}:</span> {issue.message}
-                  </p>
+                {claimWideProblems.map((problem, idx) => (
+                  <p key={idx} className="text-sm text-amber-700">{problem}</p>
                 ))}
               </div>
             </div>

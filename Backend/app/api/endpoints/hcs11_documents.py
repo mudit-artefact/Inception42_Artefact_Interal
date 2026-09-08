@@ -50,6 +50,30 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/hcs11", tags=["HCS-11 Document Verification"])
 
+# The two readings that mean the employee has nothing left to do. Everything else — a
+# claim waiting on a person, one sent back for better copies, one rejected outright —
+# leaves something to say, and the panel must not show it as finished.
+NOTHING_LEFT_TO_DO = {UploadStatus.SUCCESS, UploadStatus.ALREADY_PAID}
+
+
+def _problems_belonging_to_no_document(verdict: UploadResult) -> list[str]:
+    """
+    The problems with nowhere else to appear — the eligibility rules, mostly.
+
+    `issues` is the complete list, and every problem is in it whether or not it also sits
+    against a file. Sending the whole thing to the panel printed the same finding three
+    times: once on the certificate's row, once as HCS-11's plain-English sentence, and
+    once more as the rule that produced it. A claim with one thing wrong looked like a
+    claim with three.
+
+    What is left is what the rows cannot say, which is exactly what the section under
+    them is for.
+    """
+    already_on_a_row = " ".join(
+        document.issue_message or "" for document in verdict.documents
+    )
+    return [problem for problem in verdict.issues if problem not in already_on_a_row]
+
 
 # ─── Request/Response Schemas ───────────────────────────────────────────────
 
@@ -61,9 +85,23 @@ class CaseListResponse(BaseModel):
 
 
 class CaseDetailResponse(BaseModel):
-    """Full case details."""
+    """
+    Full case details, with the checklist already worked out.
+
+    `documents` is the same per-file verdict an upload returns. The panel used to be given
+    only the raw case and worked the verdicts out itself, from a hand-written list of
+    check codes and problem kinds that did not match what HCS-11 actually sends — so a
+    problem HCS-11 had recorded was shown as a green tick. Deciding it once, here, is why
+    that cannot happen again: there is one answer and the screen displays it.
+
+    `everything_is_settled` is HCS-11's own verdict on the claim as a whole, so the "all
+    good" banner has something true to depend on instead of counting files.
+    """
     case: CaseDetail
     status_message: str
+    documents: list[DocumentStatus] = []
+    problems: list[str] = []
+    everything_is_settled: bool = False
 
 
 class UploadResponse(BaseModel):
@@ -165,9 +203,16 @@ async def get_case(case_id: str) -> CaseDetailResponse:
     try:
         async with get_hcs11_client() as client:
             case = await client.get_case(case_id)
+            # The same reading of the claim an upload gets. The panel opens on this
+            # endpoint and polls it, so anything decided only on the upload path was
+            # invisible for every view of a claim except the moment it was sent.
+            verdict = format_upload_result(case)
             return CaseDetailResponse(
                 case=case,
                 status_message=format_case_status_message(case),
+                documents=verdict.documents,
+                problems=_problems_belonging_to_no_document(verdict),
+                everything_is_settled=verdict.status in NOTHING_LEFT_TO_DO,
             )
     except HCS11CaseNotFoundError:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
@@ -402,11 +447,17 @@ async def upload_documents_streaming(
                 )
 
                 result = format_upload_result(case)
+                # `documents` carries the per-file verdicts, and hand-building this event
+                # without them meant the streaming upload — the only one the panel uses —
+                # delivered a claim HCS-11 had failed with nothing to say which file was
+                # wrong. The visa stream sends the whole result; so does this one now.
                 yield sse_event("complete", {
                     "status": result.status.value,
                     "title": result.title,
                     "message": result.message,
                     "case_id": result.case_id,
+                    "case_status": result.case_status,
+                    "documents": [vars(document) for document in result.documents],
                     "issues": result.issues,
                     "missing_documents": result.missing_documents,
                     "can_reupload": result.can_reupload,

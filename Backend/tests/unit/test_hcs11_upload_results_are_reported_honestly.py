@@ -15,6 +15,8 @@ rules had rejected was reported to the employee as a successful submission await
 routine review, with nothing to say anything was wrong or that they had to do something.
 """
 
+import pytest
+
 from app.integrations.hcs11_response_formatter import UploadStatus, format_upload_result
 from app.integrations.hcs11_schemas import CaseDetail
 
@@ -118,3 +120,229 @@ def test_the_reupload_list_names_the_document_not_the_fault():
 
     assert "Enrolment certificate" in result.reupload_message
     assert "Unreadable" not in result.reupload_message
+
+
+# ── nothing HCS-11 found may fall out on the way to the screen ────────────────
+#
+# The panel used to decide for itself which document each finding belonged against, from
+# a hand-written list of HCS-11's problem kinds and check codes. The list named two kinds
+# HCS-11 has never sent and missed six it does, and had no branch for anything unlisted:
+# a problem it did not recognise was attached to no document, counted in no total, and
+# drawn as a green tick. Measured across the twenty demo claims, thirty-one problems were
+# being hidden and five claims told the employee "Everything we need is here" while
+# HCS-11 was asking for better copies.
+#
+# These tests are the reason it cannot come back. Every kind HCS-11 emits is named here,
+# and so is the rule that an unrecognised one must still be shown.
+
+# Every problem kind in hcs-11's app/services/employee_feedback.py. If they add one, the
+# last test in this block is what should fail — noisily, here, rather than silently on a
+# screen an employee is reading.
+EVERY_PROBLEM_KIND_HCS11_SENDS = [
+    "unreadable",       # a required detail could not be read
+    "wrong_kind",       # not one of the four documents
+    "wrong_child",      # the invoice is for a different child
+    "wrong_reference",  # the receipt settles a different bill
+    "wrong_signer",     # the declaration was signed by somebody else
+    "wrong_year",       # the documents are for different school years
+    "wrong_school",     # the certificate and the invoice are from different schools
+]
+
+
+def a_problem(kind: str, about=CERTIFICATE) -> dict:
+    return {
+        "kind": kind,
+        "title": f"Something is wrong ({kind})",
+        "what_to_do": "Please send another copy.",
+        "documents": [about],
+        "document_ids": [],
+    }
+
+
+@pytest.mark.parametrize("kind", EVERY_PROBLEM_KIND_HCS11_SENDS)
+def test_every_problem_kind_reaches_the_document_it_is_about(kind):
+    result = format_upload_result(a_case(employee_issues=[a_problem(kind)]))
+
+    certificate = next(d for d in result.documents if d.filename == CERTIFICATE)
+    assert certificate.has_issues, f"a {kind!r} problem was not shown against the file"
+    assert kind in certificate.issue_message
+
+
+def test_a_problem_kind_nobody_has_seen_before_is_still_shown():
+    """
+    The rule that makes the others redundant.
+
+    The old panel matched a problem's kind against a fixed list and dropped anything
+    absent. Nothing here reads the kind at all — HCS-11 says which file a problem is
+    about, and that is the only thing consulted.
+    """
+    result = format_upload_result(
+        a_case(employee_issues=[a_problem("a_kind_invented_next_year")])
+    )
+
+    certificate = next(d for d in result.documents if d.filename == CERTIFICATE)
+    assert certificate.has_issues
+
+
+def test_a_failing_check_is_shown_even_with_no_issue_written_for_it():
+    """
+    `employee_issues` is HCS-11's plain-English list, and it does not cover every check.
+    Reading only that list meant a failing check with no prose written for it was
+    attached to nothing. `match_checks` carries the rest, each naming its document.
+    """
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        documents=[{"document_id": "DOC-2", "file_name": INVOICE, "uploaded_at": "2026-09-01"}],
+        match_checks=[{
+            "code": "INVOICE_IS_SAME_CHILD",
+            "result": "fail",
+            "detail": "The invoice names a different child.",
+            "document_id": "DOC-2",
+        }],
+    ))
+
+    invoice = next(d for d in result.documents if d.filename == INVOICE)
+    assert invoice.has_issues
+    assert "different child" in invoice.issue_message
+
+
+@pytest.mark.parametrize("result_value", ["fail", "review", "missing"])
+def test_a_check_that_did_not_pass_is_not_treated_as_one_that_did(result_value):
+    """
+    Only `fail` used to count. A check HCS-11 could not complete, or sent for review, is
+    not a check that passed — and "review" is what it returns for a name spelled
+    differently and for a scan it could not read confidently, which are the two commonest
+    things wrong with a real claim.
+    """
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        match_checks=[{
+            "code": "DEPENDENT_NAME",
+            "result": result_value,
+            "detail": "The name does not match the HR record.",
+            "document_id": "DOC-1",
+        }],
+    ))
+
+    certificate = next(d for d in result.documents if d.filename == CERTIFICATE)
+    assert certificate.has_issues, f"a {result_value!r} check was read as a pass"
+
+
+def test_a_passing_check_says_nothing():
+    """The other direction: the fix must not start warning about claims that are fine."""
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        match_checks=[
+            {"code": "DEPENDENT_NAME", "result": "pass", "detail": "Matches.",
+             "document_id": "DOC-1"},
+            {"code": "SAME_SCHOOL", "result": "not_comparable",
+             "detail": "Different alphabets, so not compared.", "document_id": "DOC-1"},
+        ],
+    ))
+
+    assert not any(document.has_issues for document in result.documents)
+    assert result.issues == []
+
+
+def test_a_failed_eligibility_rule_is_not_lost():
+    """
+    The rules are about the claim, not about one file, so they have no row to sit against
+    and were shown nowhere at all. The claim-level list is the floor beneath the rows.
+    """
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        rule_results=[{
+            "code": "ACADEMIC_YEAR",
+            "result": "fail",
+            "detail": "The invoice is for the 2025-2026 academic year.",
+            "inputs": {},
+        }],
+    ))
+
+    assert any("2025-2026" in problem for problem in result.issues)
+
+
+def test_a_problem_belonging_to_no_file_still_reaches_the_employee():
+    """
+    A finding HCS-11 could not pin to one document must not vanish for want of a home.
+    """
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        documents=[],
+        match_checks=[{
+            "code": "SAME_ACADEMIC_YEAR",
+            "result": "fail",
+            "detail": "Your documents are for different school years.",
+            "document_id": None,
+        }],
+    ))
+
+    assert not any(document.has_issues for document in result.documents)
+    assert any("different school years" in problem for problem in result.issues)
+
+
+def test_hcs11s_own_wording_is_not_rewritten_into_something_untrue():
+    """
+    A cross-document check compares one document against another. Its two values were
+    being printed as "the document shows X but your HR record has Y", and the HR record
+    had nothing to do with it. HCS-11 sends the real labels for exactly this reason.
+    """
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        match_checks=[{
+            "code": "SAME_SCHOOL",
+            "result": "fail",
+            "detail": "The certificate and the invoice are from different schools.",
+            "document_value": "Al Noor School",
+            "master_value": "Green Valley School",
+            "document_label": "On the invoice",
+            "master_label": "On the certificate",
+            "document_id": "DOC-1",
+        }],
+    ))
+
+    said = " ".join(result.issues)
+    assert "On the invoice" in said and "On the certificate" in said
+    assert "HR record" not in said
+
+
+def test_a_check_waiting_on_a_document_that_has_not_arrived_is_not_a_complaint():
+    """
+    The other half of "missing".
+
+    A cross-document check on a half-sent claim reports `missing` because there was
+    nothing yet to compare against — "There is no declaration to check this against",
+    beside a checklist row already reading "waiting". Printed as problems these bury the
+    real ones, and a screen full of noise is skimmed exactly like a screen full of green.
+    """
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        missing_documents=["employee_declaration"],
+        match_checks=[{
+            "code": "DECLARATION_IS_THIS_EMPLOYEE",
+            "result": "missing",
+            "detail": "There is no declaration to check this against.",
+            "document_id": None,
+        }],
+    ))
+
+    assert result.issues == []
+    assert not any(document.has_issues for document in result.documents)
+
+
+def test_a_real_problem_is_still_shown_on_a_half_sent_claim():
+    """The guard above must not become a second hiding place."""
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        missing_documents=["employee_declaration"],
+        match_checks=[{
+            "code": "DEPENDENT_NAME",
+            "result": "fail",
+            "detail": "The certificate names a different child.",
+            "document_id": "DOC-1",
+        }],
+    ))
+
+    certificate = next(d for d in result.documents if d.filename == CERTIFICATE)
+    assert certificate.has_issues
+    assert "different child" in certificate.issue_message
