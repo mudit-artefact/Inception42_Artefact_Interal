@@ -13,6 +13,31 @@ from app.workflow.structured_outputs import QueryUnderstanding
 logger = logging.getLogger(__name__)
 
 
+# Sending documents in is the one schooling thing that is an action; everything else about
+# the scheme is a question, answered from HC-PC-012 like any other policy question.
+#
+# Anchored to the opening of the message, because the verb alone is not enough: "when is
+# the deadline to submit school documents" is a question about a date, and offering
+# somebody an upload button in answer to it tells them nothing they asked.
+#
+# This list used to be three times longer and matched on the first names of the twenty-one
+# children in the seed data, which put demo records into production routing: an employee
+# actually called Omar tripped it, and a family not in the seed did not.
+ASKING_TO_SEND_DOCUMENTS = [
+    re.compile(
+        r"^\s*(i (want|need|would like|wish) to |i'd like to |please |let me |can i |how do i )?"
+        r"(submit|upload|send|attach)\b[^?]*\b"
+        r"(proof of schooling|school|schooling|education|certificate|enrolment|enrollment)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*(أريد|اريد|أود|اود|كيف|من فضلك)?\s*(تقديم|رفع|إرسال|ارفاق|إرفاق|تحميل)\s+"
+        r"[^؟]*\b(مستند|مستندات|إثبات|شهادة|أوراق|اوراق|وثيقة|الدراسة|القيد|المدرسة|التعليم)\b"
+    ),
+]
+
+
+
 def understand_query(state: ConversationState) -> dict:
     """
     Read the employee's question.
@@ -76,30 +101,6 @@ def understand_query(state: ConversationState) -> dict:
         r"^(thank you|thanks|thank u|thx|much appreciated|many thanks|thanks a lot|شكرا|شكراً|مشكور|تسلم|يعطيك العافية|جزاك الله خير)[\.\!\s]*$",
     ]
 
-    # Fast deterministic intent override for HCS-11 School Verification & Education Allowance
-    school_check_patterns = [
-        r"\b(school(ing)?|child(ren)?('s)?|dependent('s)?|education)\s+(verification|allowance|proof|certificate|status|claim)\b",
-        r"\bstatus of (my )?(child|school|education|dependent|zayed|fatima|saif|hind|omar|saeed|dana|emma|ali|latifa|shaikha|hamdan|salama|nayef|luca|sofia|moza|mariam|khalid|amna)\b",
-        r"\b(is|did|has) (my )?(child|school|education|zayed|fatima|hind|omar|saeed|dana)('s)? (verification|letter|certificate) (approved|cleared|submitted)\b",
-        r"\bhow much (education|school(ing)?) allowance\b",
-        r"\b(education|school) allowance\b",
-        r"\bproof of schooling\b",
-        r"\bschool letter\b",
-        r"\b(إثبات الدراسة|بدل التعليم|التحقق الدراسي|المعالين|حالة الدراسة|شهادة قيد|التعليم)\b",
-        r"\b(حالة|وضع)\s+(التحقق|إثبات|الدراسة|التعليم|المعالين|أولادي|أبنائي|ابني|ابنتي)\b",
-    ]
-    school_submit_patterns = [
-        r"\b(submit|upload|send|apply for)\s+(proof of schooling|school(ing)?|child(ren)?|education)\b",
-        r"\b(submit|upload|send)\s+(a\s+)?(school\s+)?(letter|certificate|proof|document)\b",
-        r"\b(upload|submit|send)\s+(documents?|papers?|files?)\s+for\s+(zayed|fatima|hind|omar|saeed|dana|emma|ali|latifa|shaikha|hamdan|salama|nayef|luca|sofia|moza|mariam|khalid|amna|child|children)\b",
-        r"\b(تقديم|رفع|إرسال|ارفاق|إرفاق|تحميل)\s+(مستند|إثبات|شهادة|أوراق|اوراق|وثيقة)\s+(الدراسة|القيد|المدرسة|التعليم)\b",
-        r"\b(أريد|اريد|أود|اود|كيف)\s+(تقديم|رفع|إرسال)\s+(إثبات الدراسة|شهادة المدرسة|أوراق المدرسة|مستندات)\b",
-    ]
-    school_review_patterns = [
-        r"\b(school|education)\s+(cases?|claims?)\s+(needing|to|awaiting|pending)\s+review\b",
-        r"\bpending school(ing)? (verifications?|cases?|approvals?)\b",
-        r"\b(طلبات|حالات)\s+(التحقق|إثبات الدراسة)\s+(المعلقة|قيد المراجعة)\b",
-    ]
 
     if any(re.search(pat, q_norm) for pat in own_status_patterns):
         understanding = QueryUnderstanding(
@@ -119,27 +120,9 @@ def understand_query(state: ConversationState) -> dict:
             is_multi_question=False,
             missing_information=[],
         )
-    elif any(re.search(pat, q_norm) for pat in school_submit_patterns):
+    elif any(pattern.search(q_norm) for pattern in ASKING_TO_SEND_DOCUMENTS):
         understanding = QueryUnderstanding(
-            intent=QuestionIntent.SUBMIT_SCHOOL_VERIFICATION,
-            confidence=1.0,
-            needs_clarification=False,
-            needs_rewrite=False,
-            is_multi_question=False,
-            missing_information=[],
-        )
-    elif any(re.search(pat, q_norm) for pat in school_review_patterns):
-        understanding = QueryUnderstanding(
-            intent=QuestionIntent.REVIEW_SCHOOL_CASES,
-            confidence=1.0,
-            needs_clarification=False,
-            needs_rewrite=False,
-            is_multi_question=False,
-            missing_information=[],
-        )
-    elif any(re.search(pat, q_norm) for pat in school_check_patterns):
-        understanding = QueryUnderstanding(
-            intent=QuestionIntent.CHECK_SCHOOL_VERIFICATION,
+            intent=QuestionIntent.DOCUMENT_UPLOAD,
             confidence=1.0,
             needs_clarification=False,
             needs_rewrite=False,

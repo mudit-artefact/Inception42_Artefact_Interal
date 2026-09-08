@@ -88,6 +88,9 @@ class EmployeeFacts:
     annual_leave_balance: int
     sick_leave_balance: int
     carry_over_days: int
+    # The education plan this employee is on, as a plan code — EDU_STANDARD,
+    # EDU_ENHANCED, or NONE. The ceiling itself lives in the policy, not here.
+    education_plan_code: str = ""
     leave_balances: list[LeaveBalance] = field(default_factory=list)
     manager_history: list[ManagerChange] = field(default_factory=list)
     recent_leave_requests: list[LeaveRequest] = field(default_factory=list)
@@ -117,6 +120,7 @@ class EmployeeFacts:
             annual_leave_balance=stored["annual_leave_balance"],
             sick_leave_balance=stored["sick_leave_balance"],
             carry_over_days=stored["carry_over_days"],
+            education_plan_code=stored.get("education_plan_code", ""),
             leave_balances=[
                 LeaveBalance(
                     leave_type=balance["type"],
@@ -174,6 +178,7 @@ class EmployeeFacts:
             "annual_leave_balance": self.annual_leave_balance,
             "sick_leave_balance": self.sick_leave_balance,
             "carry_over_days": self.carry_over_days,
+            "education_plan_code": self.education_plan_code,
             "balances": [
                 {
                     "type": balance.leave_type,

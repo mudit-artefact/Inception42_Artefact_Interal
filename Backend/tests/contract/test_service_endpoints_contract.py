@@ -27,7 +27,7 @@ def test_policy_catalogue_lists_every_english_policy_with_pdf_links(api_client):
 
     assert response.status_code == 200, response.text
     policies = response.json()
-    assert len(policies) == 9
+    assert len(policies) == 10
     for policy in policies:
         assert {"id", "title", "section", "topics", "pdf_url", "url", "diagram_page"} == set(policy)
         assert policy["pdf_url"].startswith("/api/v1/hcs01/policies/pdf/"), (
@@ -57,4 +57,4 @@ def test_rebuilding_the_index_can_be_forced(api_client, fake_embedding_model):
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["status"] == "success"
-    assert body["chunks_indexed"] == 121
+    assert body["chunks_indexed"] == 140

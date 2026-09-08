@@ -24,7 +24,6 @@ from app.workflow.nodes.handle_leave_action import (
     handle_leave_status,
     handle_manager_approval,
 )
-from app.workflow.nodes.handle_school_verification import handle_school_verification
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +35,10 @@ ACTION_FOR_INTENT = {
     QuestionIntent.CHECK_LEAVE_STATUS.value: handle_leave_status,
     QuestionIntent.APPROVE_LEAVE.value: handle_manager_approval,
     QuestionIntent.REJECT_LEAVE.value: handle_manager_approval,
-    QuestionIntent.CHECK_SCHOOL_VERIFICATION.value: handle_school_verification,
-    QuestionIntent.SUBMIT_SCHOOL_VERIFICATION.value: handle_school_verification,
-    QuestionIntent.REVIEW_SCHOOL_CASES.value: handle_school_verification,
+    # Schooling is deliberately absent. Asking about the scheme is a question, answered
+    # from HC-PC-012 with the employee's own plan read alongside it, the same way any
+    # policy question is answered. Sending documents in is the action, and that arrives
+    # as DOCUMENT_UPLOAD. An intent reaching neither is searched, which is right.
 }
 
 

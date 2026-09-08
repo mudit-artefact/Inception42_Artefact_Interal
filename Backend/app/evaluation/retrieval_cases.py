@@ -231,6 +231,30 @@ ENGLISH_CASES: list[RetrievalCase] = [
           "HC-PC-005§5.3", "HC-PC-007§7.6",
           every_clause_required=True, reasoning_type=ReasoningType.SPANNING,
           modality=Modality.TABLE),
+
+    # ── HC-PC-012 Education allowance ────────────────────────────────────────
+    _case("When was the schooling benefit first written down?",
+          "HC-PC-012§12.0", reasoning_type=ReasoningType.TEMPORAL),
+    _case("Does the money towards my kids' school apply to me at all?",
+          "HC-PC-012§12.1"),
+    _case("My son is not at school yet — can I still put in for him?",
+          "HC-PC-012§12.2", reasoning_type=ReasoningType.RELATIONSHIP),
+    _case("What is the most I can get back for one child in a year?",
+          "HC-PC-012§12.3", modality=Modality.TABLE),
+    _case("Does the bus and the uniform count, or only the teaching?",
+          "HC-PC-012§12.4", modality=Modality.TABLE),
+    _case("What papers does the school need to give me?",
+          "HC-PC-012§12.5", modality=Modality.TABLE),
+    _case("How late can I leave it before I send everything in?",
+          "HC-PC-012§12.6", reasoning_type=ReasoningType.TEMPORAL, modality=Modality.TABLE),
+    _case("What do you actually look at once I have sent it?",
+          "HC-PC-012§12.7", modality=Modality.TABLE),
+    _case("They said no. What can I do about it?",
+          "HC-PC-012§12.8"),
+    _case("My package says enhanced. How much more does that give me than the "
+          "basic one, and does it cover textbooks?",
+          "HC-PC-012§12.3", "HC-PC-012§12.4",
+          every_clause_required=True, reasoning_type=ReasoningType.COMPARATIVE),
 ]
 
 
@@ -313,6 +337,26 @@ ARABIC_CASES: list[RetrievalCase] = [
     _case("ما عقوبة من يطالب بمصروف لم يتكبده؟", "HC-PC-005-AR§5.8"),
     _case("كم كانت حدود الاعتماد على الصرف العام الماضي؟",
           "HC-PC-005-AR§5.9", reasoning_type=ReasoningType.TEMPORAL),
+
+    # ── بدل التعليم ──────────────────────────────────────────────────────────
+    _case("متى صدرت هذه السياسة لأول مرة؟",
+          "HC-PC-012-AR§12.0", reasoning_type=ReasoningType.TEMPORAL),
+    _case("هل ينطبق عليّ ما يُصرف عن دراسة الأولاد؟",
+          "HC-PC-012-AR§12.1"),
+    _case("ابني لم يدخل المدرسة بعد، هل أقدم عنه؟",
+          "HC-PC-012-AR§12.2", reasoning_type=ReasoningType.RELATIONSHIP),
+    _case("ما أقصى ما أستردّه عن الطفل الواحد في السنة؟",
+          "HC-PC-012-AR§12.3", modality=Modality.TABLE),
+    _case("هل يدخل الزي والمواصلات أم التدريس وحده؟",
+          "HC-PC-012-AR§12.4", modality=Modality.TABLE),
+    _case("ما الأوراق التي أطلبها من المدرسة؟",
+          "HC-PC-012-AR§12.5", modality=Modality.TABLE),
+    _case("إلى متى أستطيع التأخير قبل أن أرسل الأوراق؟",
+          "HC-PC-012-AR§12.6", reasoning_type=ReasoningType.TEMPORAL, modality=Modality.TABLE),
+    _case("ماذا تراجعون بالضبط بعد أن أرسل؟",
+          "HC-PC-012-AR§12.7", modality=Modality.TABLE),
+    _case("رُفض طلبي، فما السبيل أمامي؟",
+          "HC-PC-012-AR§12.8"),
 ]
 
 for _case_ in ARABIC_CASES:

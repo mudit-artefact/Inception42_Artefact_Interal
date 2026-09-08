@@ -112,6 +112,7 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
         manager_email=employee.manager_email,
         manager_role=employee.manager_role,
         employment_fraction=employee.employment_fraction,
+        education_plan_code=employee.benefit_plan_code or "",
         annual_leave_balance=annual_leave_balance,
         sick_leave_balance=sick_leave_balance,
         carry_over_days=carry_over_days,

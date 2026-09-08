@@ -109,6 +109,16 @@ def _when_this_rule_applied(passage: dict) -> str:
     return f"  (Version {version}, in force from {effective_from} — current)"
 
 
+# What each plan code is called in HC-PC-012 §12.3.1. The employee's record stores the
+# code; the policy states the ceiling against the name, so the two are matched here.
+EDUCATION_PLAN_NAMES = {
+    "EDU_STANDARD": "Education Allowance – Standard",
+    "EDU_ENHANCED": "Education Allowance – Enhanced",
+    "NONE": "none — no education allowance on this package",
+    "": "not recorded",
+}
+
+
 def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> str:
     """
     Only the facts the routing step asked for, written out for the model.
@@ -143,6 +153,11 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
         lines.extend(_balance_rows(facts, "sick"))
     if HrDataField.CARRY_OVER_DAYS in requested and facts.carry_over_days > 0:
         lines.append(f"Carried over from last year: {facts.carry_over_days} days")
+
+    if HrDataField.EDUCATION_PLAN in requested:
+        # The plan's own name, not its code, because that is how the policy names it —
+        # a model given "EDU_ENHANCED" has to guess which row of the table is theirs.
+        lines.append(f"Education plan: {EDUCATION_PLAN_NAMES.get(facts.education_plan_code, 'none')}")
 
     if HrDataField.MANAGER_HISTORY in requested and facts.manager_history:
         lines.append("Previous line managers:")

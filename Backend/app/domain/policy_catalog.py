@@ -142,6 +142,19 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         topic_key="grievance",
         quick_link_section="HC-PC-009 Section 9.2",
     ),
+    # Numbered 012 rather than 010: HC-PC-010 (gratuity) and HC-PC-011 (relocation) are
+    # declared unpublished at HC-PC-007 §7.10, and the assistant is expected to say so
+    # when asked about either. Taking one of those numbers would make that answer a lie.
+    "HC-PC-012": PolicyDocument(
+        code="HC-PC-012",
+        title="Education Allowance & Proof of Schooling Policy",
+        pdf_filename="12_education_allowance_policy.pdf",
+        language="en",
+        markdown_filename="12_education_allowance.md",
+        topics=["Eligibility", "Annual limits", "Claimable charges", "Documents required"],
+        topic_key="education",
+        quick_link_section="HC-PC-012 Section 12.3",
+    ),
     # ── Arabic editions ──────────────────────────────────────────────────────
     # These now have a Markdown source of their own, so they are indexed from real
     # Arabic text rather than from whatever could be scraped off a PDF page. The three
@@ -197,6 +210,16 @@ POLICY_CATALOG: dict[str, PolicyDocument] = {
         topics=["السفر", "البدل اليومي", "حدود الإقامة", "حدود الاعتماد"],
         topic_key="expenses",
         quick_link_section="HC-PC-005 Section 5.7",
+    ),
+    "HC-PC-012-AR": PolicyDocument(
+        code="HC-PC-012-AR",
+        title="سياسة بدل التعليم وإثبات الدراسة",
+        pdf_filename="12_education_allowance_ar.pdf",
+        language="ar",
+        markdown_filename="12_education_allowance.md",
+        topics=["الاستحقاق", "الحد السنوي", "الرسوم القابلة للاسترداد", "المستندات المطلوبة"],
+        topic_key="education",
+        quick_link_section="HC-PC-012 Section 12.3",
     ),
 }
 

@@ -89,6 +89,10 @@ class HrDataField(StrEnum):
     RECENT_LEAVE_REQUESTS = "recent_leave_requests"
     RECENT_EXPENSE_CLAIMS = "recent_expense_claims"
     EMPLOYEE_PROFILE = "employee_profile"
+    # Which education plan the employee is on. Without this the assistant could state the
+    # scheme's two ceilings but never say which one is theirs, so the allowance question
+    # was answered by a step of its own that quoted a figure and cited nothing.
+    EDUCATION_PLAN = "education_plan"
 
 
 # ── The evaluation taxonomy ──────────────────────────────────────────────────

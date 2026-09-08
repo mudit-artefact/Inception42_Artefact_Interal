@@ -77,14 +77,17 @@ Choose one intent:
 - "hr_question": anything about HR policy or the employee's own HR record — leave,
   balances, sick leave, remote work, expenses, probation, their line manager, benefits.
   This includes general questions ("How much leave do I have?", "What is the leave policy?").
-- "document_upload": anything related to HCS-11 school verification documents. This includes:
-  * Requests to upload: "upload documents", "submit my school documents", "I want to upload", "Upload school letter"
-  * HCS-11 references: "HCS-11 documents", "school verification", "school documents"
-  * Implicit uploads: "[file attached]", "[document uploaded]"
-  * Upload confirmations: "my documents were uploaded", "uploaded successfully", "just submitted"
-  * Status checks: "what is the status of my verification?", "did my documents upload?"
-  Choose this for ANY message about school verification documents, whether uploading,
-  confirming upload, or checking status.
+- "document_upload": the employee is SENDING school documents in, saying they already
+  have, or asking where their submitted claim has got to. This includes:
+  * Asking to send: "upload documents", "submit my school documents", "I want to upload"
+  * A file arriving: "[file attached]", "[document uploaded]"
+  * Confirming they sent: "my documents were uploaded", "just submitted"
+  * Where their own claim stands: "what is the status of my verification?"
+  Choosing this opens the upload window, so choose it only when that window is what the
+  employee wants. A question ABOUT the scheme is not — which fees are covered, what the
+  limit is, which documents are needed, when the deadline falls, who is eligible. Those
+  are "hr_question", answered from the education allowance policy, and answering them
+  with an upload button tells the employee nothing they asked.
 - "out_of_scope": anything else — weather, general knowledge, coding, other companies.
 - "about_the_last_answer": a request to change the *form* of the reply you just gave,
   asking nothing new — "make that shorter", "in Arabic please", "as bullet points",
@@ -256,6 +259,9 @@ and the answer then says the information is not in the record when it is.
 - employee_profile: job title, department, grade, start date and working pattern. Grade
   is here, so ask for it for anything about travel class, probation length or expense
   authority.
+- education_plan: which education allowance plan they are on. The policy states a ceiling
+  for each plan; this says which one is theirs, so ask for it alongside the policy for
+  anything about school fees, the education allowance or what a claim may cover.
 
 Nothing outside that list can be read, so do not invent labels.\
 """

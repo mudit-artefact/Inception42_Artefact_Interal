@@ -116,7 +116,7 @@ CASES = [
     # Setup and smoke
     ("S-01", "Setup", "—",
      "Open http://localhost:8000/api/v1/hcs01/health in a browser tab.",
-     'Shows "status": "ok" and "vectors_indexed": 121. If vectors_indexed is 0, the backend '
+     'Shows "status": "ok" and "vectors_indexed": 140. If vectors_indexed is 0, the backend '
      "has not finished starting — wait and reload."),
     ("S-02", "Setup", "—",
      "Open http://localhost:5173.",
