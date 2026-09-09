@@ -32,7 +32,11 @@ A_CASE = {
     "plan_name": "Employment visa — no degree required",
     "case_status": "Awaiting Submission",
     "submission_deadline": "2026-10-07",
-    "required_documents": ["passport", "photograph", "job_offer"],
+    "required_documents": [
+        {"kind": "passport", "label": "Passport copy"},
+        {"kind": "photograph", "label": "Recent colour photograph, white background"},
+        {"kind": "job_offer", "label": "Signed job-offer form"},
+    ],
     "missing_documents": ["photograph", "job_offer"],
     "documents": [
         {"document_id": "D1", "file_name": "passport.pdf", "kind": "passport",

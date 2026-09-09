@@ -28,7 +28,15 @@ export interface VisaCase {
   route: string | null;
   submission_deadline: string | null;
   submitted_on: string | null;
-  required_documents: string[];
+  /**
+   * The checklist and what HCS-11 calls each row. It used to be bare kind strings.
+   *
+   * Nothing here reads it — the panel draws from `VisaCaseDetail.documents`, which the
+   * server has already decided. Kept accurate so the next person doesn't build on a shape
+   * that no longer arrives.
+   */
+  required_documents: Array<{ kind: string; label: string }>;
+  /** Kinds, naming rows above — not labels. */
   missing_documents: string[];
   problems: string[];
 }

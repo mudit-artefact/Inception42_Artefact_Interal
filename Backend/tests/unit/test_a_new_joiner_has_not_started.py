@@ -242,8 +242,12 @@ def test_the_joining_cohort_is_seeded_the_way_the_guard_expects():
         if record["employee"].employment_status == "Onboarding"
     ]
 
+    # EMP017 and EMP018 joined this list when HCS-11 added its resident-hire route: people
+    # already in the country changing employer, who are asked for a fifth document. They
+    # are new joiners like the other four, and every rule about not having started applies
+    # to them in the same way.
     assert {record["employee"].user_id for record in joining} == {
-        "EMP013", "EMP014", "EMP015", "EMP016"
+        "EMP013", "EMP014", "EMP015", "EMP016", "EMP017", "EMP018"
     }
     for record in joining:
         employee = record["employee"]

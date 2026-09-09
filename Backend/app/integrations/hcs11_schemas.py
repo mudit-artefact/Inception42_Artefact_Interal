@@ -161,9 +161,25 @@ class HealthResponse(BaseModel):
 # payment status — so CaseSummary(**visa_json) raises rather than degrading.
 #
 # The difference that shapes everything downstream: a school checklist row arrives as an
-# object carrying its own `received` flag, while a visa case sends `required_documents` as
-# plain kind strings and says separately which of them are still `missing`. The checklist
-# is therefore derived here rather than read. See `visa_response_formatter`.
+# object carrying its own `received` flag, while a visa case sends `required_documents`
+# without one and says separately which kinds are still `missing`. The checklist is
+# therefore derived here rather than read. See `visa_response_formatter`.
+
+
+class VisaRequiredDocumentOut(BaseModel):
+    """
+    One row of the checklist, and what HCS-11 calls it.
+
+    These used to be bare kind strings and we kept our own map of kinds to names. HCS-11
+    now sends the label with the kind, and says why in its own comment: so that a screen
+    does not keep a second copy of the names. It was right — a fifth kind arrived
+    (`residence_visa`, for somebody already in the country changing employer) and every
+    private copy of that list was silently one short.
+
+    Read `label`. The map in `evidence_formatting` is a fallback for nothing else.
+    """
+    kind: str
+    label: str = ""
 
 
 class VisaReadField(BaseModel):
@@ -222,7 +238,8 @@ class VisaCaseOut(BaseModel):
     route: str | None = None
     submission_deadline: str | None = None
     submitted_on: str | None = None
-    required_documents: list[str] = []
+    required_documents: list[VisaRequiredDocumentOut] = []
+    # Kinds, not labels — this list names rows in the one above rather than repeating them.
     missing_documents: list[str] = []
     documents: list[VisaDocumentOut] = []
     checks: list[VisaCheckOut] = []

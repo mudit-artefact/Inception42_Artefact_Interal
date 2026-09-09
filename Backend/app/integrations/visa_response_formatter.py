@@ -50,7 +50,7 @@ def format_visa_upload_result(case: VisaCaseOut) -> UploadResult:
         message=message,
         documents=documents,
         issues=problems,
-        missing_documents=[_name_for(kind) for kind in case.missing_documents],
+        missing_documents=names_for(case, case.missing_documents),
         can_reupload=status in (UploadStatus.NEEDS_REUPLOAD, UploadStatus.INCOMPLETE),
         reupload_message=_what_to_send_again(documents),
         case_id=case.case_id,
@@ -74,21 +74,34 @@ def build_visa_document_statuses(case: VisaCaseOut) -> list[DocumentStatus]:
     faults = _faults_by_kind(case)
 
     rows: list[DocumentStatus] = []
-    for kind in case.required_documents:
-        document = filed.get(kind)
-        problems = faults.get(kind, [])
+    for required in case.required_documents:
+        document = filed.get(required.kind)
+        problems = faults.get(required.kind, [])
         rows.append(
             DocumentStatus(
-                kind=kind,
-                label=_name_for(kind, document),
+                kind=required.kind,
+                label=required.label or _name_for(required.kind, document),
                 filename=document.file_name if document else None,
-                received=kind not in outstanding,
+                received=required.kind not in outstanding,
                 has_issues=bool(problems),
                 # HCS-11's own sentence, not a second description of the same fault.
                 issue_message=" ".join(problems) if problems else None,
             )
         )
     return rows
+
+
+def names_for(case: VisaCaseOut, kinds) -> list[str]:
+    """
+    Kinds written the way HCS-11 writes them, for a list that names rows of the checklist.
+
+    `missing_documents` arrives as kinds. Translating them through a map kept here is what
+    broke when a fifth kind appeared: the map had four, so a missing residence visa was
+    listed under its raw code. The case already carries the labels, so use those and fall
+    back only for a kind that is not on this route's checklist at all.
+    """
+    labels = {row.kind: row.label for row in case.required_documents if row.label}
+    return [labels.get(kind) or _name_for(kind) for kind in kinds]
 
 
 def _faults_by_kind(case: VisaCaseOut) -> dict[str, list[str]]:

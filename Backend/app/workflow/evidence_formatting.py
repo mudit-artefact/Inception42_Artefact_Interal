@@ -173,6 +173,7 @@ VISA_DOCUMENT_NAMES = {
     "photograph": "photograph",
     "job_offer": "signed job-offer form",
     "academic_certificate": "attested academic certificate",
+    "residence_visa": "residence visa",
 }
 
 

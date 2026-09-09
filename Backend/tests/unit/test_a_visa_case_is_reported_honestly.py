@@ -6,10 +6,13 @@ belongs to — from three tables copied out of HCS-11's internals. None of that 
 A visa check carries `about`, naming the document kinds it concerns, so a fault is filed
 against the row HCS-11 says it belongs to.
 
-The thing that must be derived rather than read is the checklist. A school row arrives as
-an object with its own `received` flag; a visa case sends `required_documents` as plain
-kind strings and says separately which are still `missing`. Getting that set-difference
-backwards would tell somebody a document had arrived when it had not.
+The thing that must be derived rather than read is whether a row has arrived. A school row
+carries its own `received` flag; a visa case lists what the route requires and says
+separately which kinds are still `missing`. Getting that set-difference backwards would
+tell somebody a document had arrived when it had not.
+
+What is read rather than derived is the name of each row. HCS-11 sends the label beside
+the kind, and the tests at the foot of this file hold us to using it.
 """
 
 import pytest
@@ -39,7 +42,11 @@ def a_visa_case(**overrides) -> VisaCaseOut:
         "plan_name": "Employment visa — no degree required",
         "case_status": "Awaiting Submission",
         "submission_deadline": "2026-10-07",
-        "required_documents": ["passport", "photograph", "job_offer"],
+        "required_documents": [
+            {"kind": "passport", "label": "Passport copy"},
+            {"kind": "photograph", "label": "Recent colour photograph, white background"},
+            {"kind": "job_offer", "label": "Signed job-offer form"},
+        ],
         "missing_documents": ["passport", "photograph", "job_offer"],
         "documents": [],
         "checks": [],
@@ -96,7 +103,12 @@ def test_the_route_decides_the_rows_not_the_policy():
 
 def test_the_degree_route_does_show_the_certificate():
     ahmed = a_visa_case(
-        required_documents=["passport", "photograph", "job_offer", "academic_certificate"],
+        required_documents=[
+            {"kind": "passport", "label": "Passport copy"},
+            {"kind": "photograph", "label": "Recent colour photograph, white background"},
+            {"kind": "job_offer", "label": "Signed job-offer form"},
+            {"kind": "academic_certificate", "label": "Attested academic certificate"},
+        ],
         missing_documents=["academic_certificate"],
     )
 
@@ -227,8 +239,14 @@ def test_the_reupload_prompt_names_documents_not_faults():
 
     prompt = format_visa_upload_result(case).reupload_message
 
-    assert "Photograph" in prompt
-    assert "background" not in prompt
+    # HCS-11's own name for the document. This used to pin our own word for it, "Photograph",
+    # from a map kept on this side — which broke the moment HCS-11 started sending labels of
+    # its own, and would have broken again on the fifth document kind it later added.
+    assert "Recent colour photograph, white background" in prompt
+    # The fault itself must not be in a list of things to send. Note the document's name
+    # legitimately contains the word "background", so the check is against the sentence.
+    assert BLUE_BACKGROUND not in prompt
+    assert "blue" not in prompt
 
 
 def test_the_wording_never_offers_to_remove_a_document():
@@ -266,3 +284,75 @@ def test_the_heading_counts_correctly(count, expected):
     )
 
     assert format_visa_upload_result(case).title.startswith(expected)
+
+
+# ── the checklist is HCS-11's, not a copy of it ───────────────────────────────
+#
+# HCS-11 used to send `required_documents` as bare kind strings, and this side kept its
+# own map of kinds to names. Then a fifth kind arrived — `residence_visa`, asked of
+# somebody already in the country changing employer — and every private copy of that list
+# was one short: the row would have been labelled `residence_visa` to a new joiner.
+#
+# HCS-11 now sends the label with the kind, and says in its own comment that it did so
+# precisely to stop screens keeping a second copy of the names. These tests hold us to
+# reading it.
+
+
+def a_resident_case(**overrides):
+    """A resident hire: five documents, and the one nobody's private map knew about."""
+    return a_visa_case(
+        required_documents=[
+            {"kind": "passport", "label": "Passport copy"},
+            {"kind": "photograph", "label": "Recent colour photograph, white background"},
+            {"kind": "residence_visa", "label": "UAE residence visa"},
+            {"kind": "job_offer", "label": "Signed job-offer form"},
+            {"kind": "academic_certificate", "label": "Attested academic certificate"},
+        ],
+        **overrides,
+    )
+
+
+def test_the_route_can_ask_for_a_document_kind_this_side_has_never_heard_of():
+    rows = build_visa_document_statuses(a_resident_case(missing_documents=[]))
+
+    assert [row.kind for row in rows] == [
+        "passport", "photograph", "residence_visa", "job_offer", "academic_certificate"
+    ]
+    residence = next(row for row in rows if row.kind == "residence_visa")
+    assert residence.label == "UAE residence visa", "the row must not be labelled with its code"
+
+
+def test_the_label_shown_is_the_one_hcs11_sent():
+    """Not a prettier one worked out here. Theirs is what the employee is asked for."""
+    rows = build_visa_document_statuses(a_resident_case(missing_documents=[]))
+
+    photograph = next(row for row in rows if row.kind == "photograph")
+    assert photograph.label == "Recent colour photograph, white background"
+
+
+def test_an_outstanding_document_is_named_not_coded():
+    """
+    `missing_documents` arrives as kinds. Naming them through a map kept here is what
+    would have printed "residence_visa" at somebody.
+    """
+    result = format_visa_upload_result(
+        a_resident_case(missing_documents=["residence_visa"], problems=[])
+    )
+
+    assert "UAE residence visa" in result.missing_documents
+    assert "residence_visa" not in " ".join(result.missing_documents)
+
+
+def test_a_fault_on_the_new_kind_lands_on_its_own_row():
+    """The whole point: HCS-11 says which document, and that is the row it appears on."""
+    expired = "The residence visa expired on 2026-07-31."
+    rows = build_visa_document_statuses(a_resident_case(
+        missing_documents=[],
+        checks=[{"code": "RESIDENCE_VISA_VALID", "result": "fail", "detail": expired,
+                 "about": ["residence_visa"]}],
+        problems=[expired],
+    ))
+
+    faulty = [row.kind for row in rows if row.has_issues]
+    assert faulty == ["residence_visa"]
+    assert next(row for row in rows if row.kind == "residence_visa").issue_message == expired

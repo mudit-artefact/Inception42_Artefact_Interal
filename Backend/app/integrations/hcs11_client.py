@@ -23,6 +23,27 @@ from .hcs11_schemas import CaseDetail, CaseSummary, HealthResponse, VisaCaseOut
 logger = logging.getLogger(__name__)
 
 
+def _checklist_names(case: dict) -> dict[str, str]:
+    """
+    A visa case's checklist as `{kind: what HCS-11 calls it}`.
+
+    Tolerant of both shapes on purpose. HCS-11 used to send `required_documents` as bare
+    kind strings and now sends `{kind, label}` objects; this is a service boundary we do
+    not control, and the reader that feeds the assistant's prose should bend rather than
+    put `{'kind': 'passport', ...}` in front of an employee. The strict reading lives in
+    `VisaCaseOut`, which fails loudly and is the right place to notice a contract change.
+    """
+    names: dict[str, str] = {}
+    for entry in case.get("required_documents") or ():
+        if isinstance(entry, dict):
+            kind = entry.get("kind")
+            if kind:
+                names[kind] = entry.get("label") or kind
+        elif isinstance(entry, str):
+            names[entry] = entry
+    return names
+
+
 def map_hcs01_to_hcs11_employee_id(employee_id: str) -> str:
     """
     Map HCS-01 employee IDs (EMP001) to HCS-11 format (E0001).
@@ -480,8 +501,11 @@ def read_visa_case(employee_id: str) -> list[dict] | None:
             "status": case.get("case_status", ""),
             "submission_deadline": case.get("submission_deadline") or "",
             "submitted_on": case.get("submitted_on") or "",
-            "required_documents": tuple(case.get("required_documents") or ()),
-            "missing_documents": tuple(case.get("missing_documents") or ()),
+            "required_documents": tuple(_checklist_names(case).values()),
+            "missing_documents": tuple(
+                _checklist_names(case).get(kind, kind)
+                for kind in case.get("missing_documents") or ()
+            ),
             "problems": tuple(case.get("problems") or ()),
         }
         for case in cases
