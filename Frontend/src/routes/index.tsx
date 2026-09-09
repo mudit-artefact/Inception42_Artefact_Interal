@@ -4,6 +4,8 @@ import { AlertCircle, FileText, Loader2, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { ActionCards } from "@/components/home/ActionCards";
+import { BeforeYouJoin } from "@/components/home/BeforeYouJoin";
+import { JoiningTimeline } from "@/components/home/JoiningTimeline";
 import { NewChatBox } from "@/components/home/NewChatBox";
 import { RequestsTable } from "@/components/home/RequestsTable";
 import { AppShell, APP_TITLE } from "@/components/layout/AppShell";
@@ -11,7 +13,7 @@ import { useActiveEmployee } from "@/hooks/useActiveEmployee";
 import { fetchLeaveRequests, fetchPendingApprovals } from "@/lib/api/employee";
 import { getActiveCase, getEmployeeCases } from "@/lib/api/hcs11";
 import { getVisaCases } from "@/lib/api/visa";
-import { buildActionCards, buildRequestRows } from "@/lib/home";
+import { buildActionCards, buildRequestRows, joiningSteps } from "@/lib/home";
 
 const DESCRIPTION =
   "What needs your attention across your HR journey — your requests, your documents, and Dalīl when you need it.";
@@ -108,6 +110,16 @@ function HomePage() {
 
   const firstName = (employee?.name ?? "").split(" ")[0] ?? "";
 
+  // Somebody who has accepted an offer and not started. Everything below is for them and
+  // nobody else — an employee's page is exactly as it was.
+  //
+  // This is the one place a check on `employment_status` is right. Elsewhere it decided
+  // what to *fetch*, and a missing field then silently hid a new joiner's visa documents;
+  // here it decides what to *add*, so a missing field costs a joiner two panels rather
+  // than hiding something they had to act on.
+  const joining = employee?.employment_status === "Onboarding";
+  const steps = joiningSteps(employee?.start_date, visa.data?.[0]);
+
   return (
     <AppShell
       employees={employees}
@@ -162,6 +174,8 @@ function HomePage() {
             </div>
           )}
 
+          {joining && !loading && <JoiningTimeline steps={steps} />}
+
           <section className="rounded-xl border bg-card">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <h3 className="flex items-center gap-2 font-display text-base font-semibold">
@@ -185,6 +199,8 @@ function HomePage() {
                 and the rest was one row. */}
             {loading ? <Waiting /> : <RequestsTable rows={rows} />}
           </section>
+
+          {joining && <BeforeYouJoin />}
 
           </div>
         </div>

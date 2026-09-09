@@ -2,7 +2,7 @@ import type { PendingApproval, LeaveRequestRow } from "@/lib/api/employee";
 import type { CaseDetailResponse, CaseSummary } from "@/lib/api/hcs11";
 import type { VisaCase } from "@/lib/api/visa";
 import type { ActionCard } from "@/components/home/ActionCards";
-import { leaveRow, schoolRow, visaRow, type RequestRow } from "@/lib/requests";
+import { leaveRow, readableDate, schoolRow, visaRow, type RequestRow } from "@/lib/requests";
 
 /**
  * The one sentence the assistant understands for a manager's queue.
@@ -107,5 +107,125 @@ export function buildRequestRows(sources: {
     ...(sources.leaveRequests ?? []).map(leaveRow),
     ...(sources.schoolCases ?? []).map(schoolRow),
     ...(sources.visaCases ?? []).map(visaRow),
+  ];
+}
+
+// ── where a new joiner has got to ────────────────────────────────────────────
+
+export type StepState = "done" | "current" | "waiting" | "untracked";
+
+export interface JoiningStep {
+  key: string;
+  label: string;
+  detail: string;
+  state: StepState;
+}
+
+/**
+ * The joining journey, as far as either system actually knows it.
+ *
+ * Every step below is read from a real field except one, and that one says so. The
+ * temptation here is a tidy five-step rail with a percentage across it — and a percentage
+ * over a step nobody tracks is a figure invented in part, shown first and read hardest.
+ * There is no percentage.
+ *
+ * Three things this deliberately does not do, each of which looked reasonable first:
+ *
+ *  - **No "visa approved" step.** HCS-11 has three states and none of them is approval:
+ *    awaiting the documents, held by HC Services, handed to the PRO. Nothing records that
+ *    the officer lodged it and nothing records a government answer.
+ *  - **No lodgement date.** `submitted_on` reads like "sent to the government" and means
+ *    "the day your first document arrived" — it is set on the first upload, even a
+ *    partial one.
+ *  - **No tick on Day 1.** Nothing in either system ever flips it. It is a date.
+ */
+export function joiningSteps(
+  startDate: string | undefined,
+  visa: VisaCase | undefined,
+): JoiningStep[] {
+  const required = visa?.required_documents?.length ?? 0;
+  const missing = visa?.missing_documents?.length ?? 0;
+  const received = required - missing;
+  const everythingIn = required > 0 && missing === 0;
+  const withThePro = visa?.case_status === "Ready for the PRO";
+  // Held by a person because a check found something. HC-PC-013 §13.7.3.
+  const heldForReview = visa?.case_status === "Under Review";
+  // Assessed either way. A case that failed its checks has still been checked.
+  const assessed = heldForReview || withThePro;
+  // Something came back wrong and it is theirs to fix. §13.8.1: "Where a document is
+  // returned, the new joiner removes it and submits a corrected copy."
+  const somethingToCorrect = (visa?.problems?.length ?? 0) > 0;
+
+  return [
+    {
+      key: "offer",
+      label: "Offer accepted",
+      // No date. There is a real signed-on date, but it is read off the job-offer form
+      // the joiner uploads — downstream of the documents step, not before it. Being a new
+      // joiner is itself the evidence: §13.2 defines the status as "an accepted offer, a
+      // start date agreed".
+      detail: "Your start date is agreed",
+      state: "done",
+    },
+    {
+      key: "contract",
+      label: "Sign your contract",
+      // Nothing holds this. The Code never mentions signing a contract — every mention of
+      // the word is about precedence, probation length or how salary is defined. Not to
+      // be confused with the signed job-offer form, which is one of the visa documents
+      // below and is checked.
+      detail: "Not tracked here — People & Culture will be in touch",
+      state: "untracked",
+    },
+    {
+      key: "documents",
+      label: "Submit your documents",
+      detail: somethingToCorrect
+        ? "Something came back — send a corrected copy"
+        : required > 0
+          ? `${received} of ${required} sent`
+          : "Your checklist is loading",
+      // Current again when something has to be re-sent. Every document having arrived is
+      // not the same as every document being right, and marking this done with a fault
+      // outstanding left the whole timeline with no current step at all — so the heading
+      // read "Everything on your side is done" over a case with two problems on it.
+      state: somethingToCorrect ? "current" : everythingIn ? "done" : "current",
+    },
+    {
+      key: "checked",
+      label: "Documents checked",
+      detail: heldForReview
+        ? "We are looking at something on your case"
+        : assessed
+          ? "Every check passed"
+          : "We check them once they are all in",
+      // Deliberately separate from the step below. A case whose checks found something
+      // sits at "Under Review": checked, and held. Marking this done while the visa step
+      // waits is the honest reading — collapsing the two would tell somebody their
+      // application had been lodged when it is sitting on a desk.
+      state: assessed ? "done" : everythingIn ? "current" : "waiting",
+    },
+    {
+      key: "visa",
+      label: "Visa application",
+      detail: withThePro
+        ? "Lodged on your behalf"
+        : "Sent to the PRO once every check has passed",
+      state: withThePro ? "done" : "waiting",
+    },
+    {
+      key: "medical",
+      label: "Medical examination",
+      // As with the contract: no field, no document, no clause. Shown so the journey is
+      // not misleading by omission, marked so an absence is not read as a state.
+      detail: "Not tracked here — People & Culture will be in touch",
+      state: "untracked",
+    },
+    {
+      key: "day-one",
+      label: "Day 1",
+      detail: startDate ? readableDate(startDate) : "To be confirmed",
+      state: "waiting",
+    },
   ];
 }

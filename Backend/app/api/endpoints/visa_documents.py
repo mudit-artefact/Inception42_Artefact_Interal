@@ -89,7 +89,14 @@ class VisaUploadResponse(BaseModel):
 async def list_cases(employee_id: Annotated[str, Query()]) -> VisaCaseListResponse:
     try:
         async with get_hcs11_client() as client:
-            cases = await client.list_visa_cases(employee_id)
+            # Each case read in full, not as HCS-11 lists it. Its listing returns
+            # `problems` as an empty list whatever the case holds — so a screen built on
+            # the listing shows a case under review with nothing wrong with it, and a
+            # timeline built on it finds no step for the employee to act on and reports
+            # that everything on their side is done. Only the per-case reading carries
+            # what was actually found.
+            summaries = await client.list_visa_cases(employee_id)
+            cases = [await client.get_visa_case(case.case_id) for case in summaries]
             return VisaCaseListResponse(cases=cases, count=len(cases))
     except HCS11ConnectionError:
         raise HTTPException(
