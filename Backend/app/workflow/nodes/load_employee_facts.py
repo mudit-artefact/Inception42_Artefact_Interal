@@ -24,6 +24,10 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "needs_clarification": False,
     "needs_rewrite": False,
     "is_multi_question": False,
+    # Which kind of document this question named. Belongs to the question that said it —
+    # left standing, "upload my school documents" would still mean school on the next
+    # turn, when the person said only "upload my documents".
+    "document_kind": None,
     "missing_information": [],
     # Step 2A
     "original_question": None,

@@ -25,8 +25,19 @@ AN_OPEN_CLAIM = {"case_id": "CASE0003", "child_name": "Layla", "status": "Under 
                  "payment_status": "Not Ready"}
 A_PAID_CLAIM = {"case_id": "CASE0009", "child_name": "Omar", "status": "Approved",
                 "payment_status": "Paid"}
+# A real visa case always says what is still wanted and what came back wrong. This
+# fixture said neither, which let "you have documents outstanding" be tested without
+# anything outstanding ever being true — the exact claim that turned out to be false on a
+# new joiner who had sent all four.
 A_VISA_CASE = {"case_id": "VISA0001", "plan_name": "Employment visa — degree required",
-               "status": "Ready for the PRO"}
+               "status": "Awaiting Submission",
+               "missing_documents": ("passport", "photograph"), "problems": ()}
+A_FINISHED_VISA_CASE = {"case_id": "VISA0002", "plan_name": "Employment visa — degree required",
+                        "status": "Ready for the PRO",
+                        "missing_documents": (), "problems": ()}
+A_VISA_CASE_WITH_A_FAULT = {"case_id": "VISA0003", "plan_name": "Employment visa",
+                            "status": "Under Review", "missing_documents": (),
+                            "problems": ("The photograph cannot be used: the background is blue.",)}
 
 
 @pytest.fixture
@@ -196,3 +207,155 @@ def test_the_reply_is_verified_rather_than_a_refusal(hcs11):
 
     assert reply["answer_status"] == AnswerStatus.VERIFIED.value
     assert reply["question_intent"] == QuestionIntent.HR_QUESTION.value
+
+
+# ── the window they asked for, not the one they happen to have ────────────────
+#
+# A new joiner typed "I want to submit for schooling" and was handed the visa window
+# without a word. They had already been told, one turn earlier, that schooling was not on
+# their package — and then watched a window open as though it were. The step chose from
+# what the person *had*; nothing in it ever read what they had *asked for*.
+#
+# `document_kind` is that missing half. `understand_query` reads it off their words; the
+# lookup below still answers what exists. Both are needed, and neither substitutes.
+
+
+def naming(kind, plan="NONE", language="en"):
+    """The same request, with the kind the employee named attached."""
+    return {**asked_to_submit(plan=plan, language=language), "document_kind": kind}
+
+
+def test_asking_for_schooling_does_not_open_the_visa_window(hcs11):
+    """The bug, exactly: schooling asked for, visa window given, question unanswered."""
+    hcs11(school=[], visa=[A_VISA_CASE])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("school"))
+
+    assert "no education allowance" in reply["final_answer"].lower()
+    assert not offers_the_button(reply), "the school button must not be drawn"
+
+
+def test_it_still_says_the_visa_documents_are_waiting(hcs11):
+    """
+    Refusing and then stopping would be honest and unhelpful. They have documents
+    outstanding and we know it.
+    """
+    hcs11(school=[], visa=[A_VISA_CASE])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("school"))
+
+    assert reply["action_payload"]["action_type"] == "VISA_DOCUMENT_UPLOAD"
+    assert reply["action_payload"]["case_id"] == "VISA0001"
+
+
+def test_the_refusal_comes_before_the_offer(hcs11):
+    """
+    Order is the whole point. An offer first reads as the answer, and somebody walks away
+    believing they submitted for schooling.
+    """
+    hcs11(school=[], visa=[A_VISA_CASE])
+
+    answer = finish_turn.generate_document_upload_prompt(naming("school"))["final_answer"]
+
+    assert answer.lower().index("no education allowance") < answer.lower().index("visa")
+
+
+def test_asking_for_visa_opens_the_visa_window(hcs11):
+    hcs11(school=[], visa=[A_VISA_CASE])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("visa"))
+
+    assert reply["action_payload"]["action_type"] == "VISA_DOCUMENT_UPLOAD"
+
+
+def test_asking_for_visa_is_not_answered_with_the_school_window(hcs11):
+    """The same fault mirrored: an employee with a claim asking about visa documents."""
+    hcs11(school=[AN_OPEN_CLAIM], visa=[])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("visa", plan="EDU_STANDARD"))
+
+    assert not offers_the_button(reply), "the school button must not be drawn"
+    assert reply["action_payload"] is None
+
+
+def test_naming_nothing_still_opens_whichever_they_have(hcs11):
+    """
+    Somebody who says only "upload my documents" has named nothing to honour, and there
+    is no point asking which when only one is possible.
+    """
+    hcs11(school=[], visa=[A_VISA_CASE])
+
+    reply = finish_turn.generate_document_upload_prompt(naming(None))
+
+    assert reply["action_payload"]["action_type"] == "VISA_DOCUMENT_UPLOAD"
+
+
+def test_naming_schooling_with_a_real_claim_opens_the_school_window(hcs11):
+    hcs11(school=[AN_OPEN_CLAIM], visa=[])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("school", plan="EDU_STANDARD"))
+
+    assert offers_the_button(reply), "she has a claim; the button belongs here"
+
+
+def test_the_refusal_is_written_in_arabic_when_the_question_was(hcs11):
+    hcs11(school=[], visa=[A_VISA_CASE])
+
+    answer = finish_turn.generate_document_upload_prompt(
+        naming("school", language="ar")
+    )["final_answer"]
+
+    assert "بدل تعليم" in answer
+
+
+# ── "outstanding" is a claim, and claims get checked ──────────────────────────
+#
+# A new joiner who had sent all four of her visa documents asked to submit school
+# documents and was told "you do have employment visa documents outstanding", with a
+# button to send them again. Her case was complete and already with HC Services.
+#
+# The message had never been conditional on anything but the case existing. It is the
+# same fault as every other one this file guards against — a sentence asserting something
+# nobody looked up — and it was written into the fix for the bug above it.
+
+
+def test_nothing_is_called_outstanding_when_everything_has_arrived(hcs11):
+    hcs11(school=[], visa=[A_FINISHED_VISA_CASE])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("school"))
+
+    answer = reply["final_answer"].lower()
+    # Not the word itself — the reply says "there is nothing outstanding", which is the
+    # point. What must not appear is the claim that documents are.
+    assert "do have employment visa documents outstanding" not in answer
+    assert "have all arrived" in answer
+    assert reply["action_payload"] is None
+
+
+def test_a_finished_case_is_not_offered_the_window_again(hcs11):
+    hcs11(school=[], visa=[A_FINISHED_VISA_CASE])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("visa"))
+
+    assert reply["action_payload"] is None, "nothing left to send, so no button"
+    assert "nothing further to send" in reply["final_answer"].lower()
+
+
+def test_a_document_that_came_back_wrong_still_counts_as_outstanding(hcs11):
+    """
+    Everything has arrived and one of them is no good. That is something to do, and the
+    window is how it gets done.
+    """
+    hcs11(school=[], visa=[A_VISA_CASE_WITH_A_FAULT])
+
+    reply = finish_turn.generate_document_upload_prompt(naming("visa"))
+
+    assert reply["action_payload"]["action_type"] == "VISA_DOCUMENT_UPLOAD"
+
+
+def test_the_refusal_is_still_first_when_the_visa_case_is_done(hcs11):
+    hcs11(school=[], visa=[A_FINISHED_VISA_CASE])
+
+    answer = finish_turn.generate_document_upload_prompt(naming("school"))["final_answer"].lower()
+
+    assert answer.index("no education allowance") < answer.index("visa")

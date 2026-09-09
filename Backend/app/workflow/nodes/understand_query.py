@@ -44,6 +44,44 @@ ASKING_TO_SEND_DOCUMENTS = [
 
 
 
+# Which kind of document the words above name.
+#
+# The shortcut already reads these words in order to recognise the request at all; it
+# simply threw away which of the two groups matched. That is what let a new joiner ask to
+# submit for schooling and be handed the visa window without a word — the step that opens
+# the window had only the person's record to go on, and a new joiner's record says visa.
+#
+# Worked out here rather than by the model because this path deliberately does not call
+# one. The model fills the same field on the path that does, from the same two ideas.
+NAMES_SCHOOL = re.compile(
+    r"\b(proof of schooling|school|schooling|education|tuition|enrolment|enrollment"
+    r"|child|children|kid)\b"
+    r"|المدرسة|المدرسية|الدراسة|التعليم|القيد|الابن|الابنة|الأطفال|طفل",
+    re.IGNORECASE,
+)
+NAMES_VISA = re.compile(
+    r"\b(visa|passport|residence|residency|job.?offer|joining)\b"
+    r"|التأشيرة|تأشيرة|الجواز|جواز|الإقامة|اقامة",
+    re.IGNORECASE,
+)
+
+
+def _document_kind_named(question: str) -> str | None:
+    """
+    "school", "visa", or None when they named neither — or both, which is not a choice.
+
+    None is not a failure. Somebody who says "upload my documents" has named nothing to
+    honour, and the step that opens the window falls back to whichever one they have.
+    """
+    school = bool(NAMES_SCHOOL.search(question))
+    visa = bool(NAMES_VISA.search(question))
+    if school and not visa:
+        return "school"
+    if visa and not school:
+        return "visa"
+    return None
+
+
 def understand_query(state: ConversationState) -> dict:
     """
     Read the employee's question.
@@ -134,6 +172,7 @@ def understand_query(state: ConversationState) -> dict:
             needs_rewrite=False,
             is_multi_question=False,
             missing_information=[],
+            document_kind=_document_kind_named(q_norm),
         )
     elif any(re.search(pat, q_norm) for pat in conversational_patterns):
         understanding = QueryUnderstanding(
@@ -178,6 +217,7 @@ def understand_query(state: ConversationState) -> dict:
         "needs_rewrite": understanding.needs_rewrite,
         "is_multi_question": is_multi_question,
         "missing_information": understanding.missing_information,
+        "document_kind": understanding.document_kind,
     }
 
 

@@ -88,9 +88,15 @@ Choose one intent:
   * Asking to send: "upload documents", "submit my school documents", "I want to upload",
     "how do I send my visa documents?", "كيف أرسل مستندات التأشيرة؟"
   * A file arriving: "[file attached]", "[document uploaded]"
-  You do not decide WHICH kind. Choosing this opens a window, and the step that answers
-  looks up what the person actually has: a new joiner is handed the visa window and an
-  employee the school one.
+  Set `document_kind` to whichever they named — "school" for school, education, tuition or
+  a child's documents; "visa" for visa, passport, residence or joining documents. Leave it
+  null when they did not say, as in "I want to upload documents".
+  Report the word they used, not the person you think they are. This used to say you did
+  not decide which kind, on the reasoning that a new joiner needs the visa window and an
+  employee the school one — true of who somebody is, and not of what they ask. A new
+  joiner who asked to submit for schooling was handed the visa window without a word, so
+  their question was never answered and they were not told schooling is not on their
+  package. What they have is looked up later; what they asked for can only be read here.
   Two kinds of message look close and are not:
   * A question ABOUT either scheme — which fees are covered, what the limit is, which
     documents are needed, when the deadline falls, who is eligible.
@@ -316,6 +322,9 @@ English one does.
   anything found wrong. Ask for it when somebody asks about their visa application: "what
   do I still need to send?", "has my visa gone through?", "where is my application?". Ask
   for the policy as well when they ask what the rules are rather than where they stand.
+  **Ask for it too when they ask where or how to send their documents.** That reads like a
+  question about the process, but the answer turns on whether they have a case at all —
+  without it, somebody with no visa case is told their upload window is waiting for them.
 - school_claim_status: where the employee's school verification claim has got to — one
   per child — with the status, the dates, whether anything further is wanted from them,
   and whether payment is ready. Ask for it whenever the employee asks about a claim they
@@ -323,6 +332,10 @@ English one does.
   "where is my claim?", "have they been reviewed?", "when will I be paid?". Ask for the
   policy as well when they ask **why** a claim stands where it does, because the reason
   is in HC-PC-012 and the claim only says which reason applies.
+  **Ask for it too when they ask where or how to submit their documents.** That sounds
+  like a question about the process rather than about them, which is why it was not on
+  this list — and so an employee with no education plan was told to get their documents
+  ready for a claim that does not exist. Whether they have a claim is part of the answer.
 
 Nothing outside that list can be read, so do not invent labels.\
 """
@@ -378,6 +391,58 @@ CONVERSATION_RECAP_MESSAGES = {
 #
 # Three cases, because the reason matters to the person hearing it. No figures in any of
 # them: the plan, the deadline and the document list all live elsewhere.
+# Asked to send school documents, has no education allowance, and does have a visa case.
+#
+# The refusal comes first and the offer second, and they are separate sentences. Handing
+# over the visa window instead — which is what happened before — answered a question
+# nobody asked and left a new joiner believing their schooling claim was under way.
+# Every visa document has arrived and none came back with a problem.
+#
+# The messages below used to be sent whatever the case said, so somebody who had sent all
+# four was told they had documents outstanding and shown a button to send them again. A
+# sentence that asserts something it has not checked is the same fault whether it says
+# "everything is fine" or "something is missing".
+VISA_ALL_IN_MESSAGES = {
+    "en": (
+        "All of your employment visa documents have arrived and nothing has come back with "
+        "a problem, so there is nothing further to send. Your case is with HC Services now."
+    ),
+    "ar": (
+        "وصلت جميع مستندات تأشيرة العمل الخاصة بك ولم يُعَد أي منها لوجود خلل، فلا يوجد ما "
+        "ترسله. ملفك الآن لدى إتش سي سيرفيسز."
+    ),
+}
+
+# Asked to send school documents, has no education allowance, and every visa document is
+# already in. The refusal still comes first; what follows is what is true today.
+NO_SCHOOL_CLAIM_AND_VISA_DONE_MESSAGES = {
+    "en": (
+        "There is no education allowance on your package, so there are no school documents "
+        "for you to send.\n\n"
+        "Your employment visa documents have all arrived, so there is nothing outstanding "
+        "there either."
+    ),
+    "ar": (
+        "لا يوجد بدل تعليم ضمن باقتك، لذلك لا توجد مستندات مدرسية عليك إرسالها.\n\n"
+        "وقد وصلت جميع مستندات تأشيرة العمل الخاصة بك، فلا يوجد ما هو معلّق هناك أيضاً."
+    ),
+}
+
+NO_SCHOOL_CLAIM_BUT_VISA_MESSAGES = {
+    "en": (
+        "There is no education allowance on your package, so there are no school documents "
+        "for you to send.\n\n"
+        "You do have employment visa documents outstanding. Use the **Upload Visa "
+        "Documents** button below — it lists what your route still needs and ticks each "
+        "one off as it arrives."
+    ),
+    "ar": (
+        "لا يوجد بدل تعليم ضمن باقتك، لذلك لا توجد مستندات مدرسية عليك إرسالها.\n\n"
+        "لكن لديك مستندات تأشيرة عمل ما زالت مطلوبة. استخدم زر **رفع مستندات التأشيرة** "
+        "أدناه — تعرض النافذة ما يتطلبه مسارك وتؤشر على كل مستند فور وصوله."
+    ),
+}
+
 NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES = {
     "en": (
         "There is no education allowance on your current benefits package, so there are no "
@@ -552,11 +617,39 @@ HOW TO ANSWER
 
 3. Say where something IS done. Never name a route, portal, form, team or deadline that
    does not apply, and never contrast the right answer with a wrong one, unless the
-   employee named that other route themselves. "Submit through the HCS Concierge" is the
-   answer. "Submit through the HCS Concierge, not the Omni Expense portal" hands the
-   employee a portal they never mentioned and leaves them wondering which is right.
-   The extracts often rule things out in order to be precise; that is the policy talking
-   to itself, and it is not what the employee asked.
+   employee named that other route themselves. "Submit them here" is the answer.
+   "Submit them here, not through the Omni Expense portal" hands the employee a portal
+   they never mentioned and leaves them wondering which is right. The extracts often rule
+   things out in order to be precise; that is the policy talking to itself, and it is not
+   what the employee asked.
+
+   **You are the HCS Concierge, so never send anybody to it.** HC-PC-012 §12.5.5 and
+   HC-PC-013 both say documents are "submitted through the HCS Concierge". That is written
+   for somebody reading the policy as a document, who is not already inside it. The person
+   asking you is. Repeating the phrase back to them points at this conversation in the
+   third person and reads as though there is somewhere else they are supposed to go.
+
+   Say **here**, and offer to open the window:
+
+     Wrong: `Submit your documents through the HCS Concierge.`
+     Right: `You send them here. Tell me when you are ready and I will open the upload`
+            `window, which lists what is still needed and ticks each document off as it`
+            `arrives.`
+
+   This holds for school documents and visa documents alike.
+
+   **Do not promise a button that may not be on screen.** The upload window is offered
+   only to somebody who actually has a claim or a case to send documents for, so "use the
+   button below" is not always true when this is being written. Say documents are sent
+   here in this conversation and offer to open the window — true either way, and it is
+   the sentence that gets the window opened.
+
+   **And check the record before offering it at all.** If their record shows no school
+   claim and no visa case, there is no window to open, and offering one tells somebody
+   with no entitlement that a claim of theirs is waiting to be filled in. Say what is
+   actually true of them — that they have no claim open, and why — exactly as you would
+   if they had asked that directly. Answering "where" is not a reason to stop reading
+   their record.
 4. For anything about this employee — their manager, balances, entitlement, probation,
    past requests — use their own record above. It is the authoritative source.
 5. Read their record against the policy extracts so the answer is specific to them.

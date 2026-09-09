@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Home, MessageSquare, PanelLeft } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { InceptionLogo } from "@/components/common/InceptionLogo";
@@ -56,6 +56,23 @@ export function AppShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const path = useRouterState({ select: (state) => state.location.pathname });
+  const navigate = useNavigate();
+
+  /**
+   * Switching person goes home.
+   *
+   * Everything on screen belongs to whoever was selected a moment ago — the conversation,
+   * the documents outstanding, the requests. Staying put after a switch leaves somebody
+   * looking at a page that has quietly become about a different person, and the chat is
+   * the worst of it: the thread is keyed to the employee, so it empties out and reads as
+   * though the conversation was lost. Home is the one page that is always about whoever
+   * is selected now.
+   */
+  const switchTo = (id: string) => {
+    onSelectEmployee(id);
+    setMobileNavOpen(false);
+    if (path !== "/") void navigate({ to: "/" });
+  };
 
   const navigation = (
     <nav aria-label="Sections" className="space-y-1 p-2">
@@ -103,7 +120,7 @@ export function AppShell({
                 <UserSwitcher
                   employees={employees}
                   activeId={employeeId}
-                  onSelect={onSelectEmployee}
+                  onSelect={switchTo}
                   className="w-full justify-start"
                 />
               </div>
@@ -145,7 +162,7 @@ export function AppShell({
           <UserSwitcher
             employees={employees}
             activeId={employeeId}
-            onSelect={onSelectEmployee}
+            onSelect={switchTo}
           />
         </div>
       </header>

@@ -6,6 +6,7 @@ on — which employee facts to read — it is typed as an enum, so a value outsi
 is dropped before it can reach anything.
 """
 
+from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.domain.enums import HrDataField, QuestionIntent, RequiredEvidence
@@ -28,6 +29,14 @@ class QueryUnderstanding(BaseModel):
     is_multi_question: bool = Field(
         default=False,
         description="True when the message asks about more than one distinct thing",
+    )
+    document_kind: Literal["school", "visa"] | None = Field(
+        default=None,
+        description=(
+            "For a document_upload, which kind the employee named: 'school' for school or "
+            "education documents, 'visa' for visa or joining documents. None when they "
+            "did not say which."
+        ),
     )
     reasoning: str = Field(default="", description="Brief explanation for this reading")
 

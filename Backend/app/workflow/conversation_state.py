@@ -95,6 +95,11 @@ class ConversationState(TypedDict, total=False):
     needs_clarification: bool
     needs_rewrite: bool
     is_multi_question: bool
+    # Which kind of document the employee named, when they named one — "school", "visa",
+    # or absent. Read from their words in `understand_query`; what they actually have is
+    # looked up separately when the window is opened. Both are needed: one says what they
+    # asked for, the other what exists.
+    document_kind: str | None
     missing_information: list[str]
 
     # Step 2A — asking something back

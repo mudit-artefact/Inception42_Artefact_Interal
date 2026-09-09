@@ -28,7 +28,10 @@ from app.workflow.prompts import (
     NOTHING_TO_REPHRASE_MESSAGES,
     NOT_STARTED_YET_MESSAGES,
     NOTHING_TO_UPLOAD_NO_CASE_MESSAGES,
+    NO_SCHOOL_CLAIM_AND_VISA_DONE_MESSAGES,
+    NO_SCHOOL_CLAIM_BUT_VISA_MESSAGES,
     NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES,
+    VISA_ALL_IN_MESSAGES,
     VISA_UPLOAD_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     PLEASANTRY_MESSAGES,
@@ -79,8 +82,23 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
         if claim.get("payment_status") not in CLOSED_PAYMENT_STATUSES
     ]
 
+    # What they asked for, when they said. `understand_query` reads it off their words;
+    # nothing else in the turn can, because by here only the record is in hand.
+    asked_for = state.get("document_kind")
+
+    if asked_for == "visa":
+        if visa_cases:
+            return _open_the_visa_window(state, language, visa_cases)
+        return _nothing_to_upload(state, language)
+
     if not open_claims and not could_not_ask:
-        # A new joiner's case is a visa case, and that window is its own.
+        # Somebody who asked for schooling and has no claim is told that, and offered the
+        # visa window as a separate sentence rather than handed it instead. This used to
+        # open the visa window silently on the reasoning that a new joiner's case is a
+        # visa case — true of the person, and no answer at all to the question they
+        # asked. They were left believing they had submitted for schooling.
+        if asked_for == "school":
+            return _no_school_claim_but_a_visa_case(state, language, visa_cases)
         if visa_cases:
             return _open_the_visa_window(state, language, visa_cases)
         return _nothing_to_upload(state, language)
@@ -98,6 +116,69 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
     }
 
 
+def _anything_left_to_send(cases: list | None) -> bool:
+    """
+    Is there actually something outstanding on the visa case?
+
+    Asked because the messages say there is. Before this, "you do have employment visa
+    documents outstanding" was sent to anybody who had a case at all — including somebody
+    who had sent every one of them and whose case was already with HC Services. A document
+    that came back with a problem also counts: it has to be sent again.
+    """
+    for case in cases or []:
+        if case.get("missing_documents") or case.get("problems"):
+            return True
+    return False
+
+
+def _no_school_claim_but_a_visa_case(
+    state: ConversationState, language: str, visa_cases: list | None
+) -> dict:
+    """
+    They asked for schooling and have none. Say so, then say what they do have.
+
+    Order matters more than either half. Offering the visa window first, or instead, is
+    how somebody comes away thinking they have submitted for schooling. The refusal is the
+    answer to their question; the offer is a separate, useful sentence after it.
+    """
+    if not visa_cases:
+        return _nothing_to_upload(state, language)
+
+    # Nothing outstanding is not the same as having a case. Saying "you do have documents
+    # outstanding" to somebody who has sent all of them, and offering a button to send
+    # them again, is the reason this check exists.
+    if not _anything_left_to_send(visa_cases):
+        logger.info(
+            f"{state['employee_id']} asked to send school documents and has none; "
+            f"their visa documents are all in, so nothing is offered"
+        )
+        return {
+            "final_answer": _clean_and_format_markdown(
+                message_in_language(NO_SCHOOL_CLAIM_AND_VISA_DONE_MESSAGES, language)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "question_intent": QuestionIntent.HR_QUESTION.value,
+            "action_payload": None,
+        }
+
+    case_id = next((case.get("case_id") for case in visa_cases if case.get("case_id")), None)
+    logger.info(
+        f"{state['employee_id']} asked to send school documents and has none; "
+        f"saying so and offering the visa window ({case_id})"
+    )
+
+    return {
+        "final_answer": _clean_and_format_markdown(
+            message_in_language(NO_SCHOOL_CLAIM_BUT_VISA_MESSAGES, language)
+        ),
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+        "question_intent": QuestionIntent.HR_QUESTION.value,
+        "action_payload": {"action_type": "VISA_DOCUMENT_UPLOAD", "case_id": case_id},
+    }
+
+
 def _open_the_visa_window(state: ConversationState, language: str, cases: list) -> dict:
     """
     Hand over to the visa document window.
@@ -107,6 +188,22 @@ def _open_the_visa_window(state: ConversationState, language: str, cases: list) 
     by the intent, and it is the odd one out. Following the majority leaves the school path
     untouched and adds nothing to the published intent vocabulary.
     """
+    # The same check as above, for the same reason: this message says the window "lists
+    # what your route still needs", which is not true of somebody whose route needs
+    # nothing. Offering them a button to send documents they have already sent is how a
+    # finished application is made to look unfinished.
+    if not _anything_left_to_send(cases):
+        logger.info(f"{state['employee_id']} has sent every visa document; nothing offered")
+        return {
+            "final_answer": _clean_and_format_markdown(
+                message_in_language(VISA_ALL_IN_MESSAGES, language)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "question_intent": QuestionIntent.HR_QUESTION.value,
+            "action_payload": None,
+        }
+
     case_id = next((case.get("case_id") for case in cases if case.get("case_id")), None)
     logger.info(f"Opening the visa document window for {state['employee_id']} ({case_id})")
 
