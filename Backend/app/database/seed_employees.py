@@ -721,7 +721,11 @@ def build_seed_employees() -> list[dict]:
                     days_requested=10,
                     status="Pending",
                     approver_name="Alia Al Suwaidi",
-                    notes="Awaiting line manager decision",
+                    # A reason, because that is what this column is. It read "Awaiting line
+                    # manager decision" — the request's status, in the field a manager
+                    # reads to find out why somebody is asking. This is the one pending
+                    # request in the seed, so it was the only one anybody ever saw.
+                    notes="Two weeks in Georgia with my parents, booked in July",
                 ),
             ],
             "expense_claims": [],

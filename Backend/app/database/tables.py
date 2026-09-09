@@ -106,7 +106,14 @@ class LeaveRequest(Base):
     days_requested = Column(Integer, nullable=False)
     status = Column(String(32), nullable=False, default="Approved")  # Approved, Pending, Rejected
     approver_name = Column(String(128), nullable=False)
+    # Why the employee is asking, in their own words. Empty when they did not say — it
+    # used to be filled with "Submitted via Policy & Leave Concierge agent" instead, words
+    # nobody typed, sitting in the field a manager reads to decide.
     notes = Column(Text, nullable=False, default="")
+    # What the manager said when they decided. Its own column because it used to be
+    # appended to `notes` after a pipe, so one field held two people's words and neither
+    # could be shown without the other.
+    decision_note = Column(Text, nullable=False, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
 
     employee = relationship("Employee", back_populates="leave_requests")

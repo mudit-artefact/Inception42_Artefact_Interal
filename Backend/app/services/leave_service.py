@@ -477,7 +477,9 @@ def commit_leave_request(
             days_requested=validation.working_days,
             status="Pending",
             approver_name=validation.approver_name or employee.manager_name,
-            notes=reason or "Submitted via Policy & Leave Concierge agent",
+            # Empty when they gave none. The placeholder that used to go here read as
+            # a reason to anybody looking at the field, and was written by nobody.
+            notes=(reason or "").strip(),
         )
         session.add(new_request)
 
@@ -762,8 +764,9 @@ def reject_leave_request(
         manager = session.query(Employee).filter(Employee.user_id == manager_id).first()
 
         req.status = "Rejected"
+        # Kept apart from the employee's own reason, which stays legible either way.
         if reason:
-            req.notes = f"{req.notes} | Rejected: {reason}".strip(" |")
+            req.decision_note = reason
         session.commit()
 
         # Dispatch Employee Rejection Notification

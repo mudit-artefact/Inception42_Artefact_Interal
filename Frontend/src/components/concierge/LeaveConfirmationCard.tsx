@@ -34,6 +34,7 @@ export function LeaveConfirmationCard({
     balance_after,
     approver_name,
     requires_medical_certificate,
+    reason,
     receipt,
     violations,
   } = payload;
@@ -142,6 +143,15 @@ export function LeaveConfirmationCard({
             <span>Line Manager:</span>
             <span className="font-medium text-foreground">{approver_name}</span>
           </div>
+          {/* What their manager will read, shown before they commit to it. */}
+          {reason ? (
+            <div className="pt-1 border-t border-border/40">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Reason
+              </span>
+              <p className="mt-0.5 whitespace-pre-wrap text-[11px] text-foreground">{reason}</p>
+            </div>
+          ) : null}
           {requires_medical_certificate ? (
             <div className="flex items-center gap-1 text-[11px] text-primary pt-0.5">
               <AlertCircle className="size-3" />

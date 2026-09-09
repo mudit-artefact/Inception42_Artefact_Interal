@@ -19,6 +19,21 @@ interface ManagerApprovalCardProps {
   onAction: (actionText: string) => void;
 }
 
+/**
+ * The employee's own reason, or nothing.
+ *
+ * Two things live in this field and neither is worth showing on its own. Requests made
+ * through the chat without a reason carry the placeholder below — words nobody typed —
+ * and a rejected request has the manager's own note appended after a pipe. A manager
+ * looking at a pending request wants the first half, and only when a person wrote it.
+ */
+const PLACEHOLDER = "Submitted via Policy & Leave Concierge agent";
+
+function reasonGiven(notes?: string): string {
+  const written = (notes ?? "").split("|")[0]?.trim() ?? "";
+  return written === PLACEHOLDER ? "" : written;
+}
+
 export function ManagerApprovalCard({ pendingApprovals, onAction }: ManagerApprovalCardProps) {
   if (!pendingApprovals || pendingApprovals.length === 0) return null;
 
@@ -63,6 +78,24 @@ export function ManagerApprovalCard({ pendingApprovals, onAction }: ManagerAppro
                 {item.start_date} → {item.end_date}
               </span>
             </div>
+
+            {/*
+              Why they are asking. The service has been sending this all along and the card
+              declared it and never drew it, so every approval was decided on a name, a
+              leave type and two dates. It is the employee's own words — shown as written,
+              never trimmed or tidied, because a manager deciding on somebody's time off
+              should read what they actually said.
+            */}
+            {reasonGiven(item.notes) && (
+              <div className="rounded-lg border border-border/40 bg-background p-2">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Reason given
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-xs text-foreground">
+                  {reasonGiven(item.notes)}
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-1 border-t border-border/40">
               <Button

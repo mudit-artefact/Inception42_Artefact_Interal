@@ -3,7 +3,12 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, ArrowRight,
 import { Button } from "@/components/ui/button";
 
 interface LeaveCalendarPickerProps {
-  onSelectDates: (leaveType: string, startDate: string, endDate: string) => void;
+  onSelectDates: (
+    leaveType: string,
+    startDate: string,
+    endDate: string,
+    reason: string,
+  ) => void;
   leaveType?: string | undefined;
   minDate?: string | undefined;
 }
@@ -61,6 +66,12 @@ export function LeaveCalendarPicker({
 
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  // Optional, and it stays optional. HC-PC-001 asks for a reason only for emergency leave
+  // (§1.4.3); requiring one everywhere would ask somebody to justify being ill. It is
+  // collected here because this is where the request is already being built — putting it
+  // at the confirmation step instead would collide with the rule there that treats any
+  // reply longer than four words as a new request rather than a yes.
+  const [reason, setReason] = useState("");
 
   // Month navigation
   const prevMonth = () => {
@@ -306,13 +317,30 @@ export function LeaveCalendarPicker({
             )}
           </div>
 
+          <div className="mb-2.5">
+            <label
+              htmlFor="leave-reason"
+              className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+            >
+              Reason <span className="normal-case tracking-normal">(optional)</span>
+            </label>
+            <input
+              id="leave-reason"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder="Anything your manager should know"
+              maxLength={200}
+              className="w-full rounded-lg border bg-background px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground focus:border-primary"
+            />
+          </div>
+
           <div className="flex justify-end">
             <Button
               size="sm"
               disabled={!startDate || workingDays === 0}
               onClick={() => {
                 if (startDate && workingDays > 0) {
-                  onSelectDates(selectedType, startDate, endDate || startDate);
+                  onSelectDates(selectedType, startDate, endDate || startDate, reason.trim());
                 }
               }}
               className="h-7 gap-1.5 px-3.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 font-medium"

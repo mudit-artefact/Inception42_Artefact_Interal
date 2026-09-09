@@ -181,6 +181,10 @@ def compose_leave_confirmation(state: ConversationState) -> dict:
     """Build the card the employee is asked to confirm. No pause here."""
     language = state.get("requested_language", "en")
     validation = state["leave_validation"]
+    # Shown back before they commit, so nobody submits a reason they cannot see. It rides
+    # on the draft rather than the validation, which is about the policy and knows nothing
+    # about why anyone is asking.
+    reason = ((state.get("leave_draft") or {}).get("reason") or "").strip()
 
     question = (
         f"يرجى مراجعة وتأكيد طلب {validation['leave_type']} أدناه:"
@@ -207,6 +211,7 @@ def compose_leave_confirmation(state: ConversationState) -> dict:
             "approver_name": validation["approver_name"],
             "notice_compliant": validation["notice_compliant"],
             "requires_medical_certificate": validation["requires_medical_certificate"],
+            "reason": reason,
             "summary_text": question,
         },
     }

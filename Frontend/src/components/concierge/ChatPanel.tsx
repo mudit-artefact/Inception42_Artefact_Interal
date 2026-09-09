@@ -234,8 +234,15 @@ export function ChatPanel({
                   <LeaveCalendarPicker
                     leaveType={m.action_payload.leave_type}
                     minDate={m.action_payload.min_date}
-                    onSelectDates={(type, start, end) => {
-                      onSend(`I want to apply for ${type} from ${start} to ${end}`);
+                    onSelectDates={(type, start, end, reason) => {
+                      // The reason rides on the request itself. The step that reads a
+                      // leave request already looks for one in the employee's words and
+                      // has always found none here, because this sentence never carried
+                      // it — the picker path guaranteed every request arrived reasonless.
+                      onSend(
+                        `I want to apply for ${type} from ${start} to ${end}` +
+                          (reason ? `. The reason is: ${reason}` : ""),
+                      );
                     }}
                   />
                 ) : null}
