@@ -346,3 +346,33 @@ def test_a_real_problem_is_still_shown_on_a_half_sent_claim():
     certificate = next(d for d in result.documents if d.filename == CERTIFICATE)
     assert certificate.has_issues
     assert "different child" in certificate.issue_message
+
+
+def test_the_open_claim_is_read_the_same_way_as_any_other():
+    """
+    `/active-case` filled two of its response's five fields, so `documents`, `problems`
+    and `everything_is_settled` came back empty on every call — it reported "nothing
+    wrong" whatever HCS-11 had decided. It was the one endpoint missed when the panel was
+    fixed, and harmless only because nothing called it yet. Both routes now build the
+    response through the same function.
+    """
+    from app.api.endpoints.hcs11_documents import _as_case_detail
+
+    reading = _as_case_detail(a_case(recommendation="request_documents"))
+
+    assert reading.everything_is_settled is False
+    assert any(document.has_issues for document in reading.documents), (
+        "a claim HCS-11 sent back must not read as a clean one"
+    )
+
+
+def test_a_settled_claim_reads_as_settled():
+    from app.api.endpoints.hcs11_documents import _as_case_detail
+
+    reading = _as_case_detail(
+        a_case(route="approve", recommendation="approve", case_status="Approved",
+               employee_issues=[])
+    )
+
+    assert reading.everything_is_settled is True
+    assert not any(document.has_issues for document in reading.documents)

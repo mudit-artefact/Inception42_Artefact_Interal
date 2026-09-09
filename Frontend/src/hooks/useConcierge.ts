@@ -94,15 +94,23 @@ export function useConcierge(employeeId: string) {
     [conversations, activeId],
   );
 
+  /**
+   * Update one conversation.
+   *
+   * `into` names it. Without that this could only ever write to whichever conversation
+   * was active when the caller was created, which is a render behind anything that has
+   * just started a new one.
+   */
   const patchActive = useCallback(
-    (updater: (c: Conversation) => Conversation) => {
-      setConversations((prev) => prev.map((c) => (c.id === active?.id ? updater(c) : c)));
+    (updater: (c: Conversation) => Conversation, into?: string) => {
+      const target = into ?? active?.id;
+      setConversations((prev) => prev.map((c) => (c.id === target ? updater(c) : c)));
     },
     [active?.id],
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, into?: string) => {
       const message = text.trim();
       if (!message || status === "submitted") return;
       lastMessage.current = message;
@@ -116,12 +124,16 @@ export function useConcierge(employeeId: string) {
         createdAt: new Date().toISOString(),
       };
 
+      // Named, so every write in this send lands in the same conversation even if the
+      // active one changes underneath while the answer is streaming.
+      const target = into ?? active?.id;
+
       patchActive((c) => ({
         ...c,
         title: c.messages.length === 0 ? message.slice(0, 60) : c.title,
         updatedAt: userMessage.createdAt,
         messages: [...c.messages, userMessage],
-      }));
+      }), target);
 
       try {
         // Check if this is a clarification response
@@ -158,7 +170,7 @@ export function useConcierge(employeeId: string) {
                   : c.messages.map((m) =>
                       m.id === assistantId ? { ...m, content: growing.text } : m,
                     ),
-              }));
+              }), target);
             },
           },
           { employeeId },
@@ -195,7 +207,7 @@ export function useConcierge(employeeId: string) {
           messages: c.messages.some((m) => m.id === assistantId)
             ? c.messages.map((m) => (m.id === assistantId ? assistant : m))
             : [...c.messages, assistant],
-        }));
+        }), target);
 
         // Check if awaiting clarification
         if (res.is_awaiting_clarification && res.original_question) {
@@ -250,6 +262,10 @@ export function useConcierge(employeeId: string) {
     setActiveId(conversation.id);
     setStatus("ready");
     setError(null);
+    // Handed back so a caller that wants to write into this conversation can name it
+    // rather than wait a render for `active` to catch up. Waiting was how a question
+    // asked from the dashboard ended up in the conversation that was open before it.
+    return conversation.id;
   }, []);
 
   // "New conversation" adds one above the others, which is right for starting a thread

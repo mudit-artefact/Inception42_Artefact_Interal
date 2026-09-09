@@ -18,19 +18,33 @@ PROBATION_IN_PROGRESS = "Active"
 
 def list_employee_profiles(session: Session) -> list[EmployeeProfile]:
     """Every employee, as the sidebar's people switcher shows them."""
+    reports = employee_repository.count_direct_reports(session)
     return [
-        build_profile(employee_repository.get_employee_facts(session, employee_id))
+        build_profile(
+            employee_repository.get_employee_facts(session, employee_id),
+            direct_reports=reports.get(employee_id, 0),
+        )
         for employee_id in employee_repository.list_employee_identifiers(session)
     ]
 
 
 def get_employee_profile(session: Session, employee_id: str) -> EmployeeProfile:
     """One employee's profile. Raises EmployeeNotFoundError if there is no such person."""
-    return build_profile(employee_repository.get_employee_facts(session, employee_id))
+    reports = employee_repository.count_direct_reports(session)
+    return build_profile(
+        employee_repository.get_employee_facts(session, employee_id),
+        direct_reports=reports.get(employee_id, 0),
+    )
 
 
-def build_profile(facts: EmployeeFacts) -> EmployeeProfile:
-    """Present an employee's record as the profile the web interface reads."""
+def build_profile(facts: EmployeeFacts, direct_reports: int = 0) -> EmployeeProfile:
+    """
+    Present an employee's record as the profile the web interface reads.
+
+    `direct_reports` is passed rather than read off the record because it is a fact about
+    other people — it is how many employees name this one as their manager, and only a
+    query over the whole table knows it.
+    """
     return EmployeeProfile(
         user_id=facts.employee_id,
         id=facts.employee_id,
@@ -50,6 +64,8 @@ def build_profile(facts: EmployeeFacts) -> EmployeeProfile:
         start_date=facts.start_date,
         balances=_balances_for_the_current_leave_year(facts),
         policyLinks=choose_quick_links_for(facts.probation_status),
+        employment_status=facts.employment_status or "Active",
+        direct_reports=direct_reports,
     )
 
 

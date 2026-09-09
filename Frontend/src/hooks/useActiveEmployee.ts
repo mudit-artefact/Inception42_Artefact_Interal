@@ -13,12 +13,28 @@ export function useActiveEmployee() {
   const [employees, setEmployees] = useState<EmployeeProfile[]>(MOCK_EMPLOYEES);
   const [employeeId, setEmployeeId] = useState<string>(MOCK_EMPLOYEE.id);
   const [employee, setEmployee] = useState<EmployeeProfile>(MOCK_EMPLOYEE);
+  /**
+   * Whether `employeeId` is the real answer yet.
+   *
+   * It starts as a mock persona's id and is replaced once the directory has been fetched
+   * and the saved choice read back. Anything keyed on the employee — the conversation
+   * store, most obviously — is rebuilt when it changes, so work started before this is
+   * true can be thrown away mid-flight. That is not a hypothetical: a question typed on
+   * the dashboard went into a conversation that was discarded a moment later when the id
+   * settled to somebody else, and it happened only when the saved persona differed from
+   * the default, which is why it looked intermittent.
+   */
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     void fetchEmployees().then((list) => {
-      if (!active || !list.length) return;
+      if (!active) return;
+      if (!list.length) {
+        setSettled(true);
+        return;
+      }
       setEmployees(list);
 
       let initialId = list[0]!.id;
@@ -34,6 +50,10 @@ export function useActiveEmployee() {
       setEmployeeId(initialId);
       const found = list.find((e) => e.id === initialId || e.user_id === initialId) ?? list[0]!;
       setEmployee(found);
+      setSettled(true);
+    }).catch(() => {
+      // The mock persona stands, and it is not going to change again.
+      if (active) setSettled(true);
     });
 
     return () => {
@@ -54,6 +74,6 @@ export function useActiveEmployee() {
     });
   }, []);
 
-  return { employee, employees, employeeId, selectEmployee };
+  return { employee, employees, employeeId, selectEmployee, settled };
 }
 

@@ -147,6 +147,16 @@ export interface EmployeeProfile {
   probation_status?: string | undefined;
   years_of_service?: number | undefined;
   start_date?: string | undefined;
+  /**
+   * "Active" | "On Leave" | "Onboarding" | "Terminated".
+   *
+   * The dashboard shows a new joiner their visa application and a current employee their
+   * schooling claim, so it has to know which it is looking at. Both facts were in the
+   * database and neither reached here.
+   */
+  employment_status?: string | undefined;
+  /** How many people report to this person. There is no "is a manager" flag; this is it. */
+  direct_reports?: number | undefined;
 }
 
 export class ApiError extends Error {

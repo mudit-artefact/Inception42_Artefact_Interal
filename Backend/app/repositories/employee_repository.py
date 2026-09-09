@@ -8,6 +8,7 @@ transaction and tests can hand in a temporary database.
 import logging
 from datetime import datetime
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.errors import EmployeeNotFoundError
@@ -35,6 +36,27 @@ def list_employee_identifiers(session: Session) -> list[str]:
     return [
         employee.user_id for employee in session.query(Employee).order_by(Employee.user_id).all()
     ]
+
+
+def count_direct_reports(session: Session) -> dict[str, int]:
+    """
+    How many people report to each manager, keyed by the manager's employee id.
+
+    There is no "is a manager" flag anywhere in this system, and there does not need to
+    be: managing is having reports. Counted here in one grouped query rather than per
+    employee, because the people switcher asks for every profile at once.
+
+    Keyed on `manager_id`, never on `manager_name`. The name column is not unique, and is
+    sometimes not a person at all — one employee's manager is the string
+    "Board of Directors".
+    """
+    counted = (
+        session.query(Employee.manager_id, func.count(Employee.user_id))
+        .filter(Employee.manager_id.isnot(None))
+        .group_by(Employee.manager_id)
+        .all()
+    )
+    return {manager_id: total for manager_id, total in counted}
 
 
 def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:

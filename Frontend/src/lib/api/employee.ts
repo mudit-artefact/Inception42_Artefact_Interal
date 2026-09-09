@@ -51,3 +51,52 @@ export async function fetchEmployeeProfile(employeeId: string): Promise<Employee
     return getMockEmployee(employeeId);
   }
 }
+
+/** One leave request as `My requests` lists it. */
+export interface LeaveRequestRow {
+  id: number;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  days_requested: number;
+  status: string;
+  approver_name: string;
+  notes: string;
+  created_at: string;
+}
+
+/** One request waiting on this person's decision. */
+export interface PendingApproval {
+  request_id: number;
+  employee_id: string;
+  employee_name: string;
+  employee_role: string;
+  leave_type: string;
+  start_date: string;
+  end_date: string;
+  days_requested: number;
+  notes: string;
+  created_at: string;
+  status: string;
+}
+
+/**
+ * This employee's leave requests, newest first.
+ *
+ * No mock fallback, deliberately. The two functions above quietly substitute five invented
+ * personas when the API is down, which is cosmetic on a chat and dishonest on a page headed
+ * "My requests" — it would show somebody leave they never asked for. This throws, and the
+ * page says it could not load.
+ */
+export async function fetchLeaveRequests(employeeId: string): Promise<LeaveRequestRow[]> {
+  return apiRequest<LeaveRequestRow[]>(
+    `/api/omni/employee/${encodeURIComponent(employeeId)}/leave-requests`,
+  );
+}
+
+/** Leave requests waiting on this person. Empty for anybody who manages nobody. */
+export async function fetchPendingApprovals(employeeId: string): Promise<PendingApproval[]> {
+  return apiRequest<PendingApproval[]>(
+    `/api/omni/employee/${encodeURIComponent(employeeId)}/approvals`,
+  );
+}

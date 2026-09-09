@@ -56,25 +56,6 @@ router = APIRouter(prefix="/api/v1/hcs11", tags=["HCS-11 Document Verification"]
 NOTHING_LEFT_TO_DO = {UploadStatus.SUCCESS, UploadStatus.ALREADY_PAID}
 
 
-def _problems_belonging_to_no_document(verdict: UploadResult) -> list[str]:
-    """
-    The problems with nowhere else to appear — the eligibility rules, mostly.
-
-    `issues` is the complete list, and every problem is in it whether or not it also sits
-    against a file. Sending the whole thing to the panel printed the same finding three
-    times: once on the certificate's row, once as HCS-11's plain-English sentence, and
-    once more as the rule that produced it. A claim with one thing wrong looked like a
-    claim with three.
-
-    What is left is what the rows cannot say, which is exactly what the section under
-    them is for.
-    """
-    already_on_a_row = " ".join(
-        document.issue_message or "" for document in verdict.documents
-    )
-    return [problem for problem in verdict.issues if problem not in already_on_a_row]
-
-
 # ─── Request/Response Schemas ───────────────────────────────────────────────
 
 
@@ -125,6 +106,43 @@ class ErrorResponse(BaseModel):
     error: str
     error_type: str
     can_retry: bool
+
+
+def _as_case_detail(case: CaseDetail) -> CaseDetailResponse:
+    """
+    One claim, read once, the same way for every route that returns one.
+
+    Two routes returned this shape and only one of them filled it in. Building the
+    response in each place is what let them drift, and the half-built one silently said
+    every claim was fine.
+    """
+    verdict = format_upload_result(case)
+    return CaseDetailResponse(
+        case=case,
+        status_message=format_case_status_message(case),
+        documents=verdict.documents,
+        problems=_problems_belonging_to_no_document(verdict),
+        everything_is_settled=verdict.status in NOTHING_LEFT_TO_DO,
+    )
+
+
+def _problems_belonging_to_no_document(verdict: UploadResult) -> list[str]:
+    """
+    The problems with nowhere else to appear — the eligibility rules, mostly.
+
+    `issues` is the complete list, and every problem is in it whether or not it also sits
+    against a file. Sending the whole thing to the panel printed the same finding three
+    times: once on the certificate's row, once as HCS-11's plain-English sentence, and
+    once more as the rule that produced it. A claim with one thing wrong looked like a
+    claim with three.
+
+    What is left is what the rows cannot say, which is exactly what the section under
+    them is for.
+    """
+    already_on_a_row = " ".join(
+        document.issue_message or "" for document in verdict.documents
+    )
+    return [problem for problem in verdict.issues if problem not in already_on_a_row]
 
 
 # ─── Dependency ─────────────────────────────────────────────────────────────
@@ -206,14 +224,7 @@ async def get_case(case_id: str) -> CaseDetailResponse:
             # The same reading of the claim an upload gets. The panel opens on this
             # endpoint and polls it, so anything decided only on the upload path was
             # invisible for every view of a claim except the moment it was sent.
-            verdict = format_upload_result(case)
-            return CaseDetailResponse(
-                case=case,
-                status_message=format_case_status_message(case),
-                documents=verdict.documents,
-                problems=_problems_belonging_to_no_document(verdict),
-                everything_is_settled=verdict.status in NOTHING_LEFT_TO_DO,
-            )
+            return _as_case_detail(case)
     except HCS11CaseNotFoundError:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     except HCS11ConnectionError:
@@ -234,16 +245,19 @@ async def get_active_case(employee_id: str) -> CaseDetailResponse | None:
 
     Returns the first case that isn't fully paid. Returns null if
     all cases are complete or the employee has no cases.
+
+    This used to fill two of the response's five fields, so `documents`, `problems` and
+    `everything_is_settled` came back empty on every call — the endpoint reported "nothing
+    wrong" whatever HCS-11 had decided. It is the same failure the panel had, in the one
+    endpoint that was missed when that was fixed, and it was harmless only because nothing
+    called it yet. The reading is now the same one `/cases/{case_id}` gives.
     """
     try:
         async with get_hcs11_client() as client:
             case = await client.get_active_case(employee_id)
             if case is None:
                 return None
-            return CaseDetailResponse(
-                case=case,
-                status_message=format_case_status_message(case),
-            )
+            return _as_case_detail(case)
     except HCS11ConnectionError:
         raise HTTPException(status_code=503, detail="Document verification service unavailable")
     except HCS11TimeoutError:

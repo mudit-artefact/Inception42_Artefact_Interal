@@ -1,141 +1,213 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { PanelLeft } from "lucide-react";
+import { AlertCircle, FileText, Loader2, Sparkles } from "lucide-react";
+import { motion } from "motion/react";
 import { useState } from "react";
-import { ChatPanel } from "@/components/concierge/ChatPanel";
-import { ConversationHistory } from "@/components/concierge/ConversationHistory";
-import { NotificationCenter } from "@/components/concierge/NotificationCenter";
-import { UserSwitcher } from "@/components/concierge/UserSwitcher";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ActionCards } from "@/components/home/ActionCards";
+import { NewChatBox } from "@/components/home/NewChatBox";
+import { RequestsTable } from "@/components/home/RequestsTable";
+import { AppShell, APP_TITLE } from "@/components/layout/AppShell";
 import { useActiveEmployee } from "@/hooks/useActiveEmployee";
-import { useConcierge } from "@/hooks/useConcierge";
-import { InceptionLogo } from "@/components/common/InceptionLogo";
+import { fetchLeaveRequests, fetchPendingApprovals } from "@/lib/api/employee";
+import { getActiveCase, getEmployeeCases } from "@/lib/api/hcs11";
+import { getVisaCases } from "@/lib/api/visa";
+import { buildActionCards, buildRequestRows } from "@/lib/home";
 
-const TITLE = "Dalīl";
 const DESCRIPTION =
-  "Ask HR policy and leave questions and get cited answers from the approved Dalīl policy library, with your live leave balance alongside.";
+  "What needs your attention across your HR journey — your requests, your documents, and Dalīl when you need it.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: TITLE },
+      { title: APP_TITLE },
       { name: "description", content: DESCRIPTION },
-      { property: "og:title", content: TITLE },
+      { property: "og:title", content: APP_TITLE },
       { property: "og:description", content: DESCRIPTION },
     ],
   }),
-  component: ConciergePage,
+  component: HomePage,
 });
 
-function ConciergePage() {
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function HomePage() {
   const { employees, employeeId, selectEmployee, employee } = useActiveEmployee();
-  const concierge = useConcierge(employeeId);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [leaving, setLeaving] = useState(false);
+
+  // Everything is asked for, and what comes back decides what is shown.
+  //
+  // This used to branch on `employment_status` and on a count of direct reports: a new
+  // joiner was asked about their visa, everybody else about their schooling claim. That
+  // reads well and fails badly. When the profile does not carry those fields — an older
+  // backend, a mock, a person whose record is incomplete — the comparison is false rather
+  // than unknown, so every new joiner was quietly treated as a current employee and never
+  // shown the visa documents they had to send. A screen that hides a task because a field
+  // was missing is the same failure as a screen that shows a green tick because a check
+  // was unrecognised.
+  //
+  // The data already answers the question. A new joiner has a visa case and no schooling
+  // claim; a current employee has the reverse; somebody who manages nobody has an empty
+  // approvals list. Four requests instead of two, and no way to guess wrong.
+  const ready = Boolean(employeeId);
+  const visa = useQuery({
+    queryKey: ["visa-cases", employeeId],
+    queryFn: () => getVisaCases(employeeId),
+    enabled: ready,
+  });
+  const school = useQuery({
+    queryKey: ["school-cases", employeeId],
+    queryFn: () => getEmployeeCases(employeeId),
+    enabled: ready,
+  });
+  // The open claim, read the way an upload reads it. This endpoint used to return its
+  // verdict fields empty — reporting "nothing wrong" whatever HCS-11 had decided — which
+  // is exactly the failure a card built on it would have inherited.
+  const openClaim = useQuery({
+    queryKey: ["active-school-case", employeeId],
+    queryFn: () => getActiveCase(employeeId),
+    enabled: ready,
+  });
+  const leave = useQuery({
+    queryKey: ["leave-requests", employeeId],
+    queryFn: () => fetchLeaveRequests(employeeId),
+    enabled: ready,
+  });
+  const approvals = useQuery({
+    queryKey: ["approvals", employeeId],
+    queryFn: () => fetchPendingApprovals(employeeId),
+    enabled: ready,
+  });
+
+  const loading =
+    visa.isLoading ||
+    school.isLoading ||
+    openClaim.isLoading ||
+    leave.isLoading ||
+    approvals.isLoading;
+  // Every source that could not be reached. The page says so rather than drawing an empty
+  // table, which would read as "you have no requests" — a different and untrue statement.
+  const unreachable = [visa, school, openClaim, leave, approvals].some(
+    (query) => query.isError,
+  );
+
+  const cards = buildActionCards({
+    visaCases: visa.data,
+    openSchoolCase: openClaim.data,
+    approvals: approvals.data,
+  });
+  const rows = buildRequestRows({
+    leaveRequests: leave.data,
+    schoolCases: school.data,
+    visaCases: visa.data,
+  });
+
+  const firstName = (employee?.name ?? "").split(" ")[0] ?? "";
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <header className="flex shrink-0 items-center gap-3 border-b bg-card px-3 py-2.5 sm:px-4">
-        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon-sm" className="lg:hidden cursor-pointer" aria-label="Open menu">
-              <PanelLeft aria-hidden="true" className="size-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] p-0">
-            <SheetTitle className="sr-only">Conversations</SheetTitle>
-            <div className="flex h-full min-h-0 flex-col">
-              <div className="border-b p-2">
-                <UserSwitcher
-                  employees={employees}
-                  activeId={employeeId}
-                  onSelect={selectEmployee}
-                  className="w-full justify-start"
-                />
+    <AppShell
+      employees={employees}
+      employeeId={employeeId}
+      employee={employee}
+      onSelectEmployee={selectEmployee}
+    >
+      <motion.div
+        animate={leaving ? { opacity: 0, scale: 0.985 } : { opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="flex min-h-0 flex-1 flex-col bg-background"
+      >
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6">
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+                  {greeting()}
+                  {firstName ? `, ${firstName}` : ""}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Here is what needs your attention across your HR journey.
+                </p>
               </div>
-              <div className="min-h-0 flex-1">
-                <ConversationHistory
-                  conversations={concierge.conversations}
-                  activeId={concierge.activeId}
-                  onSelect={(id) => {
-                    concierge.selectConversation(id);
-                    setMobileNavOpen(false);
-                  }}
-                  onNew={() => {
-                    concierge.startNew();
-                    setMobileNavOpen(false);
-                  }}
-                  onDelete={concierge.deleteConversation}
-                  onClearAll={() => {
-                    concierge.clearAll();
-                    setMobileNavOpen(false);
-                  }}
-                />
+              <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] p-3 sm:max-w-sm">
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Your HR partner, whenever you need it.
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Get help, complete tasks and track your requests in one place.
+                  </p>
               </div>
             </div>
-          </SheetContent>
-        </Sheet>
+          </header>
 
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="hidden lg:flex cursor-pointer text-muted-foreground hover:text-foreground"
-          onClick={() => setSidebarOpen((prev) => !prev)}
-          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          <PanelLeft className="size-4" />
-        </Button>
+          {unreachable && (
+            <div className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+              <AlertCircle
+                className="mt-0.5 size-4 shrink-0 text-destructive"
+                aria-hidden="true"
+              />
+              <div>
+                <p className="text-sm font-medium text-destructive">
+                  Some of this could not be loaded
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  What is shown below may be incomplete. Nothing has been guessed at.
+                </p>
+              </div>
+            </div>
+          )}
 
-        <div className="flex items-center gap-2.5">
-          <InceptionLogo className="h-7.5 sm:h-8.5 w-auto shrink-0" />
-          <div className="animate-brand-spin cursor-default select-none">
-            <h1 className="font-display text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent hover:scale-105 transition-transform">
-              {TITLE}
-            </h1>
+          <section className="rounded-xl border bg-card">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h3 className="flex items-center gap-2 font-display text-base font-semibold">
+                <AlertCircle className="size-4 text-primary" aria-hidden="true" />
+                Notifications
+              </h3>
+            </div>
+            <div className="p-4">
+              {loading ? <Waiting /> : <ActionCards cards={cards} />}
+            </div>
+          </section>
+
+          <section className="rounded-xl border bg-card">
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <h3 className="flex items-center gap-2 font-display text-base font-semibold">
+                <FileText className="size-4 text-primary" aria-hidden="true" />
+                My requests
+              </h3>
+            </div>
+            {/* All of them. Truncating meant needing a second page to show the rest,
+                and the rest was one row. */}
+            {loading ? <Waiting /> : <RequestsTable rows={rows} />}
+          </section>
+
           </div>
         </div>
 
-        <div className="min-w-0 flex-1" />
-
-        <div className="flex items-center gap-2">
-          <NotificationCenter
-            employeeId={employeeId}
-            employee={employee}
-            onActionClick={(prompt) => concierge.send(prompt)}
-          />
-          <UserSwitcher employees={employees} activeId={employeeId} onSelect={selectEmployee} />
+        {/* Always in reach. It used to sit at the foot of the scrolling column, so on a
+            dashboard with anything on it you had to scroll to the bottom to ask a
+            question — the one thing that should never be somewhere you have to go and
+            find. */}
+        <div className="shrink-0 border-t bg-background/95 backdrop-blur">
+          <div className="mx-auto w-full max-w-5xl px-4 py-3 sm:px-6">
+            <NewChatBox onLeaving={() => setLeaving(true)} />
+          </div>
         </div>
-      </header>
+      </motion.div>
+    </AppShell>
+  );
+}
 
-      <div className="flex min-h-0 flex-1">
-        {sidebarOpen && (
-          <aside className="hidden w-[260px] shrink-0 border-r bg-sidebar lg:block">
-            <ConversationHistory
-              conversations={concierge.conversations}
-              activeId={concierge.activeId}
-              onSelect={concierge.selectConversation}
-              onNew={concierge.startNew}
-              onDelete={concierge.deleteConversation}
-              onClearAll={concierge.clearAll}
-            />
-          </aside>
-        )}
-
-        <main className="flex min-w-0 flex-1 flex-col bg-card overflow-hidden">
-          <ChatPanel
-            messages={concierge.active?.messages ?? []}
-            status={concierge.status}
-            stage={concierge.stage}
-            error={concierge.error}
-            onSend={concierge.send}
-            onRetry={concierge.retry}
-            onDismissError={concierge.dismissError}
-            onFeedback={concierge.setFeedback}
-            isAwaitingClarification={concierge.isAwaitingClarification}
-            employeeId={employeeId}
-          />
-        </main>
-      </div>
+function Waiting() {
+  return (
+    <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+      <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+      Loading…
     </div>
   );
 }

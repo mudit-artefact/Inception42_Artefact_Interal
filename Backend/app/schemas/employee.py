@@ -57,6 +57,50 @@ class EmployeeProfile(BaseModel):
     balances: list[LeaveBalanceItem] = Field(default_factory=list)
     policyLinks: list[PolicyLink] = Field(default_factory=list)
 
+    # Who this person is, for a screen that shows different things to different people.
+    #
+    # Both facts existed in the database and neither reached the browser, so the web
+    # interface had no way to tell a new joiner from a current employee, or to know that
+    # somebody has people reporting to them. Both were being inferred from the wording of
+    # a question instead, which is a poor way to decide what to put on a page.
+    employment_status: str = "Active"  # "Active" | "On Leave" | "Onboarding" | "Terminated"
+    # How many people report to this person. There is no "is a manager" flag anywhere in
+    # the system; managing is having reports, and this is that, counted.
+    direct_reports: int = 0
+
+
+class LeaveRequestItem(BaseModel):
+    """One leave request as a list shows it."""
+
+    id: int
+    leave_type: str
+    start_date: str
+    end_date: str
+    days_requested: int
+    status: str  # "Approved" | "Pending" | "Rejected" | "Cancelled"
+    approver_name: str = ""
+    notes: str = ""
+    # When the row was written. Requests seeded with the database all carry the moment of
+    # seeding rather than a real submission date; the figure is passed through as it
+    # stands rather than dressed up.
+    created_at: str = ""
+
+
+class PendingApprovalItem(BaseModel):
+    """One request waiting on this manager, with enough about the asker to decide."""
+
+    request_id: int
+    employee_id: str
+    employee_name: str
+    employee_role: str = ""
+    leave_type: str
+    start_date: str
+    end_date: str
+    days_requested: int
+    notes: str = ""
+    created_at: str = ""
+    status: str = "Pending"
+
 
 class UpdateManagerRequest(BaseModel):
     manager_name: str

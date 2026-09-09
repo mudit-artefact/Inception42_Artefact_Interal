@@ -873,22 +873,36 @@ def get_manager_pending_approvals(manager_id: str, session: Optional[Session] = 
 
 
 def get_pending_leave_requests(employee_id: str, session: Optional[Session] = None) -> list[dict]:
-    """Retrieve all pending leave requests for the given employee."""
+    """The ones still waiting on a decision. What the assistant offers to cancel."""
+    return get_leave_requests(employee_id, session=session, still_waiting_only=True)
+
+
+def get_leave_requests(
+    employee_id: str,
+    session: Optional[Session] = None,
+    still_waiting_only: bool = False,
+) -> list[dict]:
+    """
+    This employee's leave requests, newest first.
+
+    One query with one filter rather than two functions reading the same table, because
+    the screen wants the history and the assistant wants the pending ones, and they must
+    not be able to disagree about what a request looks like.
+
+    `created_at` is when the row was written. For requests seeded with the database that
+    is the moment of seeding rather than a real submission date, and it is reported as it
+    stands — a plain date that is right beats a plausible one that is not.
+    """
     close_session = False
     if session is None:
         session = SessionLocal()
         close_session = True
 
     try:
-        requests = (
-            session.query(LeaveRequest)
-            .filter(
-                LeaveRequest.employee_id == employee_id,
-                LeaveRequest.status == "Pending",
-            )
-            .order_by(LeaveRequest.created_at.desc())
-            .all()
-        )
+        query = session.query(LeaveRequest).filter(LeaveRequest.employee_id == employee_id)
+        if still_waiting_only:
+            query = query.filter(LeaveRequest.status == "Pending")
+        requests = query.order_by(LeaveRequest.created_at.desc()).all()
         return [
             {
                 "id": req.id,

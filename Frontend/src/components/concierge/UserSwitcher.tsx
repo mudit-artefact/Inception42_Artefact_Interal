@@ -26,6 +26,25 @@ const initialsOf = (name: string) =>
     .slice(0, 2)
     .join("");
 
+/**
+ * Two kinds of person, in the order somebody demonstrating this would want them.
+ *
+ * A new joiner has not started, so almost everything about them differs — no leave
+ * balance, a visa application instead of a schooling claim, and every leave rule turning
+ * them away. Finding one should not mean scrolling past twelve people who behave the
+ * other way.
+ */
+const GROUPS = [
+  {
+    heading: "Employees",
+    matches: (e: EmployeeProfile) => e.employment_status !== "Onboarding",
+  },
+  {
+    heading: "New joiners",
+    matches: (e: EmployeeProfile) => e.employment_status === "Onboarding",
+  },
+];
+
 export function UserSwitcher({ employees, activeId, onSelect, className }: UserSwitcherProps) {
   const active = employees.find((e) => e.id === activeId || e.user_id === activeId) ?? employees[0]!;
 
@@ -56,33 +75,56 @@ export function UserSwitcher({ employees, activeId, onSelect, className }: UserS
           Simulate a different employee
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {employees.map((employee) => {
-          const empId = employee.id || employee.user_id || "EMP001";
-          const isActive = empId === activeId;
+        {/*
+          Split, and each row two lines rather than three.
+
+          The list has grown from twelve people to eighteen, and at three lines each the
+          menu needed 1202px. It scrolls, but nothing on it says so — so the six new
+          joiners, who happen to sit last, simply looked as though they had been deleted.
+          Shorter rows fit them on an ordinary screen, and the heading says they are there
+          even when they have to be scrolled to.
+        */}
+        {GROUPS.map(({ heading, matches }) => {
+          const people = employees.filter(matches);
+          if (people.length === 0) return null;
           return (
-            <DropdownMenuItem
-              key={empId}
-              onSelect={() => onSelect(empId)}
-              className="items-start gap-3 py-2"
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "grid size-8 shrink-0 place-items-center rounded-full bg-primary font-display text-[11px] font-semibold text-primary-foreground",
-                  isActive && "ring-2 ring-primary ring-offset-1 ring-offset-popover",
-                )}
-              >
-                {initialsOf(employee.name)}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-xs font-semibold text-foreground">{employee.name}</span>
-                <span className="block text-[11px] text-muted-foreground">{employee.jobTitle || employee.role}</span>
-                <span className="block text-[11px] text-muted-foreground">
-                  {employee.department} · {employee.grade}
-                </span>
-              </span>
-              {isActive ? <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" /> : null}
-            </DropdownMenuItem>
+            <div key={heading}>
+              <DropdownMenuLabel className="px-2 pt-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {heading} ({people.length})
+              </DropdownMenuLabel>
+              {people.map((employee) => {
+                const empId = employee.id || employee.user_id || "EMP001";
+                const isActive = empId === activeId;
+                return (
+                  <DropdownMenuItem
+                    key={empId}
+                    onSelect={() => onSelect(empId)}
+                    className="items-center gap-2.5 py-1.5"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center rounded-full bg-primary font-display text-[10px] font-semibold text-primary-foreground",
+                        isActive && "ring-2 ring-primary ring-offset-1 ring-offset-popover",
+                      )}
+                    >
+                      {initialsOf(employee.name)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-xs font-semibold text-foreground">
+                        {employee.name}
+                      </span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {employee.jobTitle || employee.role}
+                      </span>
+                    </span>
+                    {isActive ? (
+                      <Check aria-hidden="true" className="size-4 shrink-0 text-primary" />
+                    ) : null}
+                  </DropdownMenuItem>
+                );
+              })}
+            </div>
           );
         })}
       </DropdownMenuContent>
