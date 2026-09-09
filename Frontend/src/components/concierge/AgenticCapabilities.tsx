@@ -1,7 +1,6 @@
 import {
   CalendarCheck2,
   GraduationCap,
-  HeartPulse,
   PlaneTakeoff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,15 +42,10 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
     borderClass: "hover:border-pink-500/50 hover:bg-pink-500/5",
     opens: "school-documents",
   },
-  {
-    id: "medical",
-    title: "Medical Insurance",
-    description: "Check medical coverage and claims",
-    icon: HeartPulse,
-    prompt: "What does my health insurance cover and what are the hospital network tiers?",
-    colorClass: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-    borderClass: "hover:border-sky-500/50 hover:bg-sky-500/5",
-  },
+  // Medical insurance was a fourth tile here, and there is no medical insurance policy in
+  // the People Code to answer it from. Tapping it asked a question the assistant can only
+  // decline — the same reason renewal and family sponsorship are not offered below. The
+  // guard in `prompts.py` stays, so the answer is still a proper one if somebody types it.
   {
     // Renewal and family sponsorship are not in the People Code, and the assistant
     // correctly declines them. What it does have is HC-PC-013: the documents a new joiner
@@ -82,7 +76,7 @@ export function AgenticCapabilities({
 }: AgenticCapabilitiesProps) {
   return (
     <div className={cn("w-full", className)}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {AGENTIC_CAPABILITIES.map((cap) => {
           const Icon = cap.icon;
           return (
