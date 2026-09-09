@@ -444,6 +444,10 @@ def read_school_claims(employee_id: str) -> list[dict] | None:
         logger.warning(f"HCS-11 returned {type(cases).__name__} for {employee_id}, not a list")
         return None
 
+    base = settings.hcs11_backend_url.rstrip("/")
+    cases = [_the_whole_case(base, "/api/hcs11/cases", case)
+             for case in cases if isinstance(case, dict)]
+
     # Only what an employee is owed about their own claim. The reviewer, the internal
     # routing verdict and the rule codes are HCS-11's working, not theirs.
     return [
@@ -458,10 +462,69 @@ def read_school_claims(employee_id: str) -> list[dict] | None:
             "approved_on": case.get("approved_on") or "",
             "payment_status": case.get("payment_status", ""),
             "awaiting_review": bool(case.get("awaiting_review")),
+            # What the claim needs and what is wrong with it. These come only from the
+            # per-case reading; the listing leaves them out, which is why the assistant
+            # could report a status and nothing else about a claim HCS-11 had rejected.
+            "required_documents": tuple(
+                row.get("label") or row.get("kind", "")
+                for row in case.get("required_documents") or ()
+                if isinstance(row, dict)
+            ),
+            "missing_documents": tuple(
+                _school_document_names(case).get(kind, kind)
+                for kind in case.get("missing_documents") or ()
+            ),
+            "problems": tuple(
+                f"{issue.get('title', '')}. {issue.get('what_to_do', '')}".strip(" .")
+                for issue in case.get("employee_issues") or ()
+                if issue.get("title")
+            ),
         }
         for case in cases
         if isinstance(case, dict)
     ]
+
+
+def _school_document_names(case: dict) -> dict[str, str]:
+    """A school case's checklist as `{kind: what HCS-11 calls it}`."""
+    return {
+        row["kind"]: row.get("label") or row["kind"]
+        for row in case.get("required_documents") or ()
+        if isinstance(row, dict) and row.get("kind")
+    }
+
+
+def _the_whole_case(base_url: str, path: str, summary: dict) -> dict:
+    """
+    The full case, or the summary if it cannot be had.
+
+    HCS-11's list endpoints are summaries: they carry the status and the dates, and they
+    return `problems` as an empty list whatever the case says. Only the per-case endpoint
+    fills it in.
+
+    Reading the list was enough until it wasn't. Somebody whose documents belonged to
+    another person asked what the status of their application was and was told every
+    document had been received and nothing was outstanding — true of the summary, and the
+    opposite of what HCS-11 had decided. The assistant was not wrong; it was told nothing
+    was wrong.
+
+    One extra request per case, and only on a turn that asks about a case at all.
+    """
+    case_id = summary.get("case_id")
+    if not case_id:
+        return summary
+    try:
+        response = httpx.get(
+            f"{base_url}{path}/{case_id}", timeout=CLAIM_READ_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        full = response.json()
+    except Exception as unreachable:
+        # The summary is thin, not wrong. Better a partial answer than none — and the
+        # fields it does carry are the ones it is authoritative about.
+        logger.warning(f"Could not read the detail of {case_id}: {unreachable}")
+        return summary
+    return full if isinstance(full, dict) else summary
 
 
 def read_visa_case(employee_id: str) -> list[dict] | None:
@@ -491,6 +554,10 @@ def read_visa_case(employee_id: str) -> list[dict] | None:
         logger.warning(f"HCS-11 returned {type(cases).__name__} for {employee_id}, not a list")
         return None
 
+    base = settings.hcs11_backend_url.rstrip("/")
+    cases = [_the_whole_case(base, "/api/visa/cases", case)
+             for case in cases if isinstance(case, dict)]
+
     # Only what the new joiner is owed about their own case. The routing verdict, the check
     # codes, the legal entity and the nationality read off their passport are HCS-11's own
     # working, not theirs.
@@ -509,5 +576,4 @@ def read_visa_case(employee_id: str) -> list[dict] | None:
             "problems": tuple(case.get("problems") or ()),
         }
         for case in cases
-        if isinstance(case, dict)
     ]

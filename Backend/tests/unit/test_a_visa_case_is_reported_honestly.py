@@ -356,3 +356,65 @@ def test_a_fault_on_the_new_kind_lands_on_its_own_row():
     faulty = [row.kind for row in rows if row.has_issues]
     assert faulty == ["residence_visa"]
     assert next(row for row in rows if row.kind == "residence_visa").issue_message == expired
+
+
+# ── the assistant must be told what is wrong, not only the status ─────────────
+#
+# An employee whose documents belonged to somebody else asked what the status of their
+# application was, and was told every document had been received and there was nothing
+# outstanding. The assistant was not wrong: the reader called HCS-11's *listing*, which
+# returns `problems` as an empty list whatever the case holds, and wrote from that.
+#
+# The upload panel was showing the same case with every row in red at the time. Two halves
+# of one product, disagreeing about one claim.
+
+
+def test_the_evidence_carries_the_problem_not_only_the_status():
+    """What `_visa_case_lines` puts in front of the model."""
+    from app.domain.employee_facts import VisaCase
+    from app.workflow.evidence_formatting import _visa_case_lines
+
+    wrong_person = (
+        "The passport copy names Ahmed Al Rashid; this application is for Marco Ferreira."
+    )
+    lines = _visa_case_lines([VisaCase(
+        case_id="VISA0006", plan_name="Employment visa", status="Under Review",
+        required_documents=("Passport copy", "Signed job-offer form"),
+        missing_documents=(),
+        problems=(wrong_person,),
+    )])
+
+    assert any(wrong_person in line for line in lines)
+
+
+def test_nothing_outstanding_is_never_said_over_a_problem():
+    """
+    "Nothing outstanding" beside a problem is a contradiction, and the model believes the
+    confident half. The school evidence said exactly that — "waiting on a reviewer,
+    nothing further needed from the employee" — directly above the line explaining the
+    documents were for a different child.
+    """
+    from app.domain.employee_facts import SchoolClaim
+    from app.workflow.evidence_formatting import _school_claim_lines
+
+    written = " ".join(_school_claim_lines([SchoolClaim(
+        case_id="CASE0001", child_name="Zayed Al Suwaidi", academic_year="2026-2027",
+        status="Under Review", awaiting_review=True,
+        problems=("These documents are for a different child.",),
+    )]))
+
+    assert "nothing further needed" not in written
+    assert "different child" in written
+
+
+def test_a_clean_claim_may_still_say_nothing_is_needed():
+    """The guard must not turn every claim into a warning."""
+    from app.domain.employee_facts import SchoolClaim
+    from app.workflow.evidence_formatting import _school_claim_lines
+
+    written = " ".join(_school_claim_lines([SchoolClaim(
+        case_id="CASE0011", child_name="Luca Costa", academic_year="2026-2027",
+        status="Under Review", awaiting_review=True, problems=(),
+    )]))
+
+    assert "nothing further needed" in written

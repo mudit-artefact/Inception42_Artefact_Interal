@@ -154,8 +154,15 @@ def _school_claim_lines(claims: list | None) -> list[str]:
             detail.append(f"approved {claim.approved_on}")
         if claim.recommendation == CLAIM_NEEDS_MORE_FROM_YOU:
             detail.append("further documents have been requested from the employee")
-        elif claim.awaiting_review:
+        elif claim.awaiting_review and not claim.problems:
+            # "Nothing further needed" is a claim about the claim, and it was being made
+            # without looking at it. A claim can be with a reviewer *and* have something
+            # wrong with it — the documents being for a different child, for instance —
+            # and this line then sat in the evidence directly contradicting the problem
+            # printed underneath it. The model believed the confident sentence.
             detail.append("waiting on a reviewer, nothing further needed from the employee")
+        elif claim.awaiting_review:
+            detail.append("with a reviewer, and there is something for the employee to fix")
         if claim.payment_status:
             detail.append(f"payment {claim.payment_status}")
         if claim.submission_deadline:
@@ -163,6 +170,16 @@ def _school_claim_lines(claims: list | None) -> list[str]:
         lines.append(
             f"  - {claim.child_name} ({claim.academic_year}): {', '.join(detail)}"
         )
+        # What the claim still needs and what is wrong with what arrived. Without these
+        # the status word was the whole answer: a claim rejected because the documents
+        # were for a different child was reported as "Under Review" and nothing else,
+        # while the upload panel showed all four documents in red.
+        if claim.missing_documents:
+            lines.append(
+                f"    still outstanding: {', '.join(claim.missing_documents)}"
+            )
+        for problem in claim.problems:
+            lines.append(f"    problem: {problem}")
     return lines
 
 

@@ -83,6 +83,14 @@ class SchoolClaim:
     approved_on: str = ""
     payment_status: str = ""
     awaiting_review: bool = False
+    # What the claim still needs, and what is wrong with what arrived. The record used to
+    # carry the status word and nothing else, so an employee whose claim was rejected
+    # because the documents were for a different child could be told "Under Review" and
+    # not one word about why. The upload panel showed all four documents in red while the
+    # assistant, asked about the same claim, said everything was fine.
+    required_documents: tuple[str, ...] = ()
+    missing_documents: tuple[str, ...] = ()
+    problems: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -210,7 +218,18 @@ class EmployeeFacts:
             # before these fields existed must still resume.
             employment_status=stored.get("employment_status", ""),
             school_claims=(
-                [SchoolClaim(**claim) for claim in stored["school_claims"]]
+                # Lists back to tuples, as the visa cases below already do: the record is
+                # frozen, and a claim rebuilt with a list where it declares a tuple is a
+                # different value from the one that was stored.
+                [
+                    SchoolClaim(
+                        **{
+                            key: tuple(value) if isinstance(value, list) else value
+                            for key, value in claim.items()
+                        }
+                    )
+                    for claim in stored["school_claims"]
+                ]
                 if stored.get("school_claims") is not None
                 else None
             ),
