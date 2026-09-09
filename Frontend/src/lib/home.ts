@@ -49,7 +49,11 @@ export function buildActionCards(sources: {
       badge: missing.length > 0 ? "Document needed" : "Needs attention",
       done: total - missing.length,
       total,
-      prompt: "What do I still need to send for my employment visa?",
+      // Phrased as a request to send, not a question about what is outstanding.
+      // "What do I still need to send…" reads as a question, is classified as one, and
+      // gets answered with a list — leaving somebody who tapped an Upload card reading
+      // prose instead of looking at the upload window they asked for.
+      prompt: "I want to upload my visa documents",
     });
   }
 
@@ -74,7 +78,7 @@ export function buildActionCards(sources: {
       badge: faulty.length > 0 ? "Action needed" : "In review",
       done: received,
       total: rows.length,
-      prompt: "What does my schooling claim still need?",
+      prompt: "I want to upload my school documents",
     });
   }
 
