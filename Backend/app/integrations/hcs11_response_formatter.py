@@ -46,6 +46,11 @@ class UploadResult:
     message: str
     documents: list[DocumentStatus] = field(default_factory=list)
     issues: list[str] = field(default_factory=list)
+    # The subset of `issues` that no checklist row is showing. `issues` stays complete —
+    # the bell, the board and the assistant all read it and a claim whose only fault sits
+    # on a document must not come back with nothing to say — and this is what the panel
+    # prints beneath the rows.
+    claim_level_issues: list[str] = field(default_factory=list)
     missing_documents: list[str] = field(default_factory=list)
     can_reupload: bool = False
     reupload_message: str | None = None
@@ -76,6 +81,7 @@ def format_upload_result(case: CaseDetail) -> UploadResult:
         message=message,
         documents=documents,
         issues=issues,
+        claim_level_issues=_claim_level_issues(case, documents),
         missing_documents=missing,
         can_reupload=can_reupload,
         reupload_message=reupload_message,
@@ -139,11 +145,16 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
     HCS-11 says which files each problem is about, by id and by name. Ids are preferred
     where they resolve, because a replaced file keeps the name it was sent under.
 
-    Two sources, not one. `employee_issues` is HCS-11's own curated list of what the
-    employee must be told, and it was the only thing read here — so a failing check that
-    HCS-11 had not also written a plain-English issue for was attached to nothing and
-    shown nowhere. `match_checks` carries the rest, each already naming the document it
-    belongs against.
+    Two sources, in order of preference. `employee_issues` is HCS-11's own curated list of
+    what the employee must be told, and it was once the only thing read here — so a failing
+    check HCS-11 had not also written a plain sentence for was attached to nothing and shown
+    nowhere. `match_checks` fills that gap.
+
+    **Only that gap.** The checks are the evidence *behind* the sentence, not a second
+    finding: one invoice naming the wrong child produces a plain sentence and two checks,
+    all saying the same thing in different words. Printing all three put four sentences on
+    one row. So a file HCS-11 has written a sentence for shows that sentence and nothing
+    else; the checks are for files it wrote nothing about.
 
     Whatever cannot be attached to a row is not dropped: `_extract_issues` gathers every
     problem regardless, so the claim-level list is the floor beneath this one.
@@ -167,7 +178,11 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
     for check in case.match_checks:
         if not _worth_telling_the_employee(check, case):
             continue
-        note(name_for_id.get(check.document_id or ""), _format_match_failure(check))
+        filename = name_for_id.get(check.document_id or "")
+        if filename in problems_by_filename:
+            # HCS-11 has already said this in its own words on this row.
+            continue
+        note(filename, _format_match_failure(check))
 
     return [
         DocumentStatus(
@@ -183,6 +198,31 @@ def _build_document_statuses(case: CaseDetail) -> list[DocumentStatus]:
             ),
         )
         for required in case.required_documents
+    ]
+
+
+# Rules whose sentence HCS-11 builds by gluing the match checks beneath them together.
+# Shown alongside those checks they say one thing twice — and they are why comparing text
+# could never settle this: the glued sentence is neither equal to any of its parts nor
+# contained in them, so no substring test can recognise it as the same finding.
+SUMMARISE_THE_CHECKS = frozenset({"DOCUMENT_SET_CONSISTENT", "IDENTITY_MATCH"})
+
+
+def _rules_worth_repeating(case: CaseDetail) -> list:
+    """
+    The rules that add something the checks have not already said.
+
+    Matched by code rather than by wording, so that HCS-11 rephrasing a sentence — which
+    it has now done once — cannot quietly bring the repetition back.
+    """
+    the_checks_were_shown = any(
+        _worth_telling_the_employee(check, case) for check in case.match_checks
+    )
+    return [
+        rule
+        for rule in case.rule_results + case.unresolved
+        if rule.result not in SETTLED_IN_YOUR_FAVOUR
+        and not (rule.code in SUMMARISE_THE_CHECKS and the_checks_were_shown)
     ]
 
 
@@ -204,9 +244,51 @@ def _extract_issues(case: CaseDetail) -> list[str]:
         if _worth_telling_the_employee(check, case):
             messages.append(_format_match_failure(check))
 
-    for rule in case.rule_results + case.unresolved:
-        if rule.result not in SETTLED_IN_YOUR_FAVOUR:
-            messages.append(rule.detail)
+    for rule in _rules_worth_repeating(case):
+        messages.append(rule.detail)
+
+    return list(dict.fromkeys(messages))
+
+
+def _claim_level_issues(case: CaseDetail, documents: list[DocumentStatus]) -> list[str]:
+    """
+    The problems the checklist above cannot say — the eligibility rules, mostly.
+
+    Worked out from **which document each problem is about**, never by looking for its
+    words in the rows. Searching for the words was the old test, and it held only while
+    both sides wrote the same sentence: HCS-11 rephrasing one rule was enough to defeat it,
+    and the panel printed the same fault on a row and again underneath.
+
+    A problem about a document that is already showing one is not news. What is left is
+    what no row can carry, which is exactly what the section under them is for.
+    """
+    shown_on_a_row = {
+        document.filename
+        for document in documents
+        if document.has_issues and document.filename
+    }
+    name_for_id = {
+        document.document_id: document.file_name for document in case.documents
+    }
+
+    messages: list[str] = []
+
+    for issue in case.employee_issues:
+        named_files = {name_for_id.get(document_id) for document_id in issue.document_ids}
+        named_files.update(issue.documents)
+        if named_files & shown_on_a_row:
+            continue
+        messages.append(_say(issue))
+
+    for check in case.match_checks:
+        if not _worth_telling_the_employee(check, case):
+            continue
+        if name_for_id.get(check.document_id or "") in shown_on_a_row:
+            continue
+        messages.append(_format_match_failure(check))
+
+    for rule in _rules_worth_repeating(case):
+        messages.append(rule.detail)
 
     return list(dict.fromkeys(messages))
 

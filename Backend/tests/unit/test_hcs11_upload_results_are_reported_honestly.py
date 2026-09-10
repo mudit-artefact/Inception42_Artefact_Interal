@@ -376,3 +376,128 @@ def test_a_settled_claim_reads_as_settled():
 
     assert reading.everything_is_settled is True
     assert not any(document.has_issues for document in reading.documents)
+
+
+# ── One fault, said once ─────────────────────────────────────────────────────
+#
+# HCS-11 reports the same finding at three levels of detail, by design: a plain sentence
+# for the employee, the individual checks behind it, and the rule that adds those checks
+# up. One invoice naming the wrong child arrives as four sentences.
+#
+# They were all printed — three stacked on the row and the fourth underneath — because the
+# de-duplication compared *text*, and HCS-11 writes each level differently on purpose.
+# That test held only while both sides phrased it identically; HCS-11 rewording its rule
+# defeated it and the panel went back to printing the same fault twice. So none of this is
+# settled by comparing sentences any more. It is settled by which document each finding is
+# about, and by the rule's code.
+
+WRONG_CHILD = {
+    "employee_issues": [{
+        "kind": "wrong_child",
+        "title": "This document is for a different child",
+        "what_to_do": "Please send Shaikha Al Neyadi's documents.",
+        "documents": [INVOICE],
+        "document_ids": ["DOC-2"],
+    }],
+    "match_checks": [
+        {"code": "DOCUMENTS_ARE_THIS_CHILD", "result": "fail", "document_id": "DOC-2",
+         "detail": "The itemised school invoice names Hamdan Al Neyadi; this claim is for "
+                   "Shaikha Al Neyadi."},
+        {"code": "INVOICE_IS_SAME_CHILD", "result": "fail", "document_id": "DOC-2",
+         "detail": "The student on the invoice, against the certificate, is a different "
+                   "name (given name 46%, family name 100%)."},
+    ],
+    # HCS-11 builds this one by gluing the two checks above together, and sends it twice.
+    "rule_results": [{
+        "code": "DOCUMENT_SET_CONSISTENT", "result": "fail",
+        "detail": "The documents do not agree. The itemised school invoice names Hamdan "
+                  "Al Neyadi; this claim is for Shaikha Al Neyadi.; The student on the "
+                  "invoice, against the certificate, is a different name (given name 46%, "
+                  "family name 100%).",
+    }],
+}
+
+
+def test_the_row_says_it_once_in_hcs11s_own_words():
+    result = format_upload_result(a_case(**WRONG_CHILD))
+
+    invoice = next(d for d in result.documents if d.filename == INVOICE)
+    assert invoice.has_issues
+    assert invoice.issue_message == (
+        "This document is for a different child. Please send Shaikha Al Neyadi's documents."
+    )
+
+
+def test_the_rows_evidence_is_not_repeated_beneath_them():
+    """`About this claim` is for what no row can carry. This claim has nothing of the kind."""
+    result = format_upload_result(a_case(**WRONG_CHILD))
+
+    assert result.claim_level_issues == []
+
+
+def test_the_matching_score_never_reaches_the_employee():
+    """46% is a confidence score. It leaves by itself once the row stops stacking."""
+    result = format_upload_result(a_case(**WRONG_CHILD))
+
+    invoice = next(d for d in result.documents if d.filename == INVOICE)
+    assert "%" not in (invoice.issue_message or "")
+    assert not any("%" in problem for problem in result.claim_level_issues)
+
+
+def test_the_glued_rule_is_dropped_by_its_code_and_not_by_its_wording():
+    """
+    The wording is HCS-11's to change, and it just did. Recognising the repeat by code is
+    what stops a rephrasing from bringing it back.
+    """
+    reworded = dict(WRONG_CHILD)
+    reworded["rule_results"] = [{
+        "code": "DOCUMENT_SET_CONSISTENT", "result": "fail",
+        "detail": "Something else entirely, phrased in a way no row shares.",
+    }]
+
+    result = format_upload_result(a_case(**reworded))
+
+    assert not any("Something else entirely" in p for p in result.issues)
+    assert result.claim_level_issues == []
+
+
+def test_a_rule_that_is_not_a_summary_of_the_checks_still_reaches_the_employee():
+    """The floor stays. Only the rules that restate their own checks are dropped."""
+    result = format_upload_result(a_case(**{
+        **WRONG_CHILD,
+        "rule_results": [
+            *WRONG_CHILD["rule_results"],
+            {"code": "WITHIN_ANNUAL_LIMIT", "result": "fail",
+             "detail": "This claim is above the annual limit for your plan."},
+        ],
+    }))
+
+    assert "This claim is above the annual limit for your plan." in result.claim_level_issues
+
+
+def test_a_check_with_no_sentence_of_its_own_is_still_shown_on_the_row():
+    """Why the checks were read in the first place. That case has not gone away."""
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        match_checks=[{
+            "code": "DEPENDENT_DOB", "result": "fail", "document_id": "DOC-1",
+            "detail": "The date of birth does not match our records.",
+        }],
+    ))
+
+    certificate = next(d for d in result.documents if d.filename == CERTIFICATE)
+    assert certificate.has_issues
+    assert "date of birth" in (certificate.issue_message or "")
+
+
+def test_a_finding_with_no_document_still_appears_beneath_the_rows():
+    """The section exists for exactly this, and it must not be emptied by the fix."""
+    result = format_upload_result(a_case(
+        employee_issues=[],
+        match_checks=[{
+            "code": "SAME_ACADEMIC_YEAR", "result": "fail", "document_id": None,
+            "detail": "Your documents are for different school years.",
+        }],
+    ))
+
+    assert result.claim_level_issues == ["Your documents are for different school years."]

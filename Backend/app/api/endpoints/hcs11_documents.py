@@ -38,7 +38,6 @@ from app.integrations import (
     HCS11DocumentError,
     HCS11TimeoutError,
     HCS11ValidationError,
-    UploadResult,
     UploadStatus,
     format_case_status_message,
     format_error_message,
@@ -130,28 +129,13 @@ def _as_case_detail(case: CaseDetail) -> CaseDetailResponse:
         case=case,
         status_message=format_case_status_message(case),
         documents=verdict.documents,
-        problems=_problems_belonging_to_no_document(verdict),
+        # Worked out in the formatter, where each problem still knows which document it
+        # is about. This used to search the rows for the problem's own words, which held
+        # only while HCS-11 and the row phrased it identically — one rewording on their
+        # side and the same fault printed twice.
+        problems=verdict.claim_level_issues,
         everything_is_settled=verdict.status in NOTHING_LEFT_TO_DO,
     )
-
-
-def _problems_belonging_to_no_document(verdict: UploadResult) -> list[str]:
-    """
-    The problems with nowhere else to appear — the eligibility rules, mostly.
-
-    `issues` is the complete list, and every problem is in it whether or not it also sits
-    against a file. Sending the whole thing to the panel printed the same finding three
-    times: once on the certificate's row, once as HCS-11's plain-English sentence, and
-    once more as the rule that produced it. A claim with one thing wrong looked like a
-    claim with three.
-
-    What is left is what the rows cannot say, which is exactly what the section under
-    them is for.
-    """
-    already_on_a_row = " ".join(
-        document.issue_message or "" for document in verdict.documents
-    )
-    return [problem for problem in verdict.issues if problem not in already_on_a_row]
 
 
 # ─── Dependency ─────────────────────────────────────────────────────────────
