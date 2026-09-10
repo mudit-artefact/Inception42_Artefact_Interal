@@ -9,6 +9,11 @@ import { ChevronRight, Sparkles } from "lucide-react";
  * People Code. A tile that leads to "that is not in the People Code, please contact People
  * & Culture" is worse than no tile — it looks broken, and it wastes the tap.
  *
+ * "Do I get any leave before I start?" was here and is not any more. §13.2.2 answers it —
+ * a new joiner may not apply for leave — but it is not a question anybody asks before they
+ * have started, and a tile is a suggestion as much as a shortcut. Suggesting it invited
+ * somebody to ask for something the system would then refuse.
+ *
  * Two obvious-sounding questions are deliberately absent. "What happens after visa
  * approval?" has no answer because there is no approval state and §13.1 puts everything
  * after the first day out of scope. "When will I sign my contract?" has no clause anywhere
@@ -31,7 +36,6 @@ const QUESTIONS: { ask: string; clause: string }[] = [
   // on a tile has no conversation behind it, so it has to carry its own context.
   { ask: "What happens if one of my visa documents is returned?", clause: "§13.8" },
   { ask: "Which visa route am I on?", clause: "§13.3" },
-  { ask: "Do I get any leave before I start?", clause: "§13.2" },
 ];
 
 export function BeforeYouJoin() {

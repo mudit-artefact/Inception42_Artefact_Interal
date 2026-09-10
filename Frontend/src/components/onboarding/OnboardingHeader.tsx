@@ -26,6 +26,10 @@ export function OnboardingHeader({
 }) {
   const title = contract?.job_title || employee?.jobTitle || employee?.role || "";
   const starts = contract?.start_date || employee?.start_date;
+  // Everything this system can see is finished, and only the medical is left. The figure
+  // cannot move from here, so the line beneath it stops explaining the arithmetic and says
+  // what is actually outstanding.
+  const allWeCanSee = progress.total - progress.done === 1;
 
   return (
     <section className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_auto] lg:items-center">
@@ -77,15 +81,20 @@ export function OnboardingHeader({
             {progress.done} of {progress.total} milestones done
           </p>
           {/*
-            Said out loud, because the count is smaller than the board.
+            Why the figure stops where it does.
 
-            Two of the seven steps can never be ticked — nothing tracks the medical, and
-            Day 1 is a date. Counting them would leave somebody who has done everything
-            stuck below a hundred with no way to move, so they are shown and not counted,
-            and the difference is stated rather than left to be noticed.
+            Somebody who has done everything asked of them here lands on five of six, not a
+            hundred, and without a word of explanation that reads as a bug. The remaining
+            one is the medical: real, outstanding, and not something this system watches.
+            Saying so turns a number that looks stuck into a number that is waiting on
+            something nameable.
+
+            Day 1 is left out of the count entirely — nobody *does* their first day.
           */}
           <p className="mt-1 text-[11px] text-muted-foreground/80">
-            The medical and Day 1 are not counted — nothing tracks them
+            {allWeCanSee
+              ? "Everything we track is done — the medical is arranged with People & Culture"
+              : "Day 1 is not counted — it is a date, not a task"}
           </p>
         </div>
       </div>

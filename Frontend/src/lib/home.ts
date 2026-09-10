@@ -153,14 +153,19 @@ export interface JoiningStep {
   /**
    * Whether this step counts towards the progress figure.
    *
-   * Two of the seven can never be ticked — nothing tracks the medical, and Day 1 is a date
-   * no system flips. Counting them would cap a joiner who has done everything at 71%,
-   * which reads as unfinished when nothing is. So the figure spans the five that can
-   * actually complete, and reaches 100% exactly when the visa reaches the PRO.
+   * Only Day 1 is excluded, and only because it is a date rather than a task — nobody
+   * *does* their first day, they arrive at it.
    *
-   * This replaces a flat refusal to show any percentage at all. The objection then was
-   * that a figure spanning an untracked step is part invention — which it is, and which is
-   * why the untracked steps are excluded rather than the figure dropped.
+   * The medical counts even though nothing tracks it and nothing here can tick it, which
+   * means the figure never reaches a hundred. That is the point. It was excluded at first
+   * on the reasoning that a step which cannot complete should not hold the number down —
+   * but the number is a claim about whether somebody is ready to join, and the medical is
+   * real work standing between them and their first day. A hundred per cent over it would
+   * be the page's most confident statement and its least true one.
+   *
+   * All of this replaces a flat refusal to show any percentage at all, whose objection was
+   * that a figure spanning an untracked step is part invention. It is — so the untracked
+   * step is named on the board and under the ring rather than quietly folded in.
    */
   counts: boolean;
   /** Something to do about it, said the way the assistant expects to be asked. */
@@ -333,8 +338,14 @@ export function joiningSteps(
       state: "untracked",
       phase: "processing",
       owner: "People & Culture",
-      // Nothing tracks it, so nothing can tick it. See `counts` on `JoiningStep`.
-      counts: false,
+      // Counted, even though nothing here can ever tick it.
+      //
+      // This was excluded on the reasoning that a step which cannot complete should not
+      // hold the figure below a hundred. That had it backwards. The medical is real work
+      // that has genuinely not happened, and a ring reading 100% over it tells somebody
+      // they are ready to join when the thing standing between them and their first day is
+      // still outstanding. Better to be short of a hundred and true.
+      counts: true,
     },
     {
       key: "day-one",
