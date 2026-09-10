@@ -65,7 +65,7 @@ export function ActionCards({ cards }: { cards: ActionCard[] }) {
   if (cards.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-        Nothing needs your attention right now.
+        Nothing to do right now.
       </p>
     );
   }

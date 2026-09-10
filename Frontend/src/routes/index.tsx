@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, FileText, Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, FileText, ListChecks, Loader2, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { ActionCards } from "@/components/home/ActionCards";
@@ -112,7 +112,7 @@ function HomePage() {
   //
   // The joining timeline and the "before you join" questions were the only two panels one
   // kind of person saw and another did not, and they now have a page of their own. What is
-  // left is the same page for everybody: the cards under Notifications differ because the
+  // left is the same page for everybody: the cards under My tasks differ because the
   // *data* differs — a joiner has a contract to sign where a manager has leave to approve —
   // and that is a page reading its contents, not a page deciding who you are.
   return (
@@ -175,9 +175,21 @@ function HomePage() {
 
           <section className="rounded-xl border bg-card">
             <div className="flex items-center justify-between border-b px-4 py-3">
+              {/*
+                "My tasks", not "Notifications".
+
+                Every card under it is something to do — sign a contract, send documents,
+                decide on somebody's leave — and each carries a button that does it. None of
+                them is news. The bell in the header is where news goes, and having two
+                things called notifications left the one that was actually a to-do list
+                wearing the other one's name.
+
+                The icon changed with it. An alert triangle over a list of ordinary tasks
+                reads as a warning about all of them.
+              */}
               <h3 className="flex items-center gap-2 font-display text-base font-semibold">
-                <AlertCircle className="size-4 text-primary" aria-hidden="true" />
-                Notifications
+                <ListChecks className="size-4 text-primary" aria-hidden="true" />
+                My tasks
               </h3>
             </div>
             <div className="p-4">
