@@ -40,7 +40,13 @@ from app.integrations import (
     format_error_message,
     get_hcs11_client,
 )
+from app.integrations.hcs11_response_formatter import UploadResult
 from app.integrations.hcs11_schemas import VisaCaseOut
+from app.services.document_notifications import (
+    VISA_DOCUMENTS_CHECKED,
+    tell_them_the_contract_is_signed,
+    tell_them_what_came_back,
+)
 from app.integrations.visa_response_formatter import (
     build_visa_document_statuses,
     format_visa_upload_result,
@@ -50,6 +56,10 @@ from app.integrations.visa_response_formatter import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/visa", tags=["Employment Visa Documents"])
+
+# What the notification's button says to the assistant. The same imperative sentence
+# the home page's action card uses, so both open the same window.
+UPLOAD_VISA_DOCUMENTS = "I want to upload my visa documents"
 
 
 class VisaCaseListResponse(BaseModel):
@@ -203,6 +213,9 @@ async def sign_contract(case_id: str) -> VisaCaseDetailResponse:
     try:
         async with get_hcs11_client() as client:
             case = settle_the_contract(await client.sign_contract(case_id))
+            # Only ever reached once per case: a second attempt is refused upstream with a
+            # 409, so this cannot write the same notification twice.
+            tell_them_the_contract_is_signed(case.employee_id, case.case_id)
             return VisaCaseDetailResponse(
                 case=case, documents=build_visa_document_statuses(case)
             )
@@ -240,8 +253,11 @@ async def _read_and_check(files: list[UploadFile]) -> list[tuple[str, bytes, str
     return ready
 
 
-def _as_response(case: VisaCaseOut) -> VisaUploadResponse:
-    result = format_visa_upload_result(case)
+def _as_response(case: VisaCaseOut, result: UploadResult | None = None) -> VisaUploadResponse:
+    # The verdict is passed in where the caller has already worked it out to decide whether
+    # to notify. Formatting it a second time would give the same answer and is simply work;
+    # it stays optional so nothing else that calls this has to care.
+    result = result or format_visa_upload_result(case)
     return VisaUploadResponse(
         status=result.status,
         title=result.title,
@@ -281,7 +297,14 @@ async def upload_documents(
                 files=[(name, ReadableBytes(body), kind) for name, body, kind in ready],
                 process="visa",
             )
-            return _as_response(case)
+            verdict = format_visa_upload_result(case)
+            tell_them_what_came_back(
+                verdict,
+                case.employee_id,
+                VISA_DOCUMENTS_CHECKED,
+                UPLOAD_VISA_DOCUMENTS,
+            )
+            return _as_response(case, verdict)
 
     except HCS11CaseNotFoundError:
         raise HTTPException(status_code=404, detail=f"Visa case {case_id} not found")
@@ -329,10 +352,20 @@ async def upload_documents_streaming(
                     files=[(name, ReadableBytes(body), kind) for name, body, kind in ready],
                     process="visa",
                 )
+            # Hooked here as well as on the plain endpoint above, and this is the one
+            # that matters: the browser posts to this route and never to that one, so a
+            # notification written only there would pass every test and never once fire.
+            verdict = format_visa_upload_result(case)
+            tell_them_what_came_back(
+                verdict,
+                case.employee_id,
+                VISA_DOCUMENTS_CHECKED,
+                UPLOAD_VISA_DOCUMENTS,
+            )
             # Every field the plain endpoint returns, so a browser reading this stream is
             # not left rendering half a result. The school stream omits its checklist and
             # its own client then hardcodes an empty one; this does not repeat that.
-            yield sse_event("complete", _as_response(case).model_dump())
+            yield sse_event("complete", _as_response(case, verdict).model_dump())
 
         except HCS11CaseNotFoundError:
             yield sse_event("error", {"detail": f"Visa case {case_id} not found"})

@@ -63,6 +63,17 @@ export interface ActionPayload {
   approved_leave?: any | undefined;
   cases?: any[] | undefined;
   dependents?: any[] | undefined;
+  // What a document notification carries. Named for autocomplete rather than safety —
+  // the index signature below already lets anything through — and so the next person can
+  // see what is actually on one of these without opening the service that writes it.
+  /** What to say to the assistant to open the window this is about. */
+  prompt?: string | undefined;
+  /** HCS-11's own verdict: "needs_reupload", "success", "needs_review", "rejected"… */
+  verdict?: string | undefined;
+  case_id?: string | undefined;
+  case_status?: string | undefined;
+  problems?: string[] | undefined;
+  still_to_send?: string[] | undefined;
   [key: string]: any;
 }
 

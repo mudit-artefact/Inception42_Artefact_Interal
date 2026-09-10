@@ -1,4 +1,15 @@
-import { Bell, Calendar, CheckCircle2, Clock, Mail, XCircle } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  AlertTriangle,
+  Bell,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  FileCheck,
+  FileSignature,
+  Mail,
+  XCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -243,7 +254,7 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
               <Bell className="size-8 stroke-[1.25] text-muted-foreground/40 mb-2" />
               <p className="text-sm font-medium">No notifications yet</p>
               <p className="text-xs text-muted-foreground/70 mt-0.5">
-                Leave applications and manager decisions will appear here.
+                Document results, contract updates and leave decisions appear here.
               </p>
             </div>
           ) : (
@@ -252,6 +263,25 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                 const isLeaveReq = n.event_type === "LEAVE_REQUESTED";
                 const isApproved = n.event_type === "LEAVE_APPROVED";
                 const isRejected = n.event_type === "LEAVE_REJECTED";
+                // Documents that have been read and checked, and a contract that has been
+                // signed. The bell rendered these already — there is a generic fallback
+                // below — but with a bell icon and no way to act on them.
+                const isDocuments =
+                  n.event_type === "VISA_DOCUMENTS_CHECKED" ||
+                  n.event_type === "SCHOOL_DOCUMENTS_CHECKED";
+                const isContract = n.event_type === "CONTRACT_SIGNED";
+                // Something came back wrong. The verdict is on the payload, so this reads
+                // the server's answer rather than looking for words in the sentence.
+                const needsFixing =
+                  n.action_payload?.["verdict"] === "needs_reupload" ||
+                  n.action_payload?.["verdict"] === "rejected";
+                // What to say to the assistant to open the window this is about. Written
+                // by whoever raised the notification; absent means no button, never a
+                // guessed one.
+                const openIt =
+                  typeof n.action_payload?.["prompt"] === "string"
+                    ? (n.action_payload["prompt"] as string)
+                    : null;
 
                 return (
                   <div
@@ -265,9 +295,18 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
                         {isLeaveReq && <Clock className="size-4 text-primary" />}
                         {isApproved && <CheckCircle2 className="size-4 text-emerald-500" />}
                         {isRejected && <XCircle className="size-4 text-rose-500" />}
-                        {!isLeaveReq && !isApproved && !isRejected && (
-                          <Bell className="size-4 text-primary" />
-                        )}
+                        {isContract && <FileSignature className="size-4 text-primary" />}
+                        {isDocuments &&
+                          (needsFixing ? (
+                            <AlertTriangle className="size-4 text-amber-500" />
+                          ) : (
+                            <FileCheck className="size-4 text-emerald-500" />
+                          ))}
+                        {!isLeaveReq &&
+                          !isApproved &&
+                          !isRejected &&
+                          !isDocuments &&
+                          !isContract && <Bell className="size-4 text-primary" />}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -289,6 +328,33 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
 
                         {/* Quick action triggers */}
                         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                          {/*
+                            A link, not a callback.
+
+                            `onActionClick` is passed by the conversation page and not by
+                            the home page, so a button gated on it is invisible on exactly
+                            the screen most people open the bell from — which is where the
+                            manager's "Review & Decide" button silently is not, today.
+                            A link works on both, and it is the same handoff the action
+                            cards and the joining board already use.
+                          */}
+                          {(isDocuments || isContract) && openIt && (
+                            <Button
+                              asChild
+                              variant="secondary"
+                              size="sm"
+                              className="h-6 px-2 text-[11px] font-medium"
+                              onClick={() => {
+                                setIsOpen(false);
+                                handleMarkAsRead(n.id);
+                              }}
+                            >
+                              <Link to="/chat" search={{ q: openIt }}>
+                                {needsFixing ? "Send a corrected copy" : "Open"}
+                              </Link>
+                            </Button>
+                          )}
+
                           {isLeaveReq && onActionClick && (
                             <Button
                               variant="secondary"

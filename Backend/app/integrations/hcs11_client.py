@@ -65,6 +65,30 @@ def map_hcs01_to_hcs11_employee_id(employee_id: str) -> str:
     return employee_id
 
 
+def map_hcs11_to_hcs01_employee_id(employee_id: str) -> str:
+    """
+    Map HCS-11 employee IDs (E0015) back to ours (EMP015).
+
+    The inverse of the map above, needed the moment anything HCS-11 tells us has to be
+    written against our own records — a notification is addressed to a row in our employee
+    table, and HCS-11 only ever says whose case it is in its own vocabulary.
+
+    It is a convention rather than a proof: the forward map is not injective on width, so
+    `EMP15` and `EMP015` both become `E0015` and only one of them can come back. Our seeded
+    ids are three digits throughout, so the convention holds.
+
+    Not to be confused with the id fallback in `employee_repository.get_employee_facts`,
+    which attempts the same translation and gets it wrong in both directions — `E0015`
+    becomes `EMP0015` and `EMP015` becomes `E015`, neither of which is anybody. That branch
+    is unreachable today and is left alone deliberately; this is the one to use.
+    """
+    if employee_id.startswith("E") and employee_id[1:].isdigit():
+        return f"EMP{int(employee_id[1:]):03d}"
+    # Already in our format, or a shape neither system uses — hand it back untouched, as
+    # the forward map does.
+    return employee_id
+
+
 def _filename_from(disposition: str) -> str:
     """
     The name HCS-11 gave the file, or a sensible one if it gave none.

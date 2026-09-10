@@ -46,7 +46,16 @@ from app.integrations import (
     get_hcs11_client,
 )
 
+from app.services.document_notifications import (
+    SCHOOL_DOCUMENTS_CHECKED,
+    tell_them_what_came_back,
+)
+
 logger = logging.getLogger(__name__)
+
+# What the notification's button says to the assistant, matching the action card.
+# Deliberately not "remove" — a wrong document is corrected by sending the right one.
+UPLOAD_SCHOOL_DOCUMENTS = "I want to upload my school documents"
 
 router = APIRouter(prefix="/api/v1/hcs11", tags=["HCS-11 Document Verification"])
 
@@ -316,6 +325,12 @@ async def upload_documents(
 
             # Format result for chat display
             result = format_upload_result(case)
+            tell_them_what_came_back(
+                result,
+                case.employee_id,
+                SCHOOL_DOCUMENTS_CHECKED,
+                UPLOAD_SCHOOL_DOCUMENTS,
+            )
             return UploadResponse(
                 status=result.status,
                 title=result.title,
@@ -461,6 +476,14 @@ async def upload_documents_streaming(
                 )
 
                 result = format_upload_result(case)
+                # Hooked here as well as on the plain endpoint above, and as the comment
+                # below already says of the checklist, this is the route the panel uses.
+                tell_them_what_came_back(
+                    result,
+                    case.employee_id,
+                    SCHOOL_DOCUMENTS_CHECKED,
+                    UPLOAD_SCHOOL_DOCUMENTS,
+                )
                 # `documents` carries the per-file verdicts, and hand-building this event
                 # without them meant the streaming upload — the only one the panel uses —
                 # delivered a claim HCS-11 had failed with nothing to say which file was

@@ -262,3 +262,99 @@ def test_the_stream_reports_a_failure_as_an_event_not_a_broken_connection(api_cl
     name, payload = _events(response.text)[-1]
     assert name == "error"
     assert "unavailable" in payload["detail"].lower()
+
+
+# ── the verdict reaches the bell ─────────────────────────────────────────────
+#
+# Hooked on the streaming route as well as the plain one, and the streaming one is what
+# these tests are really for: the browser posts there and never to the other, so a
+# notification written only on the plain endpoint would pass every test above and never
+# fire once in the running product.
+
+
+A_FAULTY_CASE = {
+    **A_CASE,
+    "case_status": "Under Review",
+    "missing_documents": [],
+    "documents": [
+        {"document_id": "D1", "file_name": "passport.pdf", "kind": "passport",
+         "kind_label": "Passport copy", "uploaded_at": "2026-09-08T10:00:00+00:00"},
+        {"document_id": "D2", "file_name": "photo.jpg", "kind": "photograph",
+         "kind_label": "Recent colour photograph", "uploaded_at": "2026-09-08T10:00:00+00:00"},
+        {"document_id": "D3", "file_name": "offer.pdf", "kind": "job_offer",
+         "kind_label": "Signed job-offer form", "uploaded_at": "2026-09-08T10:00:00+00:00"},
+    ],
+    "checks": [
+        {"code": "PHOTO_BACKGROUND", "result": "fail", "about": ["photograph"],
+         "detail": "The photograph cannot be used: the background is blue."},
+    ],
+    "problems": ["The photograph cannot be used: the background is blue."],
+}
+
+
+def bell_of_the_person_on_the_case():
+    """A0015's case belongs to E0015, who is EMP015 in our own records."""
+    from app.services.notification_service import list_employee_notifications
+
+    return list_employee_notifications(employee_id="EMP015")
+
+
+def test_a_streamed_upload_puts_the_verdict_in_the_bell(api_client, hcs11, temporary_database):
+    hcs11(case=A_FAULTY_CASE)
+
+    api_client.post(
+        "/api/v1/visa/cases/VISA0003/documents/stream",
+        files=[("files", ("photo.jpg", b"x", "image/jpeg"))],
+    )
+
+    [told] = bell_of_the_person_on_the_case()
+    assert told["event_type"] == "VISA_DOCUMENTS_CHECKED"
+    assert "photograph" in told["message"].lower()
+
+
+def test_a_streamed_upload_that_is_merely_incomplete_says_nothing(
+    api_client, hcs11, temporary_database
+):
+    """A_CASE is missing two documents, which is the "still waiting" verdict."""
+    hcs11(case=A_CASE)
+
+    api_client.post(
+        "/api/v1/visa/cases/VISA0003/documents/stream",
+        files=[("files", ("passport.pdf", b"x", "application/pdf"))],
+    )
+
+    assert bell_of_the_person_on_the_case() == []
+
+
+def test_the_stream_still_ends_in_complete_when_a_notification_is_written(
+    api_client, hcs11, temporary_database
+):
+    """
+    The notification is written inside the generator, after the case comes back.
+
+    An exception escaping there would append an `error` event after `complete` and turn a
+    successful upload into a failed-looking one.
+    """
+    hcs11(case=A_FAULTY_CASE)
+
+    response = api_client.post(
+        "/api/v1/visa/cases/VISA0003/documents/stream",
+        files=[("files", ("photo.jpg", b"x", "image/jpeg"))],
+    )
+
+    events = [line for line in response.text.splitlines() if line.startswith("event:")]
+    assert events[-1] == "event: complete"
+
+
+def test_an_upload_that_fails_notifies_nobody(api_client, hcs11, temporary_database):
+    """The error branches have no case at all, so there is nobody to address."""
+    from app.integrations import HCS11ConnectionError
+
+    hcs11(raises=HCS11ConnectionError())
+
+    api_client.post(
+        "/api/v1/visa/cases/VISA0003/documents",
+        files=[("files", ("passport.pdf", b"x", "application/pdf"))],
+    )
+
+    assert bell_of_the_person_on_the_case() == []
