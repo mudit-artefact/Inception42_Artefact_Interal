@@ -287,14 +287,18 @@ class HCS11Client:
         """
         Accept the contract on the employee's behalf, and read the case back.
 
-        Not idempotent: HCS-11 answers 409 once a job-offer document exists on the case,
-        whether it signed it or the joiner uploaded one. That is reported as a plain
-        "already signed" rather than an error, because it is not one — it is the answer.
+        **HCS-11 answers 409 for two different reasons, and they are opposites.** One is
+        that the contract is already signed. The other is that it is too early — the
+        documents have not been checked, so there is nothing to sign yet. Both are answers
+        rather than failures, which is why neither is raised as an error, and HCS-11 writes
+        a sentence for each. That sentence is passed through: deciding here that every 409
+        means "already signed" told a joiner who had signed nothing the exact opposite of
+        the truth.
 
-        The case that comes back has moved further than the contract. Signing files the
-        signed copy as the job-offer document and re-runs every check, so the checklist,
-        the problems and the status are all fresh. Use it as a whole rather than reading
-        the contract out of it.
+        Signing no longer moves the checklist. It once filed the signed copy as the
+        job-offer document and re-ran every check; the two are now separate documents, and
+        the offer letter is one the joiner sends. So the case that comes back carries a
+        signed contract and the same checklist it had before.
         """
         client = self._ensure_client()
         try:
@@ -305,7 +309,7 @@ class HCS11Client:
                     message=f"Visa case {case_id} not found",
                 )
             if response.status_code == 409:
-                raise HCS11ValidationError(409, "This contract has already been signed.")
+                raise HCS11ValidationError(409, _why_it_was_refused(response))
             response.raise_for_status()
             return VisaCaseOut(**response.json())
         except httpx.ConnectError as e:
@@ -635,6 +639,23 @@ def _the_whole_case(base_url: str, path: str, summary: dict) -> dict:
     return full if isinstance(full, dict) else summary
 
 
+def _why_it_was_refused(response: httpx.Response) -> str:
+    """
+    HCS-11's own sentence for a 409, or ours if it did not send one.
+
+    Its two refusals — already signed, and not yet checked — are told apart only by this
+    text, so writing our own here loses the distinction. The fallback names neither, since
+    guessing which one it was is how the wrong sentence got shown in the first place.
+    """
+    try:
+        detail = response.json().get("detail")
+    except ValueError:
+        detail = None
+    return detail if isinstance(detail, str) and detail.strip() else (
+        "This contract cannot be signed at the moment."
+    )
+
+
 def _contract_facts(case: dict) -> dict:
     """
     The employment contract on a visa case, flattened onto the fields `VisaCase` declares.
@@ -645,10 +666,16 @@ def _contract_facts(case: dict) -> dict:
     unequal to the one that was stored.
 
     `contract_is_signed` is the field to read, and it is deliberately not `signed_on`.
-    HCS-11 sets `signed_on` whenever a job-offer document exists at all — including one the
-    joiner uploaded that is not signed, where it falls back to the day the file arrived. Its
-    own OFFER_SIGNED check is the honest answer, and telling somebody their contract is
-    signed when that check has failed is the same false green tick as any other.
+    HCS-11 once set `signed_on` whenever a job-offer document existed at all — including one
+    the joiner uploaded that was not signed, where it fell back to the day the file arrived.
+    It now sets the date only when the contract is actually signed, so the OFFER_SIGNED
+    guard is a backstop rather than the whole answer. It is kept: it costs nothing, and an
+    HCS-11 that has not been updated still gets read honestly.
+
+    `contract_available` is HCS-11 saying whether it is this employee's turn. It refuses the
+    signature with a 409 until the documents have been checked, so offering the panel before
+    then offers a button that cannot work. Absent means `False` — an older HCS-11 does not
+    send it, and "not yet" is the safe reading of silence.
     """
     contract = case.get("contract")
     if not isinstance(contract, dict):
@@ -669,6 +696,7 @@ def _contract_facts(case: dict) -> dict:
         "contract_job_title": contract.get("job_title") or "",
         "contract_start_date": contract.get("start_date") or "",
         "contract_salary_aed": salary if isinstance(salary, int) else None,
+        "contract_available": bool(contract.get("available")),
     }
 
 

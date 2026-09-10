@@ -42,6 +42,7 @@ from app.workflow.prompts import (
     CONTRACT_ALREADY_SIGNED_MESSAGES,
     CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES,
     CONTRACT_NO_CASE_MESSAGES,
+    CONTRACT_NOT_YET_MESSAGES,
     NO_VISA_CASE_MESSAGES,
     NO_VISA_CASE_BUT_SCHOOL_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
@@ -312,13 +313,14 @@ def _open_the_contract_window(
     state: ConversationState, language: str, cases: list | None
 ) -> dict:
     """
-    Hand over to the contract window, and say honestly which of three states it is in.
+    Hand over to the contract window, and say honestly which state it is in.
 
-    The one that matters is the middle one. A case can carry a job-offer form that HCS-11
-    has not accepted — an unsigned copy the joiner uploaded themselves — and HCS-11 stamps
-    a date on it regardless, so the date alone cannot be read as a signature. The reader
-    has already consulted HCS-11's own OFFER_SIGNED check and settled it into
-    `contract_is_signed`; that is the field consulted here, and nothing else.
+    Two of these are worth naming. **Not yet their turn**: HCS-11 refuses the signature
+    until every document has been sent and checked, so opening the window then offers a
+    button whose only possible answer is a refusal. **A form on the case that was never
+    accepted**: an unsigned copy the joiner uploaded themselves, which HCS-11 once stamped
+    a date on regardless — `contract_is_signed` has consulted its OFFER_SIGNED check and is
+    the only field read here.
 
     The window still opens when it is already signed, because reading a contract you have
     signed is a reasonable thing to want and the panel shows the filed copy.
@@ -352,6 +354,20 @@ def _open_the_contract_window(
         message = CONTRACT_ALREADY_SIGNED_MESSAGES
     elif with_a_contract.get("contract_signed_on"):
         message = CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES
+    elif not with_a_contract.get("contract_available"):
+        # Said, not opened. The window's one button would answer 409 until the documents
+        # are checked, and pointing somebody at a control that cannot work is worse than
+        # telling them what has to happen first.
+        logger.info(f"Contract not yet signable for {state['employee_id']} ({case_id})")
+        return {
+            "final_answer": _clean_and_format_markdown(
+                message_in_language(CONTRACT_NOT_YET_MESSAGES, language)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "question_intent": QuestionIntent.HR_QUESTION.value,
+            "action_payload": None,
+        }
     else:
         message = CONTRACT_SIGN_MESSAGES
 

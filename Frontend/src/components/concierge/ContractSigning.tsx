@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   ExternalLink,
   FileSignature,
   Loader2,
@@ -146,6 +147,11 @@ export function ContractSigning({
   const signed = contract?.is_signed ?? false;
   // A form on the case that HCS-11 has not accepted. Neither signed nor untouched.
   const returnedUnsigned = Boolean(contract?.signed_on) && !signed;
+  // HCS-11 refuses the signature until every document has been sent and checked, so until
+  // then this panel reads the contract and does not offer to sign it. The contract itself
+  // is still drawn and still served, and reading your own terms early is a reasonable
+  // thing to want — it is only the button that has to wait.
+  const canSign = (contract?.available ?? false) && !signed;
   const terms = [
     contract?.job_title,
     contract?.annual_salary_aed != null
@@ -231,8 +237,8 @@ export function ContractSigning({
           <div className="flex items-start gap-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
             <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
             <p className="text-sm">
-              You signed this contract. It has been filed with your visa documents as your
-              signed job-offer form, so there is nothing further to send for it.
+              You signed this contract on {readableDate(contract?.signed_on)}. It is filed with
+              your employment record.
             </p>
           </div>
         ) : returnedUnsigned ? (
@@ -243,9 +249,21 @@ export function ContractSigning({
               contract does not count as signed yet. Read it and sign below.
             </p>
           </div>
+        ) : !canSign ? (
+          <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+            <Clock className="size-4 shrink-0 text-amber-600 mt-0.5" />
+            <div className="text-sm text-amber-800 dark:text-amber-300">
+              <p className="font-medium">Not ready to sign yet</p>
+              <p className="mt-0.5">
+                Your contract opens for signature once all your visa documents — including your
+                signed job-offer form — have been sent and checked. Read it here in the
+                meantime.
+              </p>
+            </div>
+          </div>
         ) : null}
 
-        {!signed && (
+        {canSign && (
           <label className="flex shrink-0 cursor-pointer items-start gap-2.5 rounded-lg border p-3 transition-colors hover:bg-muted/30">
             <Checkbox
               checked={accepted}
@@ -265,7 +283,7 @@ export function ContractSigning({
         <Button variant="ghost" onClick={onClose}>
           Close
         </Button>
-        {!signed && (
+        {canSign && (
           <Button onClick={sign} disabled={!accepted || signing}>
             {signing ? (
               <>

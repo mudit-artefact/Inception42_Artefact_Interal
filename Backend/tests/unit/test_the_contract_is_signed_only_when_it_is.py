@@ -1,24 +1,30 @@
 """
 "I want to sign my contract."
 
-HCS-11 issues each new joiner an employment contract, and signing it files the signed copy
-back as the job-offer document — so it comes off the visa checklist at the same moment.
+HCS-11 issues each new joiner an employment contract. It is **not** the signed job-offer
+form — that is a separate document the joiner uploads — and signing the contract does not
+take it off the visa checklist. HCS-11 filed them as one once and said why it stopped:
+doing so "put a green tick on the checklist against a file nobody had sent".
 
-The trap this file exists for is the date. HCS-11 stamps `signed_on` as soon as *any*
-job-offer form is on the case, including an unsigned one the joiner uploaded themselves,
-where it falls back to the day the file arrived. Reading that date as a signature would
-tell somebody their contract was signed while HCS-11's own OFFER_SIGNED check was failing
-it — the same green tick over a rejected document that has already had to be fixed twice
-on the schooling and visa sides.
+Two traps live here.
 
-So `contract_is_signed` is the field every screen and sentence reads, and it is computed
-once, next to HCS-11's own verdict.
+**The date.** HCS-11 once stamped `signed_on` as soon as any job-offer form was on the
+case, including an unsigned one, where it fell back to the day the file arrived. It now
+stamps it only on a real signature, but `contract_is_signed` still asks HCS-11's own
+OFFER_SIGNED check as a backstop — it costs nothing and an HCS-11 that has not been
+updated still gets read honestly.
+
+**The refusal.** `POST /contract/sign` answers 409 for two opposite reasons: already
+signed, or too early, because HCS-11 will not take a signature until every document has
+been checked. Only its own sentence tells them apart, so writing our own here told a
+joiner who had signed nothing that they had already signed.
 """
 
 import pytest
 
 from app.domain.employee_facts import VisaCase
 from app.domain.enums import AnswerStatus, QuestionIntent
+from app.integrations import hcs11_client
 from app.integrations.hcs11_client import _contract_facts
 from app.workflow.evidence_formatting import _visa_case_lines
 from app.workflow.nodes import finish_turn
@@ -26,7 +32,7 @@ from app.workflow.nodes import finish_turn
 
 # ── What HCS-11 sends ────────────────────────────────────────────────────────
 
-def a_case(*, signed_on=None, checks=(), **overrides):
+def a_case(*, signed_on=None, checks=(), available=False, **overrides):
     """A visa case as HCS-11's JSON has it, with a contract on board."""
     case = {
         "case_id": "VISA0001",
@@ -34,6 +40,7 @@ def a_case(*, signed_on=None, checks=(), **overrides):
         "case_status": "Awaiting Submission",
         "checks": list(checks),
         "contract": {
+            "available": available,
             "prepared_on": "2026-09-10",
             "signed_on": signed_on,
             "document_id": "DOC-abc123" if signed_on else None,
@@ -173,18 +180,28 @@ def hcs11(monkeypatch):
     return holding
 
 
+# A contract HCS-11 will actually take: every document in and checked, so the case has
+# reached "Ready for the PRO" and `contract_available` is its go-ahead.
 A_CONTRACT_TO_SIGN = {
     "case_id": "VISA0001",
     "plan_name": "Employment visa — degree required",
-    "status": "Awaiting Submission",
-    "missing_documents": ("passport", "job_offer"),
+    "status": "Ready for the PRO",
+    "missing_documents": (),
     "problems": (),
     "contract_prepared_on": "2026-09-10",
     "contract_signed_on": "",
     "contract_is_signed": False,
+    "contract_available": True,
 }
+# The same contract earlier in the journey, when HCS-11 would refuse it. The job-offer form
+# is one of the documents still to send: signing does not file it, and never did after
+# HCS-11 separated the two.
+A_CONTRACT_NOT_YET = {**A_CONTRACT_TO_SIGN,
+                      "status": "Awaiting Submission",
+                      "missing_documents": ("passport", "job_offer"),
+                      "contract_available": False}
 A_SIGNED_CONTRACT = {**A_CONTRACT_TO_SIGN, "contract_signed_on": "2026-09-11",
-                     "contract_is_signed": True, "missing_documents": ("passport",)}
+                     "contract_is_signed": True}
 AN_UNSIGNED_OFFER_ON_FILE = {**A_CONTRACT_TO_SIGN, "contract_signed_on": "2026-09-11",
                              "contract_is_signed": False}
 
@@ -289,3 +306,93 @@ def test_the_arabic_reply_is_arabic(hcs11):
     answer = finish_turn.generate_document_upload_prompt(asked_to_sign(language="ar"))
 
     assert any("؀" <= ch <= "ۿ" for ch in answer["final_answer"])
+
+
+# ── Whether it is their turn ─────────────────────────────────────────────────
+#
+# HCS-11 refuses the signature until the documents have been checked. Everything that
+# offers the signing panel reads `available`, so that a button is shown only where it can
+# work. An HCS-11 that predates the field sends nothing, and silence has to read as "not
+# yet" rather than as "go ahead".
+
+def test_a_contract_is_not_signable_until_hcs11_says_so():
+    assert _contract_facts(a_case(available=False))["contract_available"] is False
+
+
+def test_a_contract_is_signable_once_hcs11_says_so():
+    assert _contract_facts(a_case(available=True))["contract_available"] is True
+
+
+def test_an_hcs11_that_does_not_send_the_field_reads_as_not_yet():
+    case = a_case()
+    del case["contract"]["available"]
+
+    assert _contract_facts(case)["contract_available"] is False
+
+
+def test_the_assistant_does_not_open_a_window_whose_button_cannot_work(hcs11):
+    """Said, not offered. A control that only ever answers a refusal is worse than a
+    sentence explaining what has to happen first."""
+    hcs11(school=(), visa=[A_CONTRACT_NOT_YET])
+
+    answer = finish_turn.generate_document_upload_prompt(asked_to_sign())
+
+    assert answer["action_payload"] is None, "no window is opened"
+    assert "checked" in answer["final_answer"].lower()
+    assert answer["answer_status"] == AnswerStatus.VERIFIED.value
+    # And not the answer for somebody who has no contract at all.
+    assert "no employment contract" not in answer["final_answer"].lower()
+
+
+def test_the_assistant_opens_it_once_the_documents_are_checked(hcs11):
+    hcs11(school=(), visa=[A_CONTRACT_TO_SIGN])
+
+    answer = finish_turn.generate_document_upload_prompt(asked_to_sign())
+
+    assert answer["action_payload"] == {
+        "action_type": "CONTRACT_SIGNING",
+        "case_id": "VISA0001",
+    }
+
+
+# ── The two refusals ─────────────────────────────────────────────────────────
+
+def a_refusal(detail):
+    """A 409 as HCS-11 sends it."""
+    class Response:
+        status_code = 409
+
+        @staticmethod
+        def json():
+            return {"detail": detail} if detail is not None else {}
+
+    return Response()
+
+
+TOO_EARLY = (
+    "The documents have not been checked yet, so there is no contract to sign. "
+    "It becomes available once the application is ready for the PRO."
+)
+
+
+def test_signing_too_early_says_so_and_not_that_it_is_already_signed():
+    """The one that was wrong. Both are 409s and only the sentence tells them apart."""
+    said = hcs11_client._why_it_was_refused(a_refusal(TOO_EARLY))
+
+    assert said == TOO_EARLY
+    assert "already" not in said.lower()
+
+
+def test_signing_twice_still_says_it_is_already_signed():
+    already = "This contract has already been signed."
+
+    assert hcs11_client._why_it_was_refused(a_refusal(already)) == already
+
+
+@pytest.mark.parametrize("body", [None, "", "   "])
+def test_a_refusal_with_no_sentence_guesses_at_neither(body):
+    """Guessing which refusal it was is how the wrong one came to be shown."""
+    said = hcs11_client._why_it_was_refused(a_refusal(body))
+
+    assert "already" not in said.lower()
+    assert said.strip()

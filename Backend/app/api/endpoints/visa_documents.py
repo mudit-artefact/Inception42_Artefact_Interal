@@ -203,12 +203,12 @@ async def sign_contract(case_id: str) -> VisaCaseDetailResponse:
     Sign it, and answer with the case as it now stands.
 
     The same shape `GET /cases/{case_id}` returns, so a screen can replace what it holds
-    rather than reconciling a contract against a case it fetched earlier. That matters more
-    here than on an upload: signing takes the job-offer row off the checklist, so a panel
-    that refreshed only the contract would still be showing it as outstanding.
+    rather than reconciling a contract against a case it fetched earlier.
 
-    A second attempt answers 409 from HCS-11 and 409 from here. It is not an error — the
-    contract is signed, which is what the caller wanted — and the browser says so plainly.
+    **409 has two meanings and they are opposites**: already signed, or too early — HCS-11
+    refuses until the documents have been checked. Neither is an error, and each carries
+    HCS-11's own sentence, which is passed through rather than replaced. Deciding here that
+    a 409 meant "already signed" told a joiner who had signed nothing the opposite.
     """
     try:
         async with get_hcs11_client() as client:

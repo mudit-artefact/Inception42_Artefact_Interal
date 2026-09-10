@@ -451,6 +451,21 @@ CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES = {
     ),
 }
 
+# Not their turn yet. HCS-11 refuses the signature until the documents have been checked,
+# so this is said instead of opening a window whose only button answers 409. It names the
+# thing they can actually do, because "wait" on its own is not an instruction.
+CONTRACT_NOT_YET_MESSAGES = {
+    "en": (
+        "Your employment contract is not ready to sign yet. It becomes available once all "
+        "your visa documents — including your signed job-offer form — have been sent and "
+        "checked. Send anything still outstanding and it will open here for you."
+    ),
+    "ar": (
+        "عقد عملك ليس جاهزاً للتوقيع بعد. يصبح متاحاً بعد إرسال جميع مستندات التأشيرة — بما "
+        "في ذلك نموذج عرض العمل الموقّع — والتحقق منها. أرسل ما تبقّى وسيُفتح لك هنا."
+    ),
+}
+
 CONTRACT_NO_CASE_MESSAGES = {
     "en": (
         "There is no employment contract for you to sign here. Contracts are issued to new "

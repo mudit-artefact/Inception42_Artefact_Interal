@@ -12,33 +12,22 @@ import { leaveRow, readableDate, schoolRow, visaRow, type RequestRow } from "@/l
  * card names the person in its own text and the chat opens the list, where each request
  * carries its own Approve and Reject buttons.
  */
-/**
- * HCS-11's name for the signed job-offer form.
- *
- * It is on every route's checklist — both international routes and both resident ones —
- * and it is the one row a joiner does not upload: signing the contract files it for them.
- * So it belongs to the contract step of the journey and not to the documents step, even
- * though HCS-11 quite correctly counts it among the documents.
- */
-const JOB_OFFER = "job_offer";
-
 const LIST_APPROVALS = "What leave requests do I need to approve?";
 
 /**
  * Documents still to send, named the way HCS-11 names them.
  *
- * The signed job-offer form is left out, because it is not sent — it is filed by signing
- * the contract. With it in, this card read "Upload your signed job-offer form, and 1 more"
- * to somebody who had a **Sign your contract** card sitting directly beside it offering to
- * do exactly that. One of the two was telling them to do the wrong thing.
+ * All of them, the signed job-offer form included. It was left out while signing the
+ * contract was what filed it; the two are separate documents now — HCS-11's words: filing
+ * them as one "put a green tick on the checklist against a file nobody had sent" — and the
+ * offer letter is one the joiner uploads like any other. Leaving it out now would hide the
+ * single document that unblocks the signature.
  */
 function outstanding(application: VisaCase): string[] {
   const labels = new Map(
     (application.required_documents ?? []).map((row) => [row.kind, row.label]),
   );
-  return (application.missing_documents ?? [])
-    .filter((kind) => kind !== JOB_OFFER)
-    .map((kind) => labels.get(kind) ?? kind);
+  return (application.missing_documents ?? []).map((kind) => labels.get(kind) ?? kind);
 }
 
 function sentence(names: string[]): string {
@@ -56,11 +45,15 @@ export function buildActionCards(sources: {
   const cards: ActionCard[] = [];
 
   for (const application of sources.visaCases ?? []) {
-    // Signing comes first, and it is its own card rather than a line on the visa one:
-    // it is a different action on a different document, and folding it in would put
-    // "upload" on something nobody uploads.
+    // Signing comes last, and it is its own card rather than a line on the visa one: it is
+    // a different action on a different document, and folding it in would put "upload" on
+    // something nobody uploads.
+    //
+    // Gated on `available`, which is HCS-11 saying the documents have been checked and it
+    // will now accept a signature. Without that gate this card appeared from the day the
+    // case opened and its button answered a refusal.
     const contract = application.contract;
-    if (contract && !contract.is_signed) {
+    if (contract?.available && !contract.is_signed) {
       cards.push({
         key: `contract-${application.case_id}`,
         kind: "contract",
@@ -77,12 +70,8 @@ export function buildActionCards(sources: {
     }
 
     const missing = outstanding(application);
-    // The papers, matching what `outstanding` lists. Counting the whole checklist against a
-    // list the job-offer form had been taken out of made the bar disagree with the sentence
-    // beside it — "upload your photograph, and 1 more" over a bar reading 1 of 3.
-    const total = (application.required_documents ?? []).filter(
-      (row) => row.kind !== JOB_OFFER,
-    ).length;
+    // The papers, matching what `outstanding` lists.
+    const total = (application.required_documents ?? []).length;
     // Nothing outstanding and nothing wrong is not something to do.
     if (missing.length === 0 && (application.problems?.length ?? 0) === 0) continue;
     cards.push({
@@ -237,21 +226,7 @@ export function joiningSteps(
   const missing = visa?.missing_documents?.length ?? 0;
   const everythingIn = required > 0 && missing === 0;
 
-  // And the same checklist without the job-offer form, which is what the documents step
-  // counts.
-  //
-  // Signing the contract is what files that form, so it sits on every route's checklist as
-  // a document — and counting it among the papers to send made the two steps circular. The
-  // board recommends documents before the contract; before this split, "submit your
-  // documents" could not reach the end of its own count until the step after it was done.
-  const papersRequired = (visa?.required_documents ?? []).filter(
-    (row) => row.kind !== JOB_OFFER,
-  ).length;
-  const papersMissing = (visa?.missing_documents ?? []).filter(
-    (kind) => kind !== JOB_OFFER,
-  ).length;
-  const papersIn = papersRequired - papersMissing;
-  const everyPaperIn = papersRequired > 0 && papersMissing === 0;
+  const papersIn = required - missing;
   const withThePro = visa?.case_status === "Ready for the PRO";
   // Held by a person because a check found something. HC-PC-013 §13.7.3.
   const heldForReview = visa?.case_status === "Under Review";
@@ -284,26 +259,18 @@ export function joiningSteps(
       label: "Submit your documents",
       detail: somethingToCorrect
         ? "Something came back — send a corrected copy"
-        : papersRequired > 0
-          ? `${papersIn} of ${papersRequired} sent`
+        : required > 0
+          ? `${papersIn} of ${required} sent`
           : "Your checklist is loading",
       // Current again when something has to be re-sent. Every document having arrived is
       // not the same as every document being right, and marking this done with a fault
       // outstanding left the whole timeline with no current step at all — so the heading
       // read "Everything on your side is done" over a case with two problems on it.
-      // Current again when something has to be re-sent. Every document having arrived is
-      // not the same as every document being right, and marking this done with a fault
-      // outstanding left the whole timeline with no current step at all — so the heading
-      // read "Everything on your side is done" over a case with two problems on it.
-      //
-      // The counts here leave the job-offer form out; it belongs to the contract step
-      // below. See `JOB_OFFER` — before that split, this step could not reach the end of
-      // its own count until the step after it had been done.
-      state: somethingToCorrect ? "current" : everyPaperIn ? "done" : "current",
+      state: somethingToCorrect ? "current" : everythingIn ? "done" : "current",
       phase: "before",
       owner: "You",
       counts: true,
-      ...(everyPaperIn && !somethingToCorrect
+      ...(everythingIn && !somethingToCorrect
         ? {}
         : {
             action: {
@@ -311,38 +278,6 @@ export function joiningSteps(
               prompt: "I want to upload my visa documents",
             },
           }),
-    },
-    {
-      key: "contract",
-      label: "Sign your contract",
-      // Tracked now. This step said "not tracked here" until HCS-11 began issuing the
-      // contract and taking the signature on screen — and it is not a separate errand from
-      // the documents step below: signing files the signed job-offer form, so it comes off
-      // that checklist at the same moment.
-      //
-      // The People Code still says nothing about signing a contract, which is why the
-      // questions in `BeforeYouJoin` are unchanged. Where somebody *is* is now known; what
-      // the rules are is still not written down.
-      detail: contract
-        ? contract.is_signed
-          ? `Signed on ${readableDate(contract.signed_on)}`
-          : contract.signed_on
-            ? "A form on file has not been accepted — sign it here"
-            : "Read it and sign — nothing to print"
-        : "Issued with your visa application",
-      // Current whenever it is unsigned — including while the documents above are still
-      // going in, because nothing stops somebody signing first. The order on this board is
-      // a recommendation, which is how HCS-11 treats it too: "the order is shown, not
-      // enforced". Two steps can be current at once and the heading takes the earlier.
-      state: contract?.is_signed ? "done" : "current",
-      phase: "before",
-      owner: "You",
-      counts: true,
-      // Opens the same signing panel the home page card opens, by asking for it in
-      // the assistant's own words. One way in, not a second one built here.
-      ...(contract?.is_signed
-        ? {}
-        : { action: { label: "Read and sign", prompt: "I want to sign my contract" } }),
     },
     {
       key: "checked",
@@ -360,6 +295,41 @@ export function joiningSteps(
       phase: "processing",
       owner: "HC Services",
       counts: true,
+    },
+    {
+      key: "contract",
+      label: "Sign your contract",
+      // Last, and after the check, because HCS-11 will not take the signature before then:
+      // it answers 409 until the case reaches "Ready for the PRO". This step used to sit
+      // above the check, on the older rule where signing filed the job-offer form and so
+      // completed the checklist itself. The two are separate documents now, the offer
+      // letter is one the joiner uploads, and the order is theirs to set.
+      //
+      // The People Code still says nothing about signing a contract, which is why the
+      // questions in `BeforeYouJoin` are unchanged. Where somebody *is* is now known; what
+      // the rules are is still not written down.
+      detail: contract?.is_signed
+        ? `Signed on ${readableDate(contract.signed_on)}`
+        : contract?.signed_on
+          ? "A form on file has not been accepted — sign it here"
+          : contract?.available
+            ? "Read it and sign — nothing to print"
+            : "Opens once your documents have been checked",
+      // Waiting, not current, until HCS-11 will accept it. A step shown as current with no
+      // working action is a step that reads as somebody's fault.
+      state: contract?.is_signed
+        ? "done"
+        : contract?.available
+          ? "current"
+          : "waiting",
+      phase: "before",
+      owner: "You",
+      counts: true,
+      // Opens the same signing panel the home page card opens, by asking for it in
+      // the assistant's own words. One way in, not a second one built here.
+      ...(contract?.available && !contract.is_signed
+        ? { action: { label: "Read and sign", prompt: "I want to sign my contract" } }
+        : {}),
     },
     {
       key: "visa",

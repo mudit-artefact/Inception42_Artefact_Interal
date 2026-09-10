@@ -47,16 +47,22 @@ export interface VisaCase {
  * The employment contract on a visa case, and whether it has been accepted.
  *
  * The one document that travels towards the new joiner: everything else on the checklist
- * is something they send in, and this one is issued to them. Signing it files the signed
- * copy back as the job-offer document, so it leaves `missing_documents` at the same moment.
+ * is something they send in, and this one is issued to them. It is **not** the signed
+ * job-offer form and signing it does not take that row off the checklist — they are two
+ * separate documents, and the offer letter is one the joiner uploads.
  *
- * **Read `is_signed`, never `signed_on`.** HCS-11 fills the date as soon as any job-offer
- * form is on the case — including an unsigned one the joiner uploaded themselves, where it
- * falls back to the day the file arrived. The server has already asked HCS-11's own
- * OFFER_SIGNED check about that and settled it into the flag. Re-deriving it from the date
- * here is exactly how a rejected document ends up wearing a green tick.
+ * **Read `is_signed`, never `signed_on`.** HCS-11 once filled the date as soon as any
+ * job-offer form was on the case — including an unsigned one the joiner uploaded, where it
+ * fell back to the day the file arrived. The server has already asked HCS-11's own
+ * OFFER_SIGNED check and settled it into the flag. Re-deriving it from the date here is
+ * exactly how a rejected document ends up wearing a green tick.
+ *
+ * **`available` is HCS-11 saying whether it is their turn.** It refuses the signature
+ * until every document has been sent and checked, so a Sign button shown before that is a
+ * button whose only answer is a refusal.
  */
 export interface VisaContract {
+  available: boolean;
   prepared_on: string;
   signed_on: string | null;
   is_signed: boolean;

@@ -119,17 +119,23 @@ class VisaCase:
     # not rebuild a nested dataclass, so a nested contract would return as a plain dict and
     # compare unequal to the value that was stored.
     #
-    # Read `contract_is_signed`, never `contract_signed_on`. HCS-11 fills the date whenever
-    # a job-offer document exists at all — including an unsigned one the joiner uploaded
-    # themselves, where it falls back to the day the file arrived. The flag is the one that
-    # has consulted HCS-11's own OFFER_SIGNED check. Defaults are the "no contract known"
-    # reading, which is what an HCS-11 predating this feature gives us.
+    # Read `contract_is_signed`, never `contract_signed_on`. HCS-11 once filled the date
+    # whenever a job-offer document existed at all — including an unsigned one the joiner
+    # uploaded, where it fell back to the day the file arrived — and now fills it only on a
+    # real signature. The flag also consults HCS-11's own OFFER_SIGNED check, kept as a
+    # backstop. Defaults are the "no contract known" reading, which is what an HCS-11
+    # predating this feature gives us.
+    #
+    # `contract_available` is HCS-11 saying whether it is their turn to sign: it refuses
+    # until the documents have been checked. False is the safe reading of an HCS-11 that
+    # does not send it.
     contract_prepared_on: str = ""
     contract_signed_on: str = ""
     contract_is_signed: bool = False
     contract_job_title: str = ""
     contract_start_date: str = ""
     contract_salary_aed: int | None = None
+    contract_available: bool = False
 
 
 @dataclass(frozen=True)

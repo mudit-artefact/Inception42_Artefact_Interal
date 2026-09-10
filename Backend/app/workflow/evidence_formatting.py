@@ -206,12 +206,15 @@ def _contract_lines(case) -> list[str]:
     """
     Where the employment contract has got to, on the case it belongs to.
 
-    Signing is the first thing a new joiner does and the only step where the company sends
-    them something rather than the other way round. It is also the step whose state is
-    easiest to state wrongly: the date HCS-11 carries is set as soon as any job-offer
-    document exists, so an unsigned form the joiner uploaded themselves produces a date.
-    `contract_is_signed` has already asked HCS-11's own check about that, and it is the
-    only field consulted here.
+    Signing is the *last* thing a new joiner does, and the only step where the company
+    sends them something rather than the other way round. HCS-11 refuses the signature
+    until every document has been sent and checked, so saying "this is the first thing to
+    do" — which this said, correctly, until the order was inverted — now sends somebody to
+    a button that answers a refusal.
+
+    It is also the step whose state is easiest to put wrongly. `contract_is_signed` has
+    already asked HCS-11's own OFFER_SIGNED check, and it is the only field read for
+    whether it is signed.
 
     Nothing is printed at all when the contract is unknown — an HCS-11 predating the
     feature sends none, and a blank start date is not a contract prepared on no date.
@@ -228,8 +231,16 @@ def _contract_lines(case) -> list[str]:
             "a job-offer form is on the case but it has not been accepted — the employee "
             "still has to sign, or send a signed copy"
         )
+    elif case.contract_available:
+        where = (
+            "not signed yet, and ready to sign — the documents have been checked, so this "
+            "is what is left for the employee to do"
+        )
     else:
-        where = "not signed yet — this is the first thing for the employee to do"
+        where = (
+            "not signed yet, and not yet ready to sign — HCS-11 opens it only once every "
+            "document has been sent and checked, so the documents come first"
+        )
 
     detail = [f"    employment contract: {where}"]
     if case.contract_prepared_on and not case.contract_is_signed:

@@ -223,19 +223,25 @@ class VisaContractOut(BaseModel):
     The employment contract the company issues, and whether it has been accepted.
 
     The one document on a visa case that travels the other way: every other row is
-    something the new joiner sends in, and this one is sent to them. Signing it files it
-    back as the `job_offer` document, which is why signing takes a row off the checklist
-    rather than sitting beside it.
+    something the new joiner sends in, and this one is sent to them. It is **not** the
+    signed job-offer form, and signing it does not take that row off the checklist — the
+    two are separate documents, and the offer letter is one the joiner uploads. HCS-11 put
+    it plainly: filing them as one put a green tick against a file nobody had sent.
 
-    `signed_on` is not proof of a signature, and reading it as one is the trap here. It is
-    set whenever a job-offer document exists at all — including one the joiner uploaded
-    themselves that is not signed, where HCS-11 falls back to the day it arrived. The
-    honest question is `OFFER_SIGNED`, which is on the case's checks. See
-    `contract_is_signed` in `visa_response_formatter`.
+    `signed_on` is not proof of a signature on its own, and reading it as one was the trap
+    here. HCS-11 once set it whenever a job-offer document existed at all — including an
+    unsigned one the joiner uploaded, where it fell back to the day the file arrived — and
+    now sets it only on a real signature. `OFFER_SIGNED` is kept as a backstop. See
+    `contract_is_signed` below.
 
     Optional on our side though HCS-11 always sends it, so that an HCS-11 predating the
     contract work still parses instead of failing every visa call.
     """
+    # Whether it is this employee's turn. HCS-11 refuses the signature with a 409 until the
+    # documents have been checked and the case is ready for the PRO, so a panel that offers
+    # the button before then offers one that cannot work. False when absent, because an
+    # HCS-11 predating this does not send it and "not yet" is the safe reading of silence.
+    available: bool = False
     prepared_on: str = ""
     signed_on: str | None = None
     # The answer to "is it signed?", decided once by `contract_is_signed` below and filled
