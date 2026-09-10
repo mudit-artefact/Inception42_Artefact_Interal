@@ -37,9 +37,14 @@ from app.workflow.prompts import (
     CONTRACT_ALREADY_SIGNED_MESSAGES,
     CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES,
     CONTRACT_NO_CASE_MESSAGES,
+    NO_VISA_CASE_MESSAGES,
+    NO_VISA_CASE_BUT_SCHOOL_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     PLEASANTRY_MESSAGES,
     REPEAT_GREETING_MESSAGES,
+    GREETING_BODY,
+    GREETING_OPENINGS,
+    ISLAMIC_GREETING_OPENINGS,
     DOCUMENT_UPLOAD_RESPONSE,
     DOCUMENT_UPLOAD_RESPONSE_WITH_FILES,
     message_in_language,
@@ -100,7 +105,12 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
     if asked_for == "visa":
         if visa_cases:
             return _open_the_visa_window(state, language, visa_cases)
-        return _nothing_to_upload(state, language)
+        # The mirror of the school branch below, and it was missing: this used to fall into
+        # `_nothing_to_upload`, whose two messages are both about an education allowance. So
+        # somebody already working who asked to send visa documents was told about their
+        # schooling claim and never told the one thing they had asked — that there is no
+        # visa case. A refusal has to refuse the question that was put.
+        return _no_visa_case_but_a_school_claim(state, language, open_claims, could_not_ask)
 
     if not open_claims and not could_not_ask:
         # Somebody who asked for schooling and has no claim is told that, and offered the
@@ -187,6 +197,68 @@ def _no_school_claim_but_a_visa_case(
         "answer_status": AnswerStatus.VERIFIED.value,
         "question_intent": QuestionIntent.HR_QUESTION.value,
         "action_payload": {"action_type": "VISA_DOCUMENT_UPLOAD", "case_id": case_id},
+    }
+
+
+def _no_visa_case_but_a_school_claim(
+    state: ConversationState,
+    language: str,
+    open_claims: list,
+    could_not_ask: bool,
+) -> dict:
+    """
+    They asked for the visa and have no case. Say so, then say what they do have.
+
+    The exact shape of `_no_school_claim_but_a_visa_case` above, pointing the other way.
+    The asymmetry it removes was visible on screen: asking for schooling with no claim
+    named the schooling and then offered the visa, while asking for the visa with no case
+    named neither and explained an education allowance instead.
+
+    A visa case that could not be read is not a visa case that does not exist, so an
+    unreachable HCS-11 keeps the window rather than denying the case — the same rule the
+    rest of this file follows.
+    """
+    if could_not_ask:
+        logger.info(
+            f"Could not reach HCS-11 for {state['employee_id']}; offering the visa "
+            f"window anyway rather than denying a case that may exist"
+        )
+        return {
+            "final_answer": _clean_and_format_markdown(
+                message_in_language(VISA_UPLOAD_MESSAGES, language)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "question_intent": QuestionIntent.HR_QUESTION.value,
+            "action_payload": {"action_type": "VISA_DOCUMENT_UPLOAD", "case_id": None},
+        }
+
+    if not open_claims:
+        logger.info(f"{state['employee_id']} asked to send visa documents and has no case")
+        return {
+            "final_answer": _clean_and_format_markdown(
+                message_in_language(NO_VISA_CASE_MESSAGES, language)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "question_intent": QuestionIntent.HR_QUESTION.value,
+            "action_payload": None,
+        }
+
+    logger.info(
+        f"{state['employee_id']} asked to send visa documents and has no case; "
+        f"saying so and offering their school claim instead"
+    )
+    return {
+        "final_answer": _clean_and_format_markdown(
+            message_in_language(NO_VISA_CASE_BUT_SCHOOL_MESSAGES, language)
+        ),
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+        # The school button is the one card drawn from the intent rather than the payload,
+        # so this is the one refusal that has to carry the upload label to show it.
+        "question_intent": QuestionIntent.DOCUMENT_UPLOAD.value,
+        "action_payload": None,
     }
 
 
@@ -379,7 +451,12 @@ def generate_greeting(state: ConversationState) -> dict:
 
     is_arabic_script = bool(re.search(r"[\u0600-\u06FF]", question))
     lang = "ar" if (is_arabic_script or requested_language == "ar") else "en"
-    employee_name = (facts.get("name_ar") if lang == "ar" else facts.get("name")) or (facts.get("name") or "there")
+    full_name = (facts.get("name_ar") if lang == "ar" else facts.get("name")) or (facts.get("name") or "")
+    # What somebody is called, not what is printed on their record. "Hello Ahmed Al Rashid"
+    # is how a system addresses a case file; a greeting is the one place the person is
+    # being spoken to rather than looked up. Falls back to the whole string, then to
+    # "there", so a record with one name or none still greets somebody.
+    employee_name = full_name.split()[0] if full_name.split() else "there"
 
     # 0a. A question about this conversation. Everything it needs is already in the
     # state — nothing is retrieved, nothing is worked out, and nothing is written that
@@ -428,9 +505,17 @@ def generate_greeting(state: ConversationState) -> dict:
             "answer_status": AnswerStatus.VERIFIED.value,
         }
 
-    # 4. Mid-conversation repeat greeting (if conversation already has remembered turns)
-    remembered = state.get("remembered_turns") or []
-    if remembered:
+    # 4. Not the first hello of this conversation.
+    #
+    # This used to ask whether the conversation had any remembered turns, and a greeting is
+    # deliberately never remembered — its reply is a menu of topics, and leaving that in the
+    # next question's prompt reads as a list of things to talk about. So three hellos in a
+    # row each looked like the first and got the same sentence, introduction and all.
+    #
+    # `already_greeted` is the narrow fact that question actually wanted. It belongs to the
+    # conversation rather than the turn, so it is kept out of the reset in
+    # `load_employee_facts` alongside the two other fields that outlive a question.
+    if state.get("already_greeted") or (state.get("remembered_turns") or []):
         answer_tmpl = message_in_language(REPEAT_GREETING_MESSAGES, lang)
         answer = answer_tmpl.format(employee_name=employee_name)
         return {
@@ -440,22 +525,27 @@ def generate_greeting(state: ConversationState) -> dict:
         }
 
     # 5. First-turn standard welcome greeting
-    is_islamic_greeting = bool(ISLAMIC_GREETING_PATTERN.search(question))
-    if is_islamic_greeting:
-        if lang == "ar":
-            full_greeting = f"وعليكم السلام {employee_name}! أنا دليل. كيف يمكنني مساعدتك اليوم؟"
-        else:
-            full_greeting = f"Wa 'alaykum as-salam {employee_name}! Hi, I am Dalil. How can I help you today?"
-    else:
-        if lang == "ar":
-            full_greeting = f"مرحباً {employee_name}! أنا دليل. كيف يمكنني مساعدتك اليوم؟"
-        else:
-            full_greeting = f"Hello {employee_name}! Hi, I am Dalil. How can I help you today?"
+    # Built from the constants rather than written out here.
+    #
+    # These were four hardcoded f-strings, and `GREETING_MESSAGES` sat unused beside them
+    # saying something slightly different — so the wording was fixed in one place and stayed
+    # wrong in the other. The greeting proper lives in `GREETING_BODY`; only the opening
+    # word differs between a hello and a salam, and only that is chosen here.
+    opening = (
+        message_in_language(ISLAMIC_GREETING_OPENINGS, lang)
+        if ISLAMIC_GREETING_PATTERN.search(question)
+        else message_in_language(GREETING_OPENINGS, lang)
+    )
+    full_greeting = (
+        f"{opening} {employee_name}! {message_in_language(GREETING_BODY, lang)}"
+    )
 
     return {
         "final_answer": _clean_and_format_markdown(full_greeting),
         "citations": [],
         "answer_status": AnswerStatus.VERIFIED.value,
+        # So the next hello is answered as a second one.
+        "already_greeted": True,
     }
 
 

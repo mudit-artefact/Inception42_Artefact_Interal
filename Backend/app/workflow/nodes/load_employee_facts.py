@@ -78,8 +78,8 @@ WORKED_OUT_FRESH_EACH_QUESTION: dict = {
     "leave_dates_round": 0,
     "leave_dates_reply": None,
     "leave_confirmation_reply": None,
-    # `remembered_turns` and `previous_reply` are deliberately NOT here, and must never
-    # be added.
+    # `remembered_turns`, `previous_reply` and `already_greeted` are deliberately NOT here,
+    # and must never be added.
     #
     # They are the fields that belong to the conversation rather than to a question:
     # written at the end of a turn, read at the start of the next. Emptying them here

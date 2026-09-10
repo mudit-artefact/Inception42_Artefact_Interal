@@ -77,6 +77,11 @@ class ConversationState(TypedDict, total=False):
     # what you can only see 300 characters of, or re-bullet a list whose line breaks are
     # gone. One reply, in full, is what "make that shorter" needs.
     previous_reply: dict
+    # Whether this conversation has been greeted already. The third field that belongs to
+    # the conversation, and it exists because the other two could not answer the question:
+    # a greeting is deliberately never remembered, so "have we met?" cannot be read off
+    # `remembered_turns`, and three hellos each looked like the first.
+    already_greeted: bool
 
     # What the employee asked
     conversation_id: str

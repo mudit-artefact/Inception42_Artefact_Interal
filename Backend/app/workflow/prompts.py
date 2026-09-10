@@ -477,6 +477,47 @@ VISA_ALL_IN_MESSAGES = {
 
 # Asked to send school documents, has no education allowance, and every visa document is
 # already in. The refusal still comes first; what follows is what is true today.
+# ── asked for the visa, and has no visa case ─────────────────────────────────
+#
+# The mirror of the two below, and it was missing. Somebody already working who asked to
+# send visa documents was handed the schooling refusal — "you do have an education
+# allowance, but there is no open claim" — which answers a question they did not ask and
+# never mentions the visa at all.
+#
+# Why they have no case is worth saying, because the answer is not "something is wrong with
+# your record": HC-PC-013 §13.1 scopes the whole process to the period before a first day,
+# and somebody reading this has already had theirs.
+
+NO_VISA_CASE_MESSAGES = {
+    "en": (
+        "There is no employment visa case open for you. Those are opened for new joiners "
+        "before their first day, and yours is behind you.\n\n"
+        "If you were expecting one — a renewal, or a change of sponsor — People & Culture "
+        "at people@hcservices.ae handle that; it is not something I can see or open here."
+    ),
+    "ar": (
+        "لا توجد معاملة تأشيرة عمل مفتوحة باسمك. تُفتح هذه المعاملات للموظفين الجدد قبل "
+        "يومهم الأول، ويومك الأول قد مضى.\n\n"
+        "إذا كنت تتوقع معاملة — تجديداً أو تغيير كفيل — فإن فريق الموارد البشرية على "
+        "people@hcservices.ae هو من يتولاها، وليست شيئاً أستطيع رؤيته أو فتحه هنا."
+    ),
+}
+
+NO_VISA_CASE_BUT_SCHOOL_MESSAGES = {
+    "en": (
+        "There is no employment visa case open for you. Those are opened for new joiners "
+        "before their first day, and yours is behind you.\n\n"
+        "You do have a schooling verification claim open. Use the **Upload Documents** "
+        "button below if that is what you meant to send."
+    ),
+    "ar": (
+        "لا توجد معاملة تأشيرة عمل مفتوحة باسمك. تُفتح هذه المعاملات للموظفين الجدد قبل "
+        "يومهم الأول، ويومك الأول قد مضى.\n\n"
+        "لكن لديك مطالبة تحقق مدرسي مفتوحة. استخدم زر **رفع المستندات** أدناه إذا كان هذا "
+        "ما قصدت إرساله."
+    ),
+}
+
 NO_SCHOOL_CLAIM_AND_VISA_DONE_MESSAGES = {
     "en": (
         "There is no education allowance on your package, so there are no school documents "
@@ -871,14 +912,26 @@ HOW TO ANSWER
 
 # ── Fixed messages ───────────────────────────────────────────────────────────
 
+# One greeting, not two. The English read "Hello {name}! Hi, I am Dalīl." — a hello and a
+# hi in the same breath, which nobody says out loud. The Arabic never had the fault, and
+# the fix is to make the English match it rather than the other way round.
+#
+# A first name, too. The full name off the record is how a system addresses a case file,
+# and the person on the other end is being said good morning to.
+
 GREETING_MESSAGES = {
-    "en": "Hello {employee_name}! Hi, I am Dalil. How can I help you today?",
-    "ar": "مرحباً {employee_name}! أنا دليل. كيف يمكنني مساعدتك اليوم؟",
+    "en": "Hello {employee_name}! I am Dalīl, your HR assistant. How can I help you today?",
+    "ar": "مرحباً {employee_name}! أنا دليل، مساعدك للموارد البشرية. كيف يمكنني مساعدتك اليوم؟",
 }
 
+# The opening word only. The sentence after it is the same either way, which is why it is
+# not repeated in both.
+GREETING_OPENINGS = {"en": "Hello", "ar": "مرحباً"}
+ISLAMIC_GREETING_OPENINGS = {"en": "Wa \u2018alaykum as-salam", "ar": "وعليكم السلام"}
+
 GREETING_BODY = {
-    "en": "Hi, I am Dalil. How can I help you today?",
-    "ar": "أنا دليل. كيف يمكنني مساعدتك اليوم؟",
+    "en": "I am Dalīl, your HR assistant. How can I help you today?",
+    "ar": "أنا دليل، مساعدك للموارد البشرية. كيف يمكنني مساعدتك اليوم؟",
 }
 
 # What the assistant says it can do. Only what it can actually do: it holds the HR policy
@@ -891,7 +944,7 @@ GREETING_BODY = {
 # grounded in nothing but itself, and a test enforces that.
 WHAT_I_CAN_DO = {
     "en": (
-        "I am Dalil, the HC Services HR assistant. I can help you with:\n\n"
+        "I am Dalīl, the HC Services HR assistant. I can help you with:\n\n"
         "* **HR policy** — annual and sick leave, probation, working from home, expenses, "
         "conduct, capability and grievances. I answer from the policy documents and show "
         "you the clause.\n"
@@ -953,12 +1006,15 @@ GRATITUDE_MESSAGES = {
     ),
 }
 
+# Said from the second greeting onwards, so that hello twice does not get the same
+# sentence twice. It drops the introduction as well as shortening it: somebody saying hello
+# for the second time has already been told who this is.
 REPEAT_GREETING_MESSAGES = {
     "en": (
-        "Hello again, {employee_name}! How else can I assist you today?"
+        "Hello again, {employee_name}! What can I help you with?"
     ),
     "ar": (
-        "أهلاً بك مجدداً {employee_name}! كيف يمكنني مساعدتك أيضاً اليوم؟"
+        "أهلاً بك مجدداً {employee_name}! بماذا يمكنني مساعدتك؟"
     ),
 }
 

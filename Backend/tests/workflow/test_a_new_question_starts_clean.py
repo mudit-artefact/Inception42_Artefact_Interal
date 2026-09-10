@@ -126,6 +126,10 @@ FIELDS_A_CONVERSATION_KEEPS = {
     # emptying them in between loses exactly the context they exist for.
     "remembered_turns",
     "previous_reply",
+    # Whether this conversation has been greeted. Kept for the same reason and not the
+    # same way: a greeting is deliberately never remembered, so the two above cannot
+    # answer "have we met?" and three hellos each read as the first.
+    "already_greeted",
     # Fields belonging to one branch of the fan-out rather than to the turn.
     "index",
     "question",

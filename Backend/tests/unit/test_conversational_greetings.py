@@ -82,7 +82,7 @@ def test_initial_turn_greeting_has_menu():
         "remembered_turns": [],
     }
     res = generate_greeting(state)
-    assert "Hello Fatima! Hi, I am Dalil." in res["final_answer"]
+    assert "Hello Fatima! I am Dalīl, your HR assistant." in res["final_answer"]
     assert "Annual and sick leave policies" not in res["final_answer"]
 
 
@@ -95,3 +95,66 @@ def test_understand_query_fast_conversational_override():
     state_how = {"employee_question": "how are you?"}
     out_how = understand_query(state_how)
     assert out_how["question_intent"] == QuestionIntent.GREETING.value
+
+
+# ── hello, twice ─────────────────────────────────────────────────────────────
+#
+# "Hi", then "Salam", then "Hola" each produced the identical sentence, introduction and
+# all, because the check for a second greeting asked whether the conversation had any
+# remembered turns — and a greeting is deliberately never remembered.
+
+
+def greeting(question, *, already_greeted=False, language="en"):
+    from app.workflow.nodes.finish_turn import generate_greeting
+
+    return generate_greeting(
+        {
+            "employee_question": question,
+            "requested_language": language,
+            "employee_facts": {"name": "Ahmed Al Rashid", "name_ar": "أحمد الراشد"},
+            "already_greeted": already_greeted,
+            "remembered_turns": [],
+        }
+    )
+
+
+def test_the_greeting_uses_a_first_name():
+    """"Hello Ahmed Al Rashid" is how a system addresses a case file."""
+    said = greeting("Hi")["final_answer"]
+
+    assert "Ahmed" in said
+    assert "Al Rashid" not in said
+
+
+def test_the_greeting_says_hello_once():
+    """It read "Hello {name}! Hi, I am Dalīl" — a hello and a hi in one breath."""
+    said = greeting("Hi")["final_answer"]
+
+    assert said.count("Hello") == 1
+    assert "Hi, I am" not in said
+
+
+def test_the_second_hello_is_answered_as_a_second_one(): 
+    first = greeting("Hi")
+    second = greeting("Hola", already_greeted=True)["final_answer"]
+
+    assert first["already_greeted"] is True, "the first greeting must record that it happened"
+    assert second != first["final_answer"]
+    assert "again" in second.lower()
+
+
+def test_the_second_hello_does_not_introduce_itself_again():
+    said = greeting("hey", already_greeted=True)["final_answer"]
+
+    assert "Dalīl" not in said
+
+
+def test_a_salam_is_returned_in_kind():
+    assert "salam" in greeting("Salam")["final_answer"].lower()
+
+
+def test_arabic_greets_in_arabic_and_by_first_name():
+    said = greeting("مرحبا", language="ar")["final_answer"]
+
+    assert "أحمد" in said
+    assert "الراشد" not in said

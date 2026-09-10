@@ -359,3 +359,77 @@ def test_the_refusal_is_still_first_when_the_visa_case_is_done(hcs11):
     answer = finish_turn.generate_document_upload_prompt(naming("school"))["final_answer"].lower()
 
     assert answer.index("no education allowance") < answer.index("visa")
+
+
+# ── the refusal answers the question that was asked ──────────────────────────
+#
+# Both directions, together, because the bug was the difference between them. Asking for
+# schooling without a claim named the schooling and then offered the visa; asking for the
+# visa without a case named neither and explained an education allowance instead — the
+# schooling refusal, handed to somebody who had said nothing about schooling.
+
+
+def test_asking_for_the_visa_without_a_case_says_so_first(hcs11):
+    """The reported fault: a visa question was answered with a schooling explanation."""
+    hcs11(school=[AN_OPEN_CLAIM], visa=[])
+
+    answer = finish_turn.generate_document_upload_prompt(
+        {**asked_to_submit(), "document_kind": "visa"}
+    )
+
+    assert "no employment visa case" in answer["final_answer"].lower()
+    # The old answer opened on the education allowance and never mentioned the visa.
+    assert not answer["final_answer"].lower().startswith("you do have an education")
+
+
+def test_the_school_claim_is_offered_after_the_refusal_not_instead_of_it(hcs11):
+    hcs11(school=[AN_OPEN_CLAIM], visa=[])
+
+    answer = finish_turn.generate_document_upload_prompt(
+        {**asked_to_submit(), "document_kind": "visa"}
+    )
+
+    said = answer["final_answer"]
+    assert said.lower().index("visa") < said.lower().index("schooling")
+    # The school button is the one card drawn from the intent rather than the payload.
+    assert answer["question_intent"] == QuestionIntent.DOCUMENT_UPLOAD.value
+
+
+def test_no_visa_case_and_no_claim_offers_nothing(hcs11):
+    hcs11(school=[], visa=[])
+
+    answer = finish_turn.generate_document_upload_prompt(
+        {**asked_to_submit(plan="NONE"), "document_kind": "visa"}
+    )
+
+    assert answer["action_payload"] is None
+    assert "no employment visa case" in answer["final_answer"].lower()
+
+
+def test_a_paid_claim_is_not_offered_as_somewhere_to_send_visa_documents(hcs11):
+    """A closed claim is not an open one, in this direction as in the other."""
+    hcs11(school=[A_PAID_CLAIM], visa=[])
+
+    answer = finish_turn.generate_document_upload_prompt(
+        {**asked_to_submit(), "document_kind": "visa"}
+    )
+
+    assert answer["action_payload"] is None
+    assert "schooling verification claim open" not in answer["final_answer"]
+
+
+def test_hcs11_being_unreachable_does_not_deny_a_visa_case(hcs11):
+    """
+    `None` means it could not be asked.
+
+    Telling somebody who has a case that they have none is the one wrong answer that
+    matters here, and it is worse than a window that opens onto an error.
+    """
+    hcs11(school=None, visa=None)
+
+    answer = finish_turn.generate_document_upload_prompt(
+        {**asked_to_submit(), "document_kind": "visa"}
+    )
+
+    assert answer["action_payload"] is not None
+    assert "no employment visa case" not in answer["final_answer"].lower()
