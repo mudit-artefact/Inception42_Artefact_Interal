@@ -17,7 +17,7 @@ from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
 import re
 from app.integrations.hcs11_client import read_school_claims, read_visa_case
-from app.workflow.routing_rules import LEAVE_INTENTS, ONBOARDING
+from app.workflow.routing_rules import LEAVE_INTENTS, ONBOARDING, TERMINATED
 from app.workflow.prompts import (
     WHAT_I_CAN_DO,
     ACKNOWLEDGMENT_MESSAGES,
@@ -31,6 +31,7 @@ from app.workflow.prompts import (
     NO_EVIDENCE_MESSAGES,
     NOTHING_TO_REPHRASE_MESSAGES,
     NOT_STARTED_YET_MESSAGES,
+    HAS_LEFT_MESSAGES,
     NOTHING_TO_UPLOAD_NO_CASE_MESSAGES,
     NO_SCHOOL_CLAIM_AND_VISA_DONE_MESSAGES,
     NO_SCHOOL_CLAIM_BUT_VISA_MESSAGES,
@@ -667,6 +668,10 @@ def build_safe_fallback(state: ConversationState) -> dict:
         message = message_in_language(NOT_STARTED_YET_MESSAGES, requested_language)
         citations = []
         status = AnswerStatus.REFUSED.value
+    elif reason == FallbackReason.HAS_LEFT.value:
+        message = message_in_language(HAS_LEFT_MESSAGES, requested_language)
+        citations = []
+        status = AnswerStatus.REFUSED.value
     elif reason == FallbackReason.NEEDS_HUMAN.value:
         facts = state.get("employee_facts") or {}
         message = message_in_language(ESCALATION_MESSAGES, requested_language).format(
@@ -817,6 +822,11 @@ def _infer_fallback_reason(state: ConversationState) -> str:
         and (state.get("employee_facts") or {}).get("employment_status") == ONBOARDING
     ):
         return FallbackReason.NOT_STARTED_YET.value
+    if (
+        state.get("question_intent") in LEAVE_INTENTS
+        and (state.get("employee_facts") or {}).get("employment_status") == TERMINATED
+    ):
+        return FallbackReason.HAS_LEFT.value
     if state.get("question_intent") == QuestionIntent.ABOUT_THE_LAST_ANSWER:
         return FallbackReason.NOTHING_TO_REPHRASE.value
     if state.get("required_evidence") == "unsupported":

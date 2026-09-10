@@ -114,6 +114,10 @@ def _when_this_rule_applied(passage: dict) -> str:
 # What HCS-11 calls somebody who has accepted an offer and not started. The same word is
 # used here so both systems describe the same person the same way.
 ONBOARDING = "Onboarding"
+# The other end of employment, and it belongs beside the word above for the same reason the
+# balance rules below come in pairs: a figure is wrong for a person who has not begun to
+# accrue it, and equally wrong for a person whose accrual has already been paid out.
+TERMINATED = "Terminated"
 
 EDUCATION_PLAN_NAMES = {
     "EDU_STANDARD": "Education Allowance – Standard",
@@ -297,6 +301,14 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
     # Somebody who has accepted an offer and not started has no balance rows, so every
     # figure about their leave would be a figure nobody granted. Say what is true instead.
     has_not_started = facts.employment_status == ONBOARDING
+    # And somebody who has left keeps their rows, which is the harder case: the number is
+    # real, it is simply no longer theirs to spend. A live run found a leaver being told he
+    # had twenty-one days remaining — true of the row, and false of him, because HC-PC-001
+    # §1.6.3 settled those days in his final pay months ago.
+    #
+    # Blocking the leave *actions* did not cover this. A balance question is not an action;
+    # it is an ordinary question answered from the record, and the record still says 21.
+    has_left = facts.employment_status == TERMINATED
 
     if HrDataField.EMPLOYEE_PROFILE in requested:
         lines.append(f"Role: {facts.job_title}, {facts.department} (grade {facts.grade})")
@@ -320,6 +332,19 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
                 f"Annual leave: none yet. Leave begins to accrue on the first day of "
                 f"employment, {facts.start_date}. Do not state a number of days."
             )
+        elif has_left:
+            # "None remaining", not "nothing left to take".
+            #
+            # The first draft said the latter and the model turned it into "0 days", which
+            # the validator then caught and answered with a generic fallback — so a leaver
+            # asking a fair question got no answer at all. A phrase that describes an
+            # absence invites a figure for it. The joiner line above works because it hands
+            # over a *word* the reply can use, and this now does the same.
+            lines.append(
+                "Annual leave: none remaining — this person's employment has ended. "
+                "Accrued but untaken leave was paid in their final settlement under "
+                "HC-PC-001 §1.6.3. Do not state a number of days."
+            )
         else:
             lines.append(f"Annual leave remaining: {facts.annual_leave_balance} days")
             lines.extend(_balance_rows(facts, "annual"))
@@ -329,10 +354,16 @@ def format_employee_facts(facts: EmployeeFacts, allowed_fields: list[str]) -> st
                 f"Sick leave: none yet. Entitlement begins on the first day of employment, "
                 f"{facts.start_date}. Do not state a number of days."
             )
+        elif has_left:
+            lines.append(
+                "Sick leave: none remaining — this person's employment has ended, so there "
+                "is no entitlement to draw on. Do not state a number of days."
+            )
         else:
             lines.append(f"Sick leave remaining: {facts.sick_leave_balance} days in total")
             lines.extend(_balance_rows(facts, "sick"))
-    if HrDataField.CARRY_OVER_DAYS in requested and facts.carry_over_days > 0:
+    # Carried days are a balance like any other, and a leaver carries nothing forward.
+    if HrDataField.CARRY_OVER_DAYS in requested and facts.carry_over_days > 0 and not has_left:
         lines.append(f"Carried over from last year: {facts.carry_over_days} days")
 
     if HrDataField.EDUCATION_PLAN in requested:

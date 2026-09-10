@@ -394,6 +394,22 @@ def validate_leave_policy(
                 f"employment, {employee.start_date}."
             )
 
+        # 3c. Employment has ended (HC-PC-001 §1.6.3)
+        # The mirror of the check above, and it was missing. A live run found a leaver
+        # applying successfully: the request was written, he was told it had been submitted,
+        # and his former manager was notified to approve it. The routing guard now turns the
+        # question away first; this is the backstop, because a route that does not go
+        # through the router must not be able to write the row either.
+        #
+        # Only "Terminated". "On Leave" is an employee on holiday, who may still apply,
+        # cancel and be approved as normal.
+        if employee.employment_status == "Terminated":
+            violations.append(
+                "Employment has ended: There is no leave record to book against. Under "
+                "HC-PC-001 §1.6.3 accrued but untaken annual leave is paid in the final "
+                "settlement rather than taken."
+            )
+
         # 4. Active probation restriction check (HC-PC-003 §3.5.1 / §3.2)
         # Annual leave cannot be taken during active probation without special HR approval.
         # Emergency leave is expressly exempt (HC-PC-003 §3.5.1).

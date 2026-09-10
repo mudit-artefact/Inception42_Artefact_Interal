@@ -32,6 +32,11 @@ GATHER_EVIDENCE_FOR_ONE_PART = "gather_subquery_evidence"
 # What HCS-11 calls somebody who has accepted an offer and not started, used here so both
 # systems describe the same person the same way.
 ONBOARDING = "Onboarding"
+# The other end of the same list. `employment_status` has four values and only these two
+# stop somebody acting on leave — "On Leave" is an employee on holiday, who must keep every
+# one of these abilities, and a guard written as "not Active" would lock them out of the
+# system while they were using it.
+TERMINATED = "Terminated"
 
 # Everything that would read or change a leave record.
 LEAVE_INTENTS = frozenset(
@@ -49,6 +54,19 @@ def _has_not_started(state: ConversationState) -> bool:
     """Whether this turn belongs to somebody whose first day has not come."""
     facts = state.get("employee_facts") or {}
     return facts.get("employment_status") == ONBOARDING
+
+
+def _has_left(state: ConversationState) -> bool:
+    """
+    Whether this turn belongs to somebody whose employment has ended.
+
+    This check did not exist, and a live run found what that costs: a leaver asked for
+    three days in January, and the application created the request, told him it was
+    submitted, and sent his old manager a notification to approve it. The guard beside this
+    one had been written for new joiners and only ever learned that one word.
+    """
+    facts = state.get("employee_facts") or {}
+    return facts.get("employment_status") == TERMINATED
 
 
 def decide_after_understanding(state: ConversationState) -> str:
@@ -82,6 +100,10 @@ def decide_after_understanding(state: ConversationState) -> str:
     # confirm a card before being told the answer was always no.
     if _has_not_started(state) and intent in LEAVE_INTENTS:
         logger.info("Turning away a leave action from somebody who has not started yet")
+        return "build_safe_fallback"
+
+    if _has_left(state) and intent in LEAVE_INTENTS:
+        logger.info("Turning away a leave action from somebody who has left")
         return "build_safe_fallback"
 
     if intent == QuestionIntent.APPLY_LEAVE:

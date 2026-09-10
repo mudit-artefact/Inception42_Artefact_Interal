@@ -78,6 +78,11 @@ class FallbackReason(StrEnum):
     # Asked to act on a record by somebody who has not started yet. Not a refusal of the
     # person — they may ask anything they like — but of the action.
     NOT_STARTED_YET = "not_started_yet"
+    # Its mirror at the other end of employment. A separate reason rather than one
+    # "cannot take leave" case, because the two are refused for opposite causes and
+    # the sentence that helps each person is different: one has leave coming, the
+    # other has already been paid for what they did not take.
+    HAS_LEFT = "has_left"
 
 
 class HrDataField(StrEnum):

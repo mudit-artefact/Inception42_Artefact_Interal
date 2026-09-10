@@ -591,6 +591,26 @@ VISA_UPLOAD_MESSAGES = {
     ),
 }
 
+# Said to somebody whose employment has ended, and deliberately not the same shape as the
+# message below it. A new joiner is told to wait, because their leave is coming. A leaver is
+# not waiting for anything — HC-PC-001 §1.6.3 settles untaken leave in their final pay — so
+# the useful thing is to say where that is dealt with, not to leave them expecting a window
+# that will not open.
+HAS_LEFT_MESSAGES = {
+    "en": (
+        "Your employment with us has ended, so there is no leave record left to act on. "
+        "Any annual leave you had not taken is paid in your final settlement under "
+        "HC-PC-001 §1.6.3 rather than booked — People & Culture at people@hcservices.ae "
+        "handle that. I can still answer questions about HR policy."
+    ),
+    "ar": (
+        "لقد انتهت علاقتك الوظيفية معنا، لذا لم يعد هناك سجل إجازات يمكن التصرف فيه. "
+        "أي إجازة سنوية لم تستخدمها تُصرف ضمن مستحقاتك النهائية بموجب HC-PC-001 §1.6.3 "
+        "ولا تُحجز — وإدارة الموارد البشرية على people@hcservices.ae هي المعنية بذلك. "
+        "وما زال بإمكاني الإجابة عن أسئلة سياسات الموارد البشرية."
+    ),
+}
+
 NOT_STARTED_YET_MESSAGES = {
     "en": (
         "You have not started yet, so there is no leave record to act on — leave begins "

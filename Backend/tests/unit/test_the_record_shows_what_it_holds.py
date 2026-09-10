@@ -81,10 +81,18 @@ def test_a_single_balance_is_broken_down_too(temporary_database):
 
 
 def test_an_entitlement_that_disagrees_with_the_policy_ladder_is_shown(temporary_database):
-    rendered = shown(get_employee_facts_for("EMP008"), [HrDataField.ANNUAL_LEAVE_BALANCE.value])
+    """
+    Sultan, not Tariq.
+
+    This read Tariq's record until his balance stopped being shown at all — he left the
+    company, and a leaver's remaining days are settled in their final pay rather than
+    reported. The point of the test is the entitlement that sits above the ladder, and
+    Sultan's does the same thing while he is still employed to be asked about.
+    """
+    rendered = shown(get_employee_facts_for("EMP006"), [HrDataField.ANNUAL_LEAVE_BALANCE.value])
 
     assert "26 entitled" in rendered
-    assert "5 used" in rendered
+    assert "8 used" in rendered
 
 
 def test_a_part_time_entitlement_is_shown_as_the_record_holds_it(temporary_database):
