@@ -10,11 +10,12 @@ import {
   Mail,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import {
   AppNotification,
   fetchNotifications,
@@ -116,6 +117,60 @@ function formatNotificationTime(dateStr?: string | null): string {
 function getFullNotificationTime(dateStr?: string | null): string {
   const d = normalizeDate(dateStr);
   return d ? d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+}
+
+const APPROVALS_QUESTION = "What leave requests do I need to approve?";
+
+/**
+ * The one way a notification hands its question to the assistant.
+ *
+ * Two forms, because the conversation page and every other page need different things.
+ * On the conversation page the question goes straight into the chat that is already
+ * open — that page delivers a `?q=` from the address exactly once per mount, so linking
+ * to it while standing on it changes the address and sends nothing at all. Everywhere
+ * else there is no chat to send to, so the link carries the question and the page
+ * delivers it on arrival.
+ *
+ * Both forms render for everyone. A button that exists only where a callback happens to
+ * be passed is invisible on the screen most people open the bell from, which is what the
+ * manager's "Review & Decide" was until now.
+ */
+function AskDalil({
+  question,
+  onActionClick,
+  onDone,
+  children,
+}: {
+  question: string;
+  onActionClick?: ((prompt: string) => void) | undefined;
+  onDone: () => void;
+  children: ReactNode;
+}) {
+  const look = "h-6 px-2 text-[11px] font-medium";
+
+  if (onActionClick) {
+    return (
+      <Button
+        variant="secondary"
+        size="sm"
+        className={cn(look, "cursor-pointer")}
+        onClick={() => {
+          onDone();
+          onActionClick(question);
+        }}
+      >
+        {children}
+      </Button>
+    );
+  }
+
+  return (
+    <Button asChild variant="secondary" size="sm" className={look} onClick={onDone}>
+      <Link to="/chat" search={{ q: question }}>
+        {children}
+      </Link>
+    </Button>
+  );
 }
 
 export function NotificationCenter({ employeeId, employee, onActionClick }: NotificationCenterProps) {
@@ -226,7 +281,7 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[360px] p-0 shadow-lg sm:w-[400px]">
+      <PopoverContent align="end" className="w-[360px] overflow-hidden p-0 shadow-lg sm:w-[400px]">
         <div className="flex items-center justify-between border-b px-4 py-2.5 bg-muted/40">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm">Notifications</span>
@@ -248,7 +303,16 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
           )}
         </div>
 
-        <ScrollArea className="max-h-[380px] divide-y">
+        {/*
+          The cap goes on the scrolling layer itself, not on the box around it.
+
+          A `max-height` on the box left that layer with nothing definite to be a
+          percentage of, so it grew to its full content height, concluded it had nothing
+          to scroll, and the box silently clipped everything past the cap — no scrollbar,
+          no wheel, and four notifications were already 73px too tall for it. Capping the
+          layer directly needs no inherited height and cannot come apart the same way.
+        */}
+        <ScrollArea type="auto" className="[&>[data-radix-scroll-area-viewport]]:max-h-[420px]">
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
               <Bell className="size-8 stroke-[1.25] text-muted-foreground/40 mb-2" />
@@ -328,46 +392,30 @@ export function NotificationCenter({ employeeId, employee, onActionClick }: Noti
 
                         {/* Quick action triggers */}
                         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                          {/*
-                            A link, not a callback.
-
-                            `onActionClick` is passed by the conversation page and not by
-                            the home page, so a button gated on it is invisible on exactly
-                            the screen most people open the bell from — which is where the
-                            manager's "Review & Decide" button silently is not, today.
-                            A link works on both, and it is the same handoff the action
-                            cards and the joining board already use.
-                          */}
                           {(isDocuments || isContract) && openIt && (
-                            <Button
-                              asChild
-                              variant="secondary"
-                              size="sm"
-                              className="h-6 px-2 text-[11px] font-medium"
-                              onClick={() => {
+                            <AskDalil
+                              question={openIt}
+                              onActionClick={onActionClick}
+                              onDone={() => {
                                 setIsOpen(false);
-                                handleMarkAsRead(n.id);
+                                void handleMarkAsRead(n.id);
                               }}
                             >
-                              <Link to="/chat" search={{ q: openIt }}>
-                                {needsFixing ? "Send a corrected copy" : "Open"}
-                              </Link>
-                            </Button>
+                              {needsFixing ? "Send a corrected copy" : "Open"}
+                            </AskDalil>
                           )}
 
-                          {isLeaveReq && onActionClick && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-6 px-2 text-[11px] font-medium cursor-pointer"
-                              onClick={() => {
+                          {isLeaveReq && (
+                            <AskDalil
+                              question={APPROVALS_QUESTION}
+                              onActionClick={onActionClick}
+                              onDone={() => {
                                 setIsOpen(false);
-                                onActionClick("What leave requests do I need to approve?");
-                                handleMarkAsRead(n.id);
+                                void handleMarkAsRead(n.id);
                               }}
                             >
                               Review & Decide
-                            </Button>
+                            </AskDalil>
                           )}
 
                           {isApproved && (
