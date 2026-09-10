@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
@@ -6,6 +7,7 @@ import { ConversationHistory } from "@/components/concierge/ConversationHistory"
 import { AppShell, APP_TITLE } from "@/components/layout/AppShell";
 import { useActiveEmployee } from "@/hooks/useActiveEmployee";
 import { useConcierge } from "@/hooks/useConcierge";
+import { getVisaCases } from "@/lib/api/visa";
 
 const DESCRIPTION =
   "Ask HR policy and leave questions and get cited answers from the approved Dalīl policy library, with your live leave balance alongside.";
@@ -37,6 +39,16 @@ function ConversationPage() {
   const { employees, employeeId, selectEmployee, employee, settled } = useActiveEmployee();
   const concierge = useConcierge(employeeId);
   const { q } = Route.useSearch();
+
+  // Only for the name under the avatar. A new joiner's contract states a job title that
+  // differs from the one on their record, and the header would otherwise contradict the
+  // contract panel this page can open. Same query key as the dashboard's, so arriving from
+  // there costs nothing.
+  const visa = useQuery({
+    queryKey: ["visa-cases", employeeId],
+    queryFn: () => getVisaCases(employeeId),
+    enabled: Boolean(employeeId),
+  });
   const navigate = useNavigate();
   const alreadySent = useRef(false);
 
@@ -76,6 +88,7 @@ function ConversationPage() {
       employeeId={employeeId}
       employee={employee}
       onSelectEmployee={selectEmployee}
+      activeJobTitle={visa.data?.[0]?.contract?.job_title}
       onNotificationAction={(prompt) => concierge.send(prompt)}
       secondaryPanel={
         <ConversationHistory

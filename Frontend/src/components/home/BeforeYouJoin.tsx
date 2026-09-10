@@ -14,6 +14,12 @@ import { ChevronRight, Sparkles } from "lucide-react";
  * after the first day out of scope. "When will I sign my contract?" has no clause anywhere
  * in the Code — every mention of a contract is about precedence, probation length or how
  * salary is defined. Both belong here the day the policy covers them, and not before.
+ *
+ * The contract is worth a second look, because HCS-11 now issues one and takes the
+ * signature on screen — and that changed nothing here. Knowing where somebody's contract
+ * has got to is a fact; knowing what the rules around signing it are is a policy, and
+ * there is still no policy. The timeline above says where they are, and this list stays
+ * as it was until the Code has something to answer with.
  */
 const QUESTIONS: { ask: string; clause: string }[] = [
   { ask: "Which documents do I need to send?", clause: "§13.4" },

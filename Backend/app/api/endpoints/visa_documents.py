@@ -19,6 +19,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
@@ -43,6 +44,7 @@ from app.integrations.hcs11_schemas import VisaCaseOut
 from app.integrations.visa_response_formatter import (
     build_visa_document_statuses,
     format_visa_upload_result,
+    settle_the_contract,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,7 +98,8 @@ async def list_cases(employee_id: Annotated[str, Query()]) -> VisaCaseListRespon
             # that everything on their side is done. Only the per-case reading carries
             # what was actually found.
             summaries = await client.list_visa_cases(employee_id)
-            cases = [await client.get_visa_case(case.case_id) for case in summaries]
+            cases = [settle_the_contract(await client.get_visa_case(case.case_id))
+                     for case in summaries]
             return VisaCaseListResponse(cases=cases, count=len(cases))
     except HCS11ConnectionError:
         raise HTTPException(
@@ -116,7 +119,7 @@ async def list_cases(employee_id: Annotated[str, Query()]) -> VisaCaseListRespon
 async def get_case(case_id: str) -> VisaCaseDetailResponse:
     try:
         async with get_hcs11_client() as client:
-            case = await client.get_visa_case(case_id)
+            case = settle_the_contract(await client.get_visa_case(case_id))
             # Derived here rather than in the browser: what is received is a set-difference
             # against `missing_documents`, and each fault is filed against the document its
             # own `about` names.
@@ -125,6 +128,88 @@ async def get_case(case_id: str) -> VisaCaseDetailResponse:
             )
     except HCS11CaseNotFoundError:
         raise HTTPException(status_code=404, detail=f"Visa case {case_id} not found")
+    except HCS11ConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail=format_error_message("connection", "Service unavailable"),
+        )
+    except HCS11TimeoutError as e:
+        raise HTTPException(status_code=504, detail=format_error_message("timeout", e.message))
+
+
+# ── The employment contract ──────────────────────────────────────────────────
+#
+# The one document on a visa case that goes towards the new joiner instead of away from
+# them. It is not a fourth process and gets no router of its own: HCS-11 keeps it as a
+# field on the visa case, and giving it a separate address on this side would be a second
+# vocabulary for the same thing.
+#
+# Signing it files the signed copy as the job-offer document, so the answer below is the
+# whole refreshed case rather than the contract alone — the checklist, the checks and the
+# status have all moved.
+
+
+@router.get(
+    "/cases/{case_id}/contract",
+    summary="The employment contract, as a PDF",
+    dependencies=[Depends(require_hcs11_enabled)],
+    response_class=Response,
+)
+async def get_contract(case_id: str) -> Response:
+    """
+    The contract itself, passed through as the file HCS-11 draws.
+
+    Proxied rather than linked to directly so the browser talks to one origin, and so the
+    feature flag and the error wording apply here as they do everywhere else. Sent
+    `inline`, because this is opened to be read rather than saved.
+    """
+    try:
+        async with get_hcs11_client() as client:
+            payload, content_type, filename = await client.read_contract_pdf(case_id)
+            return Response(
+                content=payload,
+                media_type=content_type,
+                headers={"content-disposition": f'inline; filename="{filename}"'},
+            )
+    except HCS11CaseNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Visa case {case_id} not found")
+    except HCS11ConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail=format_error_message("connection", "Service unavailable"),
+        )
+    except HCS11TimeoutError as e:
+        raise HTTPException(status_code=504, detail=format_error_message("timeout", e.message))
+
+
+@router.post(
+    "/cases/{case_id}/contract/sign",
+    response_model=VisaCaseDetailResponse,
+    summary="Accept the employment contract",
+    dependencies=[Depends(require_hcs11_enabled)],
+)
+async def sign_contract(case_id: str) -> VisaCaseDetailResponse:
+    """
+    Sign it, and answer with the case as it now stands.
+
+    The same shape `GET /cases/{case_id}` returns, so a screen can replace what it holds
+    rather than reconciling a contract against a case it fetched earlier. That matters more
+    here than on an upload: signing takes the job-offer row off the checklist, so a panel
+    that refreshed only the contract would still be showing it as outstanding.
+
+    A second attempt answers 409 from HCS-11 and 409 from here. It is not an error — the
+    contract is signed, which is what the caller wanted — and the browser says so plainly.
+    """
+    try:
+        async with get_hcs11_client() as client:
+            case = settle_the_contract(await client.sign_contract(case_id))
+            return VisaCaseDetailResponse(
+                case=case, documents=build_visa_document_statuses(case)
+            )
+    except HCS11CaseNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Visa case {case_id} not found")
+    except HCS11ValidationError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
     except HCS11ConnectionError:
         raise HTTPException(
             status_code=503,

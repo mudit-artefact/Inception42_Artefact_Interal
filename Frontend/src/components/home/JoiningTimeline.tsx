@@ -19,9 +19,11 @@ const LOOK: Record<StepState, { icon: typeof CheckCircle2; dot: string; label: s
 };
 
 export function JoiningTimeline({ steps }: { steps: JoiningStep[] }) {
-  // Only a step somebody can act on. Two of the seven are untracked and one of them sits
-  // second, before the step that is actually current — naming it in the heading would
-  // point at something that will never complete and that they cannot do anything about.
+  // The first step somebody can act on. There can be more than one — an unsigned contract
+  // and outstanding documents are both things to do today, and HCS-11 does not enforce an
+  // order between them — so this takes the earliest rather than assuming a single one.
+  // Untracked steps are skipped by construction: they are never `current`, because nothing
+  // will ever complete them and nothing can be done about them.
   const current = steps.find((step) => step.state === "current");
 
   return (

@@ -24,7 +24,7 @@ from app.integrations.hcs11_response_formatter import (
     UploadResult,
     UploadStatus,
 )
-from app.integrations.hcs11_schemas import VisaCaseOut
+from app.integrations.hcs11_schemas import VisaCaseOut, contract_is_signed
 from app.workflow.evidence_formatting import VISA_DOCUMENT_NAMES
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,29 @@ def format_visa_upload_result(case: VisaCaseOut) -> UploadResult:
         # A visa case is never paid; the fields stay empty rather than reading zero.
         payment_amount=None,
         payment_status=None,
+    )
+
+
+def settle_the_contract(case: VisaCaseOut) -> VisaCaseOut:
+    """
+    Fill in whether the contract has actually been signed, before the case leaves here.
+
+    HCS-11 sends a date and no verdict. The date alone is not the answer — it is set as
+    soon as any job-offer form is on the case, including an unsigned one the joiner
+    uploaded, where it falls back to the day the file arrived. `contract_is_signed` asks
+    HCS-11's own OFFER_SIGNED check as well, and this is where that answer is written down
+    so no screen has to work it out again.
+
+    The same argument as `build_visa_document_statuses` beneath it: decide it once, on the
+    side that can see HCS-11's own reasoning, and let the browser read the result.
+    """
+    if case.contract is None:
+        return case
+    settled = contract_is_signed(
+        case.contract.signed_on, ((check.code, check.result) for check in case.checks)
+    )
+    return case.model_copy(
+        update={"contract": case.contract.model_copy(update={"is_signed": settled})}
     )
 
 

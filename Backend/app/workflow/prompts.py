@@ -89,8 +89,13 @@ Choose one intent:
     "how do I send my visa documents?", "كيف أرسل مستندات التأشيرة؟"
   * A file arriving: "[file attached]", "[document uploaded]"
   Set `document_kind` to whichever they named — "school" for school, education, tuition or
-  a child's documents; "visa" for visa, passport, residence or joining documents. Leave it
-  null when they did not say, as in "I want to upload documents".
+  a child's documents; "visa" for visa, passport, residence or joining documents;
+  "contract" when they name their employment contract or ask to sign, as in "I want to
+  sign my contract" or "أريد توقيع عقدي". Leave it null when they did not say, as in "I
+  want to upload documents".
+  The contract and the job-offer form are the same piece of paper and the verb separates
+  them: signing it happens on screen and opens the contract window, while "upload my job
+  offer" is somebody sending their own copy in and opens the visa window.
   Report the word they used, not the person you think they are. This used to say you did
   not decide which kind, on the reasoning that a new joiner needs the visa window and an
   employee the school one — true of who somebody is, and not of what they ask. A new
@@ -402,6 +407,63 @@ CONVERSATION_RECAP_MESSAGES = {
 # four was told they had documents outstanding and shown a button to send them again. A
 # sentence that asserts something it has not checked is the same fault whether it says
 # "everything is fine" or "something is missing".
+# ── the employment contract ──────────────────────────────────────────────────
+#
+# Three states, and the middle one is the reason there are three rather than two. A case
+# can carry a job-offer form that has not been accepted — one the joiner uploaded
+# themselves, unsigned — and HCS-11 stamps a date on it either way. Saying "already
+# signed" then would be a green tick over a document its own check rejected.
+
+CONTRACT_SIGN_MESSAGES = {
+    "en": (
+        "Your employment contract is ready. Use the **Sign Your Contract** button below — "
+        "read it first, then tick to accept and sign. Nothing needs printing.\n\n"
+        "Signing it also files your signed job-offer form, so it comes off your document "
+        "checklist at the same time."
+    ),
+    "ar": (
+        "عقد عملك جاهز. استخدم زر **توقيع العقد** أدناه — اقرأه أولاً، ثم أشّر على الموافقة "
+        "ووقّع. لا حاجة إلى طباعة أي شيء.\n\n"
+        "التوقيع يودع أيضاً نموذج عرض العمل الموقّع، فيُشطب من قائمة مستنداتك في الوقت نفسه."
+    ),
+}
+
+CONTRACT_ALREADY_SIGNED_MESSAGES = {
+    "en": (
+        "You have already signed your employment contract, so there is nothing further to "
+        "do there. You can still open it from the button below if you want to read it again."
+    ),
+    "ar": (
+        "لقد وقّعت عقد عملك بالفعل، فلا يوجد ما تفعله بشأنه. ما زال بإمكانك فتحه من الزر "
+        "أدناه إذا أردت قراءته مرة أخرى."
+    ),
+}
+
+CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES = {
+    "en": (
+        "There is a job-offer form on your case, but it has not been accepted — so your "
+        "contract does not count as signed yet. Open it with the button below to read and "
+        "sign it properly, or send a correctly signed copy with your visa documents."
+    ),
+    "ar": (
+        "يوجد نموذج عرض عمل في ملفك، لكنه لم يُقبل — لذا لا يُعد عقدك موقّعاً بعد. افتحه من "
+        "الزر أدناه لقراءته وتوقيعه بشكل صحيح، أو أرسل نسخة موقّعة صحيحة مع مستندات التأشيرة."
+    ),
+}
+
+CONTRACT_NO_CASE_MESSAGES = {
+    "en": (
+        "There is no employment contract for you to sign here. Contracts are issued to new "
+        "joiners as part of their visa application, and there is no visa case open in your "
+        "name. If you were expecting one, People & Culture can tell you where it is."
+    ),
+    "ar": (
+        "لا يوجد عقد عمل لتوقيعه هنا. تُصدر العقود للموظفين الجدد ضمن معاملة التأشيرة، ولا "
+        "توجد معاملة تأشيرة مفتوحة باسمك. إذا كنت تتوقع عقداً، يمكن لفريق الموارد البشرية "
+        "إفادتك بمكانه."
+    ),
+}
+
 VISA_ALL_IN_MESSAGES = {
     "en": (
         "All of your employment visa documents have arrived and nothing has come back with "

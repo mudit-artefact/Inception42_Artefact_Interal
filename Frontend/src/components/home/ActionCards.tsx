@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, ChevronRight, GraduationCap, PlaneTakeoff } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronRight,
+  FileSignature,
+  GraduationCap,
+  PlaneTakeoff,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -15,7 +21,7 @@ import { cn } from "@/lib/utils";
  */
 export interface ActionCard {
   key: string;
-  kind: "visa" | "school" | "approval";
+  kind: "visa" | "school" | "approval" | "contract";
   title: string;
   detail: string;
   badge: string;
@@ -29,6 +35,12 @@ const LOOK: Record<
   ActionCard["kind"],
   { icon: LucideIcon; tint: string; badge: string; border: string }
 > = {
+  contract: {
+    icon: FileSignature,
+    tint: "bg-primary/10 text-primary",
+    badge: "bg-primary/15 text-primary",
+    border: "border-primary/25 bg-primary/[0.04]",
+  },
   visa: {
     icon: PlaneTakeoff,
     tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400",

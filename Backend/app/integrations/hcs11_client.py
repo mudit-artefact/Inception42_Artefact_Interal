@@ -6,6 +6,7 @@ All methods are async because verification can take 30-60 seconds
 """
 
 import logging
+import re
 from typing import BinaryIO
 
 import httpx
@@ -18,7 +19,13 @@ from .hcs11_errors import (
     HCS11TimeoutError,
     HCS11ValidationError,
 )
-from .hcs11_schemas import CaseDetail, CaseSummary, HealthResponse, VisaCaseOut
+from .hcs11_schemas import (
+    CaseDetail,
+    CaseSummary,
+    HealthResponse,
+    VisaCaseOut,
+    contract_is_signed,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +63,18 @@ def map_hcs01_to_hcs11_employee_id(employee_id: str) -> str:
         return f"E{number:04d}"
     # Already in HCS-11 format or unknown format - return as-is
     return employee_id
+
+
+def _filename_from(disposition: str) -> str:
+    """
+    The name HCS-11 gave the file, or a sensible one if it gave none.
+
+    The header reads `inline; filename="employment-contract-ahmed-al-rashid.pdf"`, and it
+    is worth honouring: HCS-11 names the signed copy differently from the unsigned draft,
+    so the name is the one place a saved file says which it was.
+    """
+    match = re.search(r'filename="?([^"\r\n;]+)"?', disposition)
+    return match.group(1).strip() if match else "employment-contract.pdf"
 
 
 class HCS11Client:
@@ -198,6 +217,71 @@ class HCS11Client:
                     employee_id="unknown",
                     message=f"Visa case {case_id} not found",
                 )
+            response.raise_for_status()
+            return VisaCaseOut(**response.json())
+        except httpx.ConnectError as e:
+            raise HCS11ConnectionError() from e
+        except httpx.TimeoutException as e:
+            raise HCS11TimeoutError() from e
+
+    # ─── The employment contract ────────────────────────────────────────────
+    #
+    # The one document on a visa case that travels towards the new joiner rather than away
+    # from them, so it needs a reader and a writer of its own rather than riding on the
+    # upload path. Both live here beside the visa case they belong to; there is no separate
+    # contract case in HCS-11 and inventing one on this side would be a third vocabulary
+    # for something that is a field.
+
+    async def read_contract_pdf(self, case_id: str) -> tuple[bytes, str, str]:
+        """
+        The contract as a file, with its content type and the name HCS-11 gives it.
+
+        Returned rather than parsed: this endpoint answers with a PDF, not JSON. It serves
+        the signed copy once one is filed and draws a fresh unsigned one before that, so
+        there is no "no contract yet" case to handle — a visa case always has one.
+        """
+        client = self._ensure_client()
+        try:
+            response = await client.get(f"/api/visa/cases/{case_id}/contract")
+            if response.status_code == 404:
+                raise HCS11CaseNotFoundError(
+                    employee_id="unknown",
+                    message=f"Visa case {case_id} not found",
+                )
+            response.raise_for_status()
+            return (
+                response.content,
+                response.headers.get("content-type", "application/pdf"),
+                _filename_from(response.headers.get("content-disposition", "")),
+            )
+        except httpx.ConnectError as e:
+            raise HCS11ConnectionError() from e
+        except httpx.TimeoutException as e:
+            raise HCS11TimeoutError() from e
+
+    async def sign_contract(self, case_id: str) -> VisaCaseOut:
+        """
+        Accept the contract on the employee's behalf, and read the case back.
+
+        Not idempotent: HCS-11 answers 409 once a job-offer document exists on the case,
+        whether it signed it or the joiner uploaded one. That is reported as a plain
+        "already signed" rather than an error, because it is not one — it is the answer.
+
+        The case that comes back has moved further than the contract. Signing files the
+        signed copy as the job-offer document and re-runs every check, so the checklist,
+        the problems and the status are all fresh. Use it as a whole rather than reading
+        the contract out of it.
+        """
+        client = self._ensure_client()
+        try:
+            response = await client.post(f"/api/visa/cases/{case_id}/contract/sign")
+            if response.status_code == 404:
+                raise HCS11CaseNotFoundError(
+                    employee_id="unknown",
+                    message=f"Visa case {case_id} not found",
+                )
+            if response.status_code == 409:
+                raise HCS11ValidationError(409, "This contract has already been signed.")
             response.raise_for_status()
             return VisaCaseOut(**response.json())
         except httpx.ConnectError as e:
@@ -527,6 +611,43 @@ def _the_whole_case(base_url: str, path: str, summary: dict) -> dict:
     return full if isinstance(full, dict) else summary
 
 
+def _contract_facts(case: dict) -> dict:
+    """
+    The employment contract on a visa case, flattened onto the fields `VisaCase` declares.
+
+    Flat rather than nested because the record is frozen and round-trips through a JSON
+    checkpoint: `from_dictionary` turns lists back into tuples, but it does not rebuild a
+    nested dataclass, so a nested contract would come back a plain dict and compare
+    unequal to the one that was stored.
+
+    `contract_is_signed` is the field to read, and it is deliberately not `signed_on`.
+    HCS-11 sets `signed_on` whenever a job-offer document exists at all — including one the
+    joiner uploaded that is not signed, where it falls back to the day the file arrived. Its
+    own OFFER_SIGNED check is the honest answer, and telling somebody their contract is
+    signed when that check has failed is the same false green tick as any other.
+    """
+    contract = case.get("contract")
+    if not isinstance(contract, dict):
+        return {}
+
+    signed_on = contract.get("signed_on") or ""
+    verdicts = [
+        (check.get("code"), check.get("result"))
+        for check in case.get("checks") or ()
+        if isinstance(check, dict)
+    ]
+    salary = contract.get("annual_salary_aed")
+
+    return {
+        "contract_prepared_on": contract.get("prepared_on") or "",
+        "contract_signed_on": signed_on,
+        "contract_is_signed": contract_is_signed(signed_on, verdicts),
+        "contract_job_title": contract.get("job_title") or "",
+        "contract_start_date": contract.get("start_date") or "",
+        "contract_salary_aed": salary if isinstance(salary, int) else None,
+    }
+
+
 def read_visa_case(employee_id: str) -> list[dict] | None:
     """
     The employment visa case HCS-11 holds for this new joiner, if there is one.
@@ -574,6 +695,7 @@ def read_visa_case(employee_id: str) -> list[dict] | None:
                 for kind in case.get("missing_documents") or ()
             ),
             "problems": tuple(case.get("problems") or ()),
+            **_contract_facts(case),
         }
         for case in cases
     ]

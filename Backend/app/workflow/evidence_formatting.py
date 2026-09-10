@@ -198,6 +198,54 @@ def _document_names(kinds) -> str:
     return ", ".join(VISA_DOCUMENT_NAMES.get(kind, kind) for kind in kinds)
 
 
+def _contract_lines(case) -> list[str]:
+    """
+    Where the employment contract has got to, on the case it belongs to.
+
+    Signing is the first thing a new joiner does and the only step where the company sends
+    them something rather than the other way round. It is also the step whose state is
+    easiest to state wrongly: the date HCS-11 carries is set as soon as any job-offer
+    document exists, so an unsigned form the joiner uploaded themselves produces a date.
+    `contract_is_signed` has already asked HCS-11's own check about that, and it is the
+    only field consulted here.
+
+    Nothing is printed at all when the contract is unknown — an HCS-11 predating the
+    feature sends none, and a blank start date is not a contract prepared on no date.
+    """
+    if not case.contract_prepared_on and not case.contract_signed_on:
+        return []
+
+    if case.contract_is_signed:
+        where = f"signed on {case.contract_signed_on}"
+    elif case.contract_signed_on:
+        # A date and no signature. Saying "signed" here is the whole reason this field
+        # exists; the problems list carries HCS-11's own sentence about what is wrong.
+        where = (
+            "a job-offer form is on the case but it has not been accepted — the employee "
+            "still has to sign, or send a signed copy"
+        )
+    else:
+        where = "not signed yet — this is the first thing for the employee to do"
+
+    detail = [f"    employment contract: {where}"]
+    if case.contract_prepared_on and not case.contract_is_signed:
+        detail.append(f"    contract prepared on {case.contract_prepared_on}")
+
+    # What the contract itself states. Worth carrying because these can differ from the HR
+    # record above, and the contract is the document the employee actually signs — a
+    # question about "my job title" asked by somebody who has just read it means this one.
+    states = []
+    if case.contract_job_title:
+        states.append(f"job title {case.contract_job_title}")
+    if case.contract_start_date:
+        states.append(f"start date {case.contract_start_date}")
+    if case.contract_salary_aed is not None:
+        states.append(f"annual salary AED {case.contract_salary_aed:,}")
+    if states:
+        detail.append(f"    the contract states: {', '.join(states)}")
+    return detail
+
+
 def _visa_case_lines(cases: list | None) -> list[str]:
     """
     Where the employment visa case has got to, or an honest account of why that is unknown.
@@ -217,6 +265,7 @@ def _visa_case_lines(cases: list | None) -> list[str]:
     lines = ["Employment visa case (from the visa verification service):"]
     for case in cases:
         lines.append(f"  - {case.plan_name} — status {case.status}")
+        lines.extend(_contract_lines(case))
         if case.required_documents:
             lines.append(f"    documents this route needs: {_document_names(case.required_documents)}")
         if case.missing_documents:

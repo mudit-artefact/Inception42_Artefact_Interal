@@ -17,6 +17,19 @@ interface UserSwitcherProps {
   activeId: string;
   onSelect: (id: string) => void;
   className?: string;
+  /**
+   * What to call the signed-in person's job, when something knows better than the record.
+   *
+   * A new joiner's employment contract states their job title, and for all six of them it
+   * differs from the title seeded in our own database — Fatima is a Director here and a
+   * Finance Manager on the contract she is being asked to sign. Showing our version in the
+   * header above a panel showing hers is the contradiction, and the contract is the
+   * document she signs, so the contract wins.
+   *
+   * Only the trigger, never the list below it: the list is a switcher over everybody, and
+   * it has no contract for anyone but the person currently signed in.
+   */
+  activeJobTitle?: string | null | undefined;
 }
 
 const initialsOf = (name: string) =>
@@ -45,7 +58,13 @@ const GROUPS = [
   },
 ];
 
-export function UserSwitcher({ employees, activeId, onSelect, className }: UserSwitcherProps) {
+export function UserSwitcher({
+  employees,
+  activeId,
+  onSelect,
+  className,
+  activeJobTitle,
+}: UserSwitcherProps) {
   const active = employees.find((e) => e.id === activeId || e.user_id === activeId) ?? employees[0]!;
 
   return (
@@ -64,7 +83,9 @@ export function UserSwitcher({ employees, activeId, onSelect, className }: UserS
           </span>
           <span className="hidden min-w-0 sm:block">
             <span className="block text-xs font-semibold text-foreground">{active.name}</span>
-            <span className="block text-[11px] text-muted-foreground">{active.jobTitle || active.role}</span>
+            <span className="block text-[11px] text-muted-foreground">
+              {activeJobTitle || active.jobTitle || active.role}
+            </span>
           </span>
           <ChevronsUpDown aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
         </Button>

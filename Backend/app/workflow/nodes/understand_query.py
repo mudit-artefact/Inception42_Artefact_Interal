@@ -30,15 +30,17 @@ logger = logging.getLogger(__name__)
 ASKING_TO_SEND_DOCUMENTS = [
     re.compile(
         r"^\s*(i (want|need|would like|wish) to |i'd like to |please |let me |can i |how do i )?"
-        r"(submit|upload|send|attach)\b[^?]*\b"
+        # "sign" earns its place beside the sending verbs: it is the same kind of request —
+        # something to be done on a document, now — even though nothing is sent anywhere.
+        r"(submit|upload|send|attach|sign)\b[^?]*\b"
         r"(proof of schooling|school|schooling|education|certificate|enrolment|enrollment"
-        r"|visa|passport|photograph|job.?offer)\b",
+        r"|visa|passport|photograph|job.?offer|contract)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"^\s*(أريد|اريد|أود|اود|كيف|من فضلك)?\s*(تقديم|رفع|إرسال|ارفاق|إرفاق|تحميل)\s+"
+        r"^\s*(أريد|اريد|أود|اود|كيف|من فضلك)?\s*(تقديم|رفع|إرسال|ارفاق|إرفاق|تحميل|توقيع)\s+"
         r"[^؟]*\b(مستند|مستندات|إثبات|شهادة|أوراق|اوراق|وثيقة|الدراسة|القيد|المدرسة|التعليم"
-        r"|التأشيرة|تأشيرة|الجواز|جواز)\b"
+        r"|التأشيرة|تأشيرة|الجواز|جواز|عقد|العقد|عقدي)\b"
     ),
 ]
 
@@ -64,22 +66,35 @@ NAMES_VISA = re.compile(
     r"|التأشيرة|تأشيرة|الجواز|جواز|الإقامة|اقامة",
     re.IGNORECASE,
 )
+# The contract and the job-offer form are the same document, so "job offer" matches the
+# visa group above and "contract" matches this one. That is the intended split rather than
+# an oversight: signing happens on screen and sending a copy in is an upload, and the two
+# want different windows. Somebody who says both has named no single thing, which
+# `_document_kind_named` already treats as having named nothing.
+NAMES_CONTRACT = re.compile(
+    r"\b(contract|employment agreement)\b"
+    r"|عقد|العقد|عقدي|عقد العمل",
+    re.IGNORECASE,
+)
+
+
+NAMES = {"school": NAMES_SCHOOL, "visa": NAMES_VISA, "contract": NAMES_CONTRACT}
 
 
 def _document_kind_named(question: str) -> str | None:
     """
-    "school", "visa", or None when they named neither — or both, which is not a choice.
+    The one kind they named, or None when they named none of them — or more than one.
 
     None is not a failure. Somebody who says "upload my documents" has named nothing to
     honour, and the step that opens the window falls back to whichever one they have.
+
+    Written as a count rather than a chain of comparisons because it was a two-way `if`
+    that read "school and not visa", and a third kind cannot be added to that shape without
+    rewriting both branches — the sort of line that silently keeps answering for two when
+    there are three.
     """
-    school = bool(NAMES_SCHOOL.search(question))
-    visa = bool(NAMES_VISA.search(question))
-    if school and not visa:
-        return "school"
-    if visa and not school:
-        return "visa"
-    return None
+    named = [kind for kind, words in NAMES.items() if words.search(question)]
+    return named[0] if len(named) == 1 else None
 
 
 def understand_query(state: ConversationState) -> dict:

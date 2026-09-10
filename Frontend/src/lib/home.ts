@@ -37,6 +37,26 @@ export function buildActionCards(sources: {
   const cards: ActionCard[] = [];
 
   for (const application of sources.visaCases ?? []) {
+    // Signing comes first, and it is its own card rather than a line on the visa one:
+    // it is a different action on a different document, and folding it in would put
+    // "upload" on something nobody uploads.
+    const contract = application.contract;
+    if (contract && !contract.is_signed) {
+      cards.push({
+        key: `contract-${application.case_id}`,
+        kind: "contract",
+        title: "Employment contract",
+        detail: contract.signed_on
+          ? // A form on file that HCS-11 would not accept. Not signed, and not untouched.
+            "A form on file has not been accepted — sign it here"
+          : "Read it and sign — nothing to print",
+        badge: "Signature needed",
+        // Phrased as a request, like the two below: a question gets answered with prose
+        // instead of the window the card promised.
+        prompt: "I want to sign my contract",
+      });
+    }
+
     const missing = outstanding(application);
     const total = application.required_documents?.length ?? 0;
     // Nothing outstanding and nothing wrong is not something to do.
@@ -155,6 +175,10 @@ export function joiningSteps(
   // Something came back wrong and it is theirs to fix. §13.8.1: "Where a document is
   // returned, the new joiner removes it and submits a corrected copy."
   const somethingToCorrect = (visa?.problems?.length ?? 0) > 0;
+  // Read `is_signed`, never `signed_on`: the date is set as soon as any job-offer form is
+  // on the case, including an unsigned one, and the server has already asked HCS-11's own
+  // check which it is.
+  const contract = visa?.contract ?? null;
 
   return [
     {
@@ -170,12 +194,24 @@ export function joiningSteps(
     {
       key: "contract",
       label: "Sign your contract",
-      // Nothing holds this. The Code never mentions signing a contract — every mention of
-      // the word is about precedence, probation length or how salary is defined. Not to
-      // be confused with the signed job-offer form, which is one of the visa documents
-      // below and is checked.
-      detail: "Not tracked here — People & Culture will be in touch",
-      state: "untracked",
+      // Tracked now. This step said "not tracked here" until HCS-11 began issuing the
+      // contract and taking the signature on screen — and it is not a separate errand from
+      // the documents step below: signing files the signed job-offer form, so it comes off
+      // that checklist at the same moment.
+      //
+      // The People Code still says nothing about signing a contract, which is why the
+      // questions in `BeforeYouJoin` are unchanged. Where somebody *is* is now known; what
+      // the rules are is still not written down.
+      detail: contract
+        ? contract.is_signed
+          ? `Signed on ${readableDate(contract.signed_on)}`
+          : contract.signed_on
+            ? "A form on file has not been accepted — sign it here"
+            : "Read it and sign — nothing to print"
+        : "Issued with your visa application",
+      // Current when it is waiting, and it sits before the documents step on purpose: it
+      // is the first thing to do, and HCS-11's own screen says so too.
+      state: contract?.is_signed ? "done" : "current",
     },
     {
       key: "documents",
@@ -189,6 +225,15 @@ export function joiningSteps(
       // not the same as every document being right, and marking this done with a fault
       // outstanding left the whole timeline with no current step at all — so the heading
       // read "Everything on your side is done" over a case with two problems on it.
+      // Current again when something has to be re-sent. Every document having arrived is
+      // not the same as every document being right, and marking this done with a fault
+      // outstanding left the whole timeline with no current step at all — so the heading
+      // read "Everything on your side is done" over a case with two problems on it.
+      //
+      // Deliberately still current while the contract above is unsigned, even though that
+      // makes two. Nothing stops a new joiner sending their passport before they sign —
+      // HCS-11 says so itself — so calling this "waiting" would grey out a step they can
+      // act on today. The heading takes the first of them, which is the contract.
       state: somethingToCorrect ? "current" : everythingIn ? "done" : "current",
     },
     {
@@ -224,7 +269,11 @@ export function joiningSteps(
     {
       key: "day-one",
       label: "Day 1",
-      detail: startDate ? readableDate(startDate) : "To be confirmed",
+      // The contract's date, not the HR record's, where there is one. They disagree for
+      // four of the six joiners, and the contract is the document the employee signs — a
+      // page that states one date over a contract stating another is the page that is
+      // wrong. The record's date is the fallback for anybody with no contract.
+      detail: readableDate(contract?.start_date || startDate) || "To be confirmed",
       state: "waiting",
     },
   ];

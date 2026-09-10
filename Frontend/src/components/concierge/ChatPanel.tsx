@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock,
   CornerDownLeft,
+  FileSignature,
   FileText,
   GraduationCap,
   PlaneTakeoff,
@@ -32,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataChart } from "@/components/concierge/DataChart";
 import { DocumentUpload } from "@/components/concierge/DocumentUpload";
+import { ContractSigning } from "@/components/concierge/ContractSigning";
 import { VisaDocumentUpload } from "@/components/concierge/VisaDocumentUpload";
 import { LeaveConfirmationCard } from "@/components/concierge/LeaveConfirmationCard";
 import { LeaveCalendarPicker } from "@/components/concierge/LeaveCalendarPicker";
@@ -110,7 +112,7 @@ export function ChatPanel({
   // Which document panel is open, or null. It was a boolean when there was only the
   // school one; a second panel needs a name rather than another flag beside it.
   const [openPanel, setOpenPanel] = useState<
-    "school-documents" | "visa-documents" | null
+    "school-documents" | "visa-documents" | "contract" | null
   >(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -265,7 +267,21 @@ export function ChatPanel({
                 {/* Document Upload Action Button */}
                 {/* The visa panel is chosen by action_type, like the leave cards. Only
                     the school button below is chosen by the intent label. */}
-                {m.action_payload?.action_type === "VISA_DOCUMENT_UPLOAD" ? (
+                {/* Signing, not sending — chosen by action_type like the visa panel beside it. */}
+                      {m.action_payload?.action_type === "CONTRACT_SIGNING" ? (
+                        <div className="mt-3 pt-2 border-t border-border/40">
+                          <button
+                            type="button"
+                            onClick={() => setOpenPanel("contract")}
+                            className="px-4 py-2.5 rounded-lg text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors flex items-center gap-2 cursor-pointer"
+                          >
+                            <FileSignature className="size-4" />
+                            Sign Your Contract
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {m.action_payload?.action_type === "VISA_DOCUMENT_UPLOAD" ? (
                   <div className="mt-3 pt-2 border-t border-border/40">
                     <button
                       type="button"
@@ -485,6 +501,27 @@ export function ChatPanel({
                     type="button"
                     onClick={() => {
                       setActionsOpen(false);
+                      setOpenPanel("contract");
+                    }}
+                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-primary/10 transition-colors group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5 group-hover:scale-105 transition-transform">
+                      <FileSignature className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-foreground">
+                        Sign Your Contract
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Read and sign your employment contract
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActionsOpen(false);
                       setOpenPanel("visa-documents");
                     }}
                     className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-amber-500/10 transition-colors group"
@@ -623,7 +660,9 @@ export function ChatPanel({
       {/* Document Upload Modal */}
       {openPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          {openPanel === "visa-documents" ? (
+          {openPanel === "contract" ? (
+            <ContractSigning employeeId={employeeId} onClose={() => setOpenPanel(null)} />
+          ) : openPanel === "visa-documents" ? (
             <VisaDocumentUpload employeeId={employeeId} onClose={() => setOpenPanel(null)} />
           ) : (
             <DocumentUpload employeeId={employeeId} onClose={() => setOpenPanel(null)} />

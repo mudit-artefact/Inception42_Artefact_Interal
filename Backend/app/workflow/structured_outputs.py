@@ -30,12 +30,12 @@ class QueryUnderstanding(BaseModel):
         default=False,
         description="True when the message asks about more than one distinct thing",
     )
-    document_kind: Literal["school", "visa"] | None = Field(
+    document_kind: Literal["school", "visa", "contract"] | None = Field(
         default=None,
         description=(
             "For a document_upload, which kind the employee named: 'school' for school or "
-            "education documents, 'visa' for visa or joining documents. None when they "
-            "did not say which."
+            "education documents, 'visa' for visa or joining documents, 'contract' for "
+            "signing their employment contract. None when they did not say which."
         ),
     )
     reasoning: str = Field(default="", description="Brief explanation for this reading")

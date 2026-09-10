@@ -112,6 +112,25 @@ class VisaCase:
     missing_documents: tuple[str, ...] = ()
     problems: tuple[str, ...] = ()
 
+    # ── the employment contract ──────────────────────────────────────────────
+    #
+    # Flat fields rather than a nested record, because this one is frozen and round-trips
+    # through a JSON checkpoint: `from_dictionary` turns lists back into tuples but does
+    # not rebuild a nested dataclass, so a nested contract would return as a plain dict and
+    # compare unequal to the value that was stored.
+    #
+    # Read `contract_is_signed`, never `contract_signed_on`. HCS-11 fills the date whenever
+    # a job-offer document exists at all — including an unsigned one the joiner uploaded
+    # themselves, where it falls back to the day the file arrived. The flag is the one that
+    # has consulted HCS-11's own OFFER_SIGNED check. Defaults are the "no contract known"
+    # reading, which is what an HCS-11 predating this feature gives us.
+    contract_prepared_on: str = ""
+    contract_signed_on: str = ""
+    contract_is_signed: bool = False
+    contract_job_title: str = ""
+    contract_start_date: str = ""
+    contract_salary_aed: int | None = None
+
 
 @dataclass(frozen=True)
 class EmployeeFacts:

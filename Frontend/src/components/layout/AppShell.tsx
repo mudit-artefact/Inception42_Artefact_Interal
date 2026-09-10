@@ -33,6 +33,12 @@ interface AppShellProps {
   employeeId: string;
   employee: EmployeeProfile | null;
   onSelectEmployee: (id: string) => void;
+  /**
+   * The signed-in person's job title, where the page knows one better than the record —
+   * a new joiner's is stated on the contract they are being asked to sign, and it differs
+   * from the one seeded here for every one of them.
+   */
+  activeJobTitle?: string | null | undefined;
   /** Where a notification's action button sends the person. */
   onNotificationAction?: (prompt: string) => void;
   /**
@@ -49,6 +55,7 @@ export function AppShell({
   employeeId,
   employee,
   onSelectEmployee,
+  activeJobTitle,
   onNotificationAction,
   secondaryPanel,
   children,
@@ -118,6 +125,7 @@ export function AppShell({
             <div className="flex h-full min-h-0 flex-col">
               <div className="border-b p-2">
                 <UserSwitcher
+                  activeJobTitle={activeJobTitle}
                   employees={employees}
                   activeId={employeeId}
                   onSelect={switchTo}
@@ -160,6 +168,7 @@ export function AppShell({
             {...(onNotificationAction ? { onActionClick: onNotificationAction } : {})}
           />
           <UserSwitcher
+            activeJobTitle={activeJobTitle}
             employees={employees}
             activeId={employeeId}
             onSelect={switchTo}

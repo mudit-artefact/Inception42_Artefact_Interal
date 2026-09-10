@@ -218,6 +218,62 @@ class VisaCheckOut(BaseModel):
     about: list[str] = []
 
 
+class VisaContractOut(BaseModel):
+    """
+    The employment contract the company issues, and whether it has been accepted.
+
+    The one document on a visa case that travels the other way: every other row is
+    something the new joiner sends in, and this one is sent to them. Signing it files it
+    back as the `job_offer` document, which is why signing takes a row off the checklist
+    rather than sitting beside it.
+
+    `signed_on` is not proof of a signature, and reading it as one is the trap here. It is
+    set whenever a job-offer document exists at all — including one the joiner uploaded
+    themselves that is not signed, where HCS-11 falls back to the day it arrived. The
+    honest question is `OFFER_SIGNED`, which is on the case's checks. See
+    `contract_is_signed` in `visa_response_formatter`.
+
+    Optional on our side though HCS-11 always sends it, so that an HCS-11 predating the
+    contract work still parses instead of failing every visa call.
+    """
+    prepared_on: str = ""
+    signed_on: str | None = None
+    # The answer to "is it signed?", decided once by `contract_is_signed` below and filled
+    # in on the way out. Not sent by HCS-11 — it has no such field, only the date — and
+    # defaulting to False so that a case nobody has settled reads as unsigned rather than
+    # as signed.
+    is_signed: bool = False
+    # The signed copy, once there is one, so a screen can link straight to it.
+    document_id: str | None = None
+    job_title: str | None = None
+    annual_salary_aed: int | None = None
+    start_date: str = ""
+
+
+# The two verdicts that mean there is nothing to tell the employee, named the way
+# `hcs11_response_formatter.SETTLED_IN_YOUR_FAVOUR` names them.
+SETTLED_CHECKS = frozenset({"pass", "not_comparable"})
+OFFER_SIGNED = "OFFER_SIGNED"
+
+
+def contract_is_signed(signed_on: str | None, verdicts) -> bool:
+    """
+    Whether a contract has actually been accepted, given HCS-11's date and its own checks.
+
+    One rule, in one place, because it is read twice — once from HCS-11's raw JSON for the
+    assistant, once from the parsed case for the browser — and two copies of a rule this
+    easy to get backwards is how the same false green tick appears on two screens with only
+    one of them ever being fixed.
+
+    `verdicts` is any iterable of `(check code, result)` pairs.
+    """
+    if not signed_on:
+        return False
+    return not any(
+        code == OFFER_SIGNED and result not in SETTLED_CHECKS for code, result in verdicts
+    )
+
+
 class VisaCaseOut(BaseModel):
     """
     A new joiner's employment visa case.
@@ -244,3 +300,4 @@ class VisaCaseOut(BaseModel):
     documents: list[VisaDocumentOut] = []
     checks: list[VisaCheckOut] = []
     problems: list[str] = []
+    contract: VisaContractOut | None = None

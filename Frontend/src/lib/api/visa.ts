@@ -39,6 +39,31 @@ export interface VisaCase {
   /** Kinds, naming rows above — not labels. */
   missing_documents: string[];
   problems: string[];
+  /** Absent from an HCS-11 that predates contracts. */
+  contract?: VisaContract | null;
+}
+
+/**
+ * The employment contract on a visa case, and whether it has been accepted.
+ *
+ * The one document that travels towards the new joiner: everything else on the checklist
+ * is something they send in, and this one is issued to them. Signing it files the signed
+ * copy back as the job-offer document, so it leaves `missing_documents` at the same moment.
+ *
+ * **Read `is_signed`, never `signed_on`.** HCS-11 fills the date as soon as any job-offer
+ * form is on the case — including an unsigned one the joiner uploaded themselves, where it
+ * falls back to the day the file arrived. The server has already asked HCS-11's own
+ * OFFER_SIGNED check about that and settled it into the flag. Re-deriving it from the date
+ * here is exactly how a rejected document ends up wearing a green tick.
+ */
+export interface VisaContract {
+  prepared_on: string;
+  signed_on: string | null;
+  is_signed: boolean;
+  document_id: string | null;
+  job_title: string | null;
+  annual_salary_aed: number | null;
+  start_date: string;
 }
 
 export interface VisaCaseDetail {
@@ -106,6 +131,31 @@ export async function getVisaCaseDetail(caseId: string): Promise<VisaCaseDetail>
  * The `complete` event carries every field the plain endpoint returns, checklist
  * included — so unlike the school client, nothing here has to invent an empty one.
  */
+/** Where the contract PDF lives. Opened in a tab; nothing here renders a PDF. */
+export function contractUrl(caseId: string): string {
+  return `${API_BASE_URL}/api/v1/visa/cases/${encodeURIComponent(caseId)}/contract`;
+}
+
+/**
+ * Accept the contract, and take back the whole case.
+ *
+ * The answer is the same shape `getVisaCaseDetail` returns, deliberately: signing takes
+ * the job-offer row off the checklist, so a panel that refreshed only the contract would
+ * still be drawing that row as outstanding.
+ *
+ * A second attempt answers 409. That is not a failure — the contract is signed, which is
+ * what was wanted — and the caller says so rather than showing an error.
+ */
+export async function signContract(caseId: string): Promise<VisaCaseDetail> {
+  if (!isApiConfigured()) throw new Error("API not configured");
+  const response = await fetch(
+    `${API_BASE_URL}/api/v1/visa/cases/${encodeURIComponent(caseId)}/contract/sign`,
+    { method: "POST" }
+  );
+  if (!response.ok) throw new Error(await readDetail(response));
+  return response.json();
+}
+
 export async function uploadVisaDocuments(
   caseId: string,
   files: File[],

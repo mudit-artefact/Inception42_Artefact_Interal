@@ -33,6 +33,10 @@ from app.workflow.prompts import (
     NOTHING_TO_UPLOAD_NO_PLAN_MESSAGES,
     VISA_ALL_IN_MESSAGES,
     VISA_UPLOAD_MESSAGES,
+    CONTRACT_SIGN_MESSAGES,
+    CONTRACT_ALREADY_SIGNED_MESSAGES,
+    CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES,
+    CONTRACT_NO_CASE_MESSAGES,
     OUT_OF_SCOPE_MESSAGES,
     PLEASANTRY_MESSAGES,
     REPEAT_GREETING_MESSAGES,
@@ -85,6 +89,13 @@ def generate_document_upload_prompt(state: ConversationState) -> dict:
     # What they asked for, when they said. `understand_query` reads it off their words;
     # nothing else in the turn can, because by here only the record is in hand.
     asked_for = state.get("document_kind")
+
+    if asked_for == "contract":
+        # Ahead of the two below and of the school fallthrough. A contract lives on a visa
+        # case, so somebody who has one always has the other — but they asked to sign, not
+        # to send, and answering with an upload window would be the wrong-window mistake
+        # again in a new costume.
+        return _open_the_contract_window(state, language, visa_cases)
 
     if asked_for == "visa":
         if visa_cases:
@@ -217,6 +228,72 @@ def _open_the_visa_window(state: ConversationState, language: str, cases: list) 
         # not drawn alongside the visa one.
         "question_intent": QuestionIntent.HR_QUESTION.value,
         "action_payload": {"action_type": "VISA_DOCUMENT_UPLOAD", "case_id": case_id},
+    }
+
+
+def _open_the_contract_window(
+    state: ConversationState, language: str, cases: list | None
+) -> dict:
+    """
+    Hand over to the contract window, and say honestly which of three states it is in.
+
+    The one that matters is the middle one. A case can carry a job-offer form that HCS-11
+    has not accepted — an unsigned copy the joiner uploaded themselves — and HCS-11 stamps
+    a date on it regardless, so the date alone cannot be read as a signature. The reader
+    has already consulted HCS-11's own OFFER_SIGNED check and settled it into
+    `contract_is_signed`; that is the field consulted here, and nothing else.
+
+    The window still opens when it is already signed, because reading a contract you have
+    signed is a reasonable thing to want and the panel shows the filed copy.
+    """
+    if cases is None:
+        # HCS-11 could not be reached. The window reports that itself, and the alternative
+        # — refusing on the grounds that no case was seen — is the answer that tells
+        # somebody with a contract that they have none.
+        logger.info(f"Opening the contract window for {state['employee_id']} unverified")
+        return _contract_reply(state, language, CONTRACT_SIGN_MESSAGES, None)
+
+    with_a_contract = next(
+        (case for case in cases if case.get("contract_prepared_on")
+         or case.get("contract_signed_on")),
+        None,
+    )
+    if with_a_contract is None:
+        logger.info(f"No employment contract for {state['employee_id']}")
+        return {
+            "final_answer": _clean_and_format_markdown(
+                message_in_language(CONTRACT_NO_CASE_MESSAGES, language)
+            ),
+            "citations": [],
+            "answer_status": AnswerStatus.VERIFIED.value,
+            "question_intent": QuestionIntent.HR_QUESTION.value,
+            "action_payload": None,
+        }
+
+    case_id = with_a_contract.get("case_id")
+    if with_a_contract.get("contract_is_signed"):
+        message = CONTRACT_ALREADY_SIGNED_MESSAGES
+    elif with_a_contract.get("contract_signed_on"):
+        message = CONTRACT_NEEDS_A_CORRECT_COPY_MESSAGES
+    else:
+        message = CONTRACT_SIGN_MESSAGES
+
+    logger.info(f"Opening the contract window for {state['employee_id']} ({case_id})")
+    return _contract_reply(state, language, message, case_id)
+
+
+def _contract_reply(
+    state: ConversationState, language: str, message: dict, case_id: str | None
+) -> dict:
+    """The contract window's answer, whichever of its states produced it."""
+    return {
+        "final_answer": _clean_and_format_markdown(message_in_language(message, language)),
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+        # An ordinary question as far as the label goes, so the school button is not drawn
+        # beside this one. The card is chosen by `action_type`, as the visa one is.
+        "question_intent": QuestionIntent.HR_QUESTION.value,
+        "action_payload": {"action_type": "CONTRACT_SIGNING", "case_id": case_id},
     }
 
 

@@ -1,5 +1,6 @@
 import {
   CalendarCheck2,
+  FileSignature,
   GraduationCap,
   PlaneTakeoff,
 } from "lucide-react";
@@ -17,9 +18,9 @@ export interface AgenticCapability {
    * Which panel this tile opens, if it opens one rather than asking a question.
    *
    * This was a boolean called `isSpecialAction`, which could say that a tile was special
-   * but not which special thing it did — one bit for what is now two destinations.
+   * but not which special thing it did — one bit for what are now three destinations.
    */
-  opens?: "school-documents" | "visa-documents";
+  opens?: "school-documents" | "visa-documents" | "contract";
 }
 
 export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
@@ -46,6 +47,20 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
   // the People Code to answer it from. Tapping it asked a question the assistant can only
   // decline — the same reason renewal and family sponsorship are not offered below. The
   // guard in `prompts.py` stays, so the answer is still a proper one if somebody types it.
+  {
+    // Opens rather than asks, like the two document tiles. "When will I sign?" would be a
+    // question, and the People Code has no clause about signing a contract to answer it
+    // with — but where somebody's own contract has got to is a fact HCS-11 holds, and the
+    // panel is the honest way to show it.
+    id: "contract",
+    title: "Employment Contract",
+    description: "Read and sign your contract",
+    icon: FileSignature,
+    prompt: "I want to sign my contract",
+    colorClass: "bg-primary/10 text-primary",
+    borderClass: "hover:border-primary/50 hover:bg-primary/5",
+    opens: "contract",
+  },
   {
     // Renewal and family sponsorship are not in the People Code, and the assistant
     // correctly declines them. What it does have is HC-PC-013: the documents a new joiner

@@ -126,6 +126,10 @@ function HomePage() {
       employeeId={employeeId}
       employee={employee}
       onSelectEmployee={selectEmployee}
+      // The contract's title, not the record's. They differ for every new joiner, and a
+      // header naming one job over a contract naming another is the disagreement showing
+      // through rather than being settled.
+      activeJobTitle={visa.data?.[0]?.contract?.job_title}
     >
       <motion.div
         animate={leaving ? { opacity: 0, scale: 0.985 } : { opacity: 1, scale: 1 }}
