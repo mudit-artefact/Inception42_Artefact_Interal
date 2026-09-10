@@ -50,6 +50,21 @@ WORTH_TELLING_THEM = {
     UploadStatus.REJECTED,
 }
 
+# The verdicts that leave the employee something to send, and so are the only ones whose
+# notification carries a button.
+#
+# The button's sentence is fixed per journey — "I want to upload my school documents" —
+# and was being attached to every verdict, so "Documents Verified Successfully!" opened an
+# upload window and asked again for the documents it had just accepted. The other two the
+# bell shows leave nothing to do: verified is finished, and under review is waiting on
+# somebody at HR. Those carry no button, which the bell already understands — it renders
+# one only when a sentence is present, and never invents one.
+THEIRS_TO_FIX = {
+    UploadStatus.PARTIAL,
+    UploadStatus.NEEDS_REUPLOAD,
+    UploadStatus.REJECTED,
+}
+
 VISA_DOCUMENTS_CHECKED = "VISA_DOCUMENTS_CHECKED"
 SCHOOL_DOCUMENTS_CHECKED = "SCHOOL_DOCUMENTS_CHECKED"
 CONTRACT_SIGNED = "CONTRACT_SIGNED"
@@ -66,7 +81,9 @@ def tell_them_what_came_back(
 
     `prompt` is what the notification's button says to the assistant — the same imperative
     sentences the action cards use, so the button opens the window the employee expects
-    rather than starting a conversation about it.
+    rather than starting a conversation about it. It is dropped for the verdicts that ask
+    nothing of them, because every sentence we have opens a window for sending documents
+    and there is nothing left to send.
     """
     if verdict.status not in WORTH_TELLING_THEM:
         logger.info(
@@ -91,7 +108,7 @@ def tell_them_what_came_back(
         event_type=event_type,
         title=verdict.title,
         message=message,
-        prompt=prompt,
+        prompt=prompt if verdict.status in THEIRS_TO_FIX else None,
         extra={
             "case_id": verdict.case_id,
             "case_status": verdict.case_status,
@@ -119,7 +136,9 @@ def tell_them_the_contract_is_signed(hcs11_employee_id: str, case_id: str) -> No
             "Your employment contract has been signed and filed with your visa documents "
             "as your signed job-offer form. There is nothing further to send for it."
         ),
-        prompt="I want to sign my contract",
+        # No button. The only sentence there is opens the signing panel, and this is the
+        # notification that says the signing is done.
+        prompt=None,
         extra={"case_id": case_id},
     )
 
@@ -129,7 +148,7 @@ def _write_it(
     event_type: str,
     title: str,
     message: str,
-    prompt: str,
+    prompt: str | None,
     extra: dict[str, Any],
 ) -> None:
     """
@@ -172,7 +191,9 @@ def _write_it(
             event_type=event_type,
             title=title,
             message=message,
-            action_payload={"prompt": prompt, **extra},
+            # Left out entirely rather than written as null, because the bell asks whether
+            # the key holds a sentence and a missing key answers that as plainly as a null.
+            action_payload={**({"prompt": prompt} if prompt else {}), **extra},
         )
         logger.info(f"Told {recipient} about {event_type}")
     except Exception as could_not_tell_them:

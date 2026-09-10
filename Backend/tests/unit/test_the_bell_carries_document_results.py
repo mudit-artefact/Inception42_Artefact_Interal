@@ -120,6 +120,55 @@ def test_the_button_carries_what_to_say_to_the_assistant(temporary_database):
     assert bell()[0]["action_payload"]["prompt"] == "I want to upload my visa documents"
 
 
+# ── and when there is nothing to say to it ──────────────────────────────────
+#
+# Every sentence the button can carry opens a window for sending documents. On a verdict
+# that asks nothing of the employee that window is an insult: it reads their good news and
+# then asks again for the papers it has just accepted. So the sentence is left out, and
+# the bell — which draws a button only when one is present — draws none.
+
+@pytest.mark.parametrize(
+    "status, why",
+    [
+        (UploadStatus.SUCCESS, "everything was accepted, so there is nothing to send"),
+        (UploadStatus.NEEDS_REVIEW, "it is with a person at HR, not with the employee"),
+    ],
+)
+def test_a_verdict_that_asks_nothing_carries_no_button(status, why, temporary_database):
+    tell_them_what_came_back(
+        a_verdict(status, title="Documents verified"),
+        "E0013",
+        VISA_DOCUMENTS_CHECKED,
+        "I want to upload my visa documents",
+    )
+
+    entry = bell()[0]
+    assert entry["title"] == "Documents verified", "the news itself still arrives"
+    assert "prompt" not in entry["action_payload"], why
+
+
+@pytest.mark.parametrize(
+    "status",
+    [UploadStatus.PARTIAL, UploadStatus.NEEDS_REUPLOAD, UploadStatus.REJECTED],
+)
+def test_a_verdict_they_can_act_on_keeps_its_button(status, temporary_database):
+    """The half that was right stays right."""
+    tell_them_what_came_back(
+        a_verdict(status), "E0013", VISA_DOCUMENTS_CHECKED, "I want to upload my visa documents"
+    )
+
+    assert bell()[0]["action_payload"]["prompt"] == "I want to upload my visa documents"
+
+
+def test_a_signed_contract_carries_no_button(temporary_database):
+    """There is one sentence for a contract and it opens the panel for signing it."""
+    tell_them_the_contract_is_signed("E0013", "VISA0001")
+
+    entry = bell()[0]
+    assert entry["event_type"] == CONTRACT_SIGNED
+    assert "prompt" not in entry["action_payload"]
+
+
 # ── what deliberately does not ──────────────────────────────────────────────
 
 def test_a_partial_upload_says_nothing(temporary_database):
