@@ -12,14 +12,33 @@ import { leaveRow, readableDate, schoolRow, visaRow, type RequestRow } from "@/l
  * card names the person in its own text and the chat opens the list, where each request
  * carries its own Approve and Reject buttons.
  */
+/**
+ * HCS-11's name for the signed job-offer form.
+ *
+ * It is on every route's checklist — both international routes and both resident ones —
+ * and it is the one row a joiner does not upload: signing the contract files it for them.
+ * So it belongs to the contract step of the journey and not to the documents step, even
+ * though HCS-11 quite correctly counts it among the documents.
+ */
+const JOB_OFFER = "job_offer";
+
 const LIST_APPROVALS = "What leave requests do I need to approve?";
 
-/** Documents still to send, named the way HCS-11 names them. */
+/**
+ * Documents still to send, named the way HCS-11 names them.
+ *
+ * The signed job-offer form is left out, because it is not sent — it is filed by signing
+ * the contract. With it in, this card read "Upload your signed job-offer form, and 1 more"
+ * to somebody who had a **Sign your contract** card sitting directly beside it offering to
+ * do exactly that. One of the two was telling them to do the wrong thing.
+ */
 function outstanding(application: VisaCase): string[] {
   const labels = new Map(
     (application.required_documents ?? []).map((row) => [row.kind, row.label]),
   );
-  return (application.missing_documents ?? []).map((kind) => labels.get(kind) ?? kind);
+  return (application.missing_documents ?? [])
+    .filter((kind) => kind !== JOB_OFFER)
+    .map((kind) => labels.get(kind) ?? kind);
 }
 
 function sentence(names: string[]): string {
@@ -58,7 +77,12 @@ export function buildActionCards(sources: {
     }
 
     const missing = outstanding(application);
-    const total = application.required_documents?.length ?? 0;
+    // The papers, matching what `outstanding` lists. Counting the whole checklist against a
+    // list the job-offer form had been taken out of made the bar disagree with the sentence
+    // beside it — "upload your photograph, and 1 more" over a bar reading 1 of 3.
+    const total = (application.required_documents ?? []).filter(
+      (row) => row.kind !== JOB_OFFER,
+    ).length;
     // Nothing outstanding and nothing wrong is not something to do.
     if (missing.length === 0 && (application.problems?.length ?? 0) === 0) continue;
     cards.push({
@@ -206,10 +230,28 @@ export function joiningSteps(
   startDate: string | undefined,
   visa: VisaCase | undefined,
 ): JoiningStep[] {
+  // The whole checklist, job-offer form included. Kept for the "Documents checked" step
+  // below: HC Services only assess a case when nothing at all is outstanding, so that step
+  // has to wait for the contract too.
   const required = visa?.required_documents?.length ?? 0;
   const missing = visa?.missing_documents?.length ?? 0;
-  const received = required - missing;
   const everythingIn = required > 0 && missing === 0;
+
+  // And the same checklist without the job-offer form, which is what the documents step
+  // counts.
+  //
+  // Signing the contract is what files that form, so it sits on every route's checklist as
+  // a document — and counting it among the papers to send made the two steps circular. The
+  // board recommends documents before the contract; before this split, "submit your
+  // documents" could not reach the end of its own count until the step after it was done.
+  const papersRequired = (visa?.required_documents ?? []).filter(
+    (row) => row.kind !== JOB_OFFER,
+  ).length;
+  const papersMissing = (visa?.missing_documents ?? []).filter(
+    (kind) => kind !== JOB_OFFER,
+  ).length;
+  const papersIn = papersRequired - papersMissing;
+  const everyPaperIn = papersRequired > 0 && papersMissing === 0;
   const withThePro = visa?.case_status === "Ready for the PRO";
   // Held by a person because a check found something. HC-PC-013 §13.7.3.
   const heldForReview = visa?.case_status === "Under Review";
@@ -238,6 +280,39 @@ export function joiningSteps(
       counts: true,
     },
     {
+      key: "documents",
+      label: "Submit your documents",
+      detail: somethingToCorrect
+        ? "Something came back — send a corrected copy"
+        : papersRequired > 0
+          ? `${papersIn} of ${papersRequired} sent`
+          : "Your checklist is loading",
+      // Current again when something has to be re-sent. Every document having arrived is
+      // not the same as every document being right, and marking this done with a fault
+      // outstanding left the whole timeline with no current step at all — so the heading
+      // read "Everything on your side is done" over a case with two problems on it.
+      // Current again when something has to be re-sent. Every document having arrived is
+      // not the same as every document being right, and marking this done with a fault
+      // outstanding left the whole timeline with no current step at all — so the heading
+      // read "Everything on your side is done" over a case with two problems on it.
+      //
+      // The counts here leave the job-offer form out; it belongs to the contract step
+      // below. See `JOB_OFFER` — before that split, this step could not reach the end of
+      // its own count until the step after it had been done.
+      state: somethingToCorrect ? "current" : everyPaperIn ? "done" : "current",
+      phase: "before",
+      owner: "You",
+      counts: true,
+      ...(everyPaperIn && !somethingToCorrect
+        ? {}
+        : {
+            action: {
+              label: somethingToCorrect ? "Send a corrected copy" : "Continue",
+              prompt: "I want to upload my visa documents",
+            },
+          }),
+    },
+    {
       key: "contract",
       label: "Sign your contract",
       // Tracked now. This step said "not tracked here" until HCS-11 began issuing the
@@ -255,8 +330,10 @@ export function joiningSteps(
             ? "A form on file has not been accepted — sign it here"
             : "Read it and sign — nothing to print"
         : "Issued with your visa application",
-      // Current when it is waiting, and it sits before the documents step on purpose: it
-      // is the first thing to do, and HCS-11's own screen says so too.
+      // Current whenever it is unsigned — including while the documents above are still
+      // going in, because nothing stops somebody signing first. The order on this board is
+      // a recommendation, which is how HCS-11 treats it too: "the order is shown, not
+      // enforced". Two steps can be current at once and the heading takes the earlier.
       state: contract?.is_signed ? "done" : "current",
       phase: "before",
       owner: "You",
@@ -266,40 +343,6 @@ export function joiningSteps(
       ...(contract?.is_signed
         ? {}
         : { action: { label: "Read and sign", prompt: "I want to sign my contract" } }),
-    },
-    {
-      key: "documents",
-      label: "Submit your documents",
-      detail: somethingToCorrect
-        ? "Something came back — send a corrected copy"
-        : required > 0
-          ? `${received} of ${required} sent`
-          : "Your checklist is loading",
-      // Current again when something has to be re-sent. Every document having arrived is
-      // not the same as every document being right, and marking this done with a fault
-      // outstanding left the whole timeline with no current step at all — so the heading
-      // read "Everything on your side is done" over a case with two problems on it.
-      // Current again when something has to be re-sent. Every document having arrived is
-      // not the same as every document being right, and marking this done with a fault
-      // outstanding left the whole timeline with no current step at all — so the heading
-      // read "Everything on your side is done" over a case with two problems on it.
-      //
-      // Deliberately still current while the contract above is unsigned, even though that
-      // makes two. Nothing stops a new joiner sending their passport before they sign —
-      // HCS-11 says so itself — so calling this "waiting" would grey out a step they can
-      // act on today. The heading takes the first of them, which is the contract.
-      state: somethingToCorrect ? "current" : everythingIn ? "done" : "current",
-      phase: "before",
-      owner: "You",
-      counts: true,
-      ...(everythingIn && !somethingToCorrect
-        ? {}
-        : {
-            action: {
-              label: somethingToCorrect ? "Send a corrected copy" : "Continue",
-              prompt: "I want to upload my visa documents",
-            },
-          }),
     },
     {
       key: "checked",

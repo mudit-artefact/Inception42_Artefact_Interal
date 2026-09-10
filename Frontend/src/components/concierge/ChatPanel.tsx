@@ -224,27 +224,22 @@ export function ChatPanel({
                   <DataChart chart={m.chart} />
                 ) : null}
 
-                {/* Proactive Leave Application Suggestion Pill (for non-greeting messages) */}
-                {m.role === "assistant" &&
-                m.intent !== "greeting" &&
-                i === messages.length - 1 &&
-                !m.action_payload &&
-                canDo.has("leave") &&
-                (m.content.toLowerCase().includes("leave") ||
-                  m.content.toLowerCase().includes("balance") ||
-                  m.content.toLowerCase().includes("vacation") ||
-                  m.content.toLowerCase().includes("إجازة")) ? (
-                  <div className="mt-2.5 flex items-center">
-                    <button
-                      type="button"
-                      onClick={() => onSend("I want to apply for leave")}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary transition-all hover:bg-primary/20 hover:scale-[1.02] shadow-2xs cursor-pointer"
-                    >
-                      <span>🌴</span>
-                      <span>Do you want to apply for leave?</span>
-                    </button>
-                  </div>
-                ) : null}
+                {/*
+                  There was a "Do you want to apply for leave?" pill here, offered under any
+                  reply whose text happened to contain "leave", "balance", "vacation" or
+                  "إجازة".
+
+                  Matching on the words of the answer rather than on what was asked meant it
+                  turned up under replies it had no business under — including the one that
+                  explains what this assistant is for, which mentions leave only as an
+                  example of what it covers. An offer that appears everywhere is not a
+                  prompt, it is furniture, and it made every answer look like a funnel
+                  towards one action.
+
+                  The ways in that remain are all deliberate: the Quick Actions menu, the
+                  tiles on an empty conversation, and the assistant offering it when the
+                  question was actually about leave.
+                */}
 
                 {/* Calendar Date-Range Picker */}
                 {m.action_payload?.action_type === "SHOW_LEAVE_CALENDAR_PICKER" ? (
