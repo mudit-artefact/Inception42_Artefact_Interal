@@ -4,10 +4,22 @@ import { ChevronRight, Sparkles } from "lucide-react";
 /**
  * The questions new joiners ask, and only the ones that have an answer.
  *
- * Each of these is answered by a clause of HC-PC-013, named beside it. That is the whole
- * selection rule: a question on this page must be one the assistant can answer from the
- * People Code. A tile that leads to "that is not in the People Code, please contact People
- * & Culture" is worse than no tile — it looks broken, and it wastes the tap.
+ * Each of these is answered by a clause of HC-PC-013, named beside it. That is the first
+ * of two selection rules: a question on this page must be one the assistant can answer
+ * from the People Code. A tile that leads to "that is not in the People Code, please
+ * contact People & Culture" is worse than no tile — it looks broken, and it wastes the tap.
+ *
+ * The second rule is that **every question names its own process**, which is why all five
+ * say "visa" even though the panel is already about joining. A tile has no conversation
+ * behind it: the words on it are the entire question, and there is no follow-up to catch a
+ * misreading. "Which documents do I need to send?" was answered with "could you tell me
+ * what this is for — visa, school fee claim, expense claim?", which is a fair question to
+ * ask a person and a dead end for a button. "What is the deadline for my documents?" did
+ * get answered, about the visa, but only because the model inferred which documents were
+ * meant — the same ambiguity resolved by a luckier guess.
+ *
+ * The rule used to be written on one tile, as a note about that tile. It was a rule about
+ * all of them.
  *
  * "Do I get any leave before I start?" was here and is not any more. §13.2.2 answers it —
  * a new joiner may not apply for leave — but it is not a question anybody asks before they
@@ -27,13 +39,9 @@ import { ChevronRight, Sparkles } from "lucide-react";
  * was until the Code has something to answer with.
  */
 const QUESTIONS: { ask: string; clause: string }[] = [
-  { ask: "Which documents do I need to send?", clause: "§13.4" },
+  { ask: "Which visa documents do I need to send?", clause: "§13.4" },
   { ask: "Where do I send my visa documents?", clause: "§13.5" },
-  { ask: "What is the deadline for my documents?", clause: "§13.6" },
-  // Named as a *visa* document on purpose. Asked as "what happens if a document comes
-  // back?" this was answered with a clarifying question — reasonably, since the employee
-  // could mean a school document, an expense receipt or a medical certificate. A question
-  // on a tile has no conversation behind it, so it has to carry its own context.
+  { ask: "What is the deadline for my visa documents?", clause: "§13.6" },
   { ask: "What happens if one of my visa documents is returned?", clause: "§13.8" },
   { ask: "Which visa route am I on?", clause: "§13.3" },
 ];
