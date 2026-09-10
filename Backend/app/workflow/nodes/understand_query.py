@@ -4,6 +4,7 @@ import logging
 import re
 
 from app.domain.enums import QuestionIntent
+from app.domain.small_talk import is_small_talk
 from app.workflow.conversation_memory import describe_the_conversation_so_far
 from app.workflow.conversation_state import ConversationState
 from app.workflow.language_model_client import generate_structured_output
@@ -153,14 +154,6 @@ def understand_query(state: ConversationState) -> dict:
         r"\b(approve|reject|review) (my |their )?junior(s)?\b",
     ]
 
-    # Fast deterministic intent override for conversational greetings, acknowledgments, pleasantries & gratitude
-    conversational_patterns = [
-        r"^(ok|okay|k|noted|got it|all right|alright|understood|sounds good|sure|fine|great|perfect|done|تمام|حسنا|حسناً|ماشي|اوكي|أوكي|طيب|تسلم)[\.\!\s]*$",
-        r"\b(how are you|how're you|how r u|how are you doing|how is it going|how's it going|how do you do|how have you been|how are things|كيف حالك|شخبارك|كيفك|شلونك|عساك بخير)\b",
-        r"^(thank you|thanks|thank u|thx|much appreciated|many thanks|thanks a lot|شكرا|شكراً|مشكور|تسلم|يعطيك العافية|جزاك الله خير)[\.\!\s]*$",
-    ]
-
-
     if any(re.search(pat, q_norm) for pat in own_status_patterns):
         understanding = QueryUnderstanding(
             intent=QuestionIntent.CHECK_LEAVE_STATUS,
@@ -189,7 +182,13 @@ def understand_query(state: ConversationState) -> dict:
             missing_information=[],
             document_kind=_document_kind_named(q_norm),
         )
-    elif any(re.search(pat, q_norm) for pat in conversational_patterns):
+    # A turn carrying no question — hello, thank you, that's fine, how are you.
+    #
+    # These three regexes used to live here as a second copy of the three in `finish_turn`,
+    # which is the step that then chooses which of the four replies to give. Two copies of
+    # one idea, and they had already drifted: this one carried "thanks a lot" and that one
+    # did not. `app/domain/small_talk` is now the single reading, and both steps ask it.
+    elif is_small_talk(q_norm):
         understanding = QueryUnderstanding(
             intent=QuestionIntent.GREETING,
             confidence=1.0,

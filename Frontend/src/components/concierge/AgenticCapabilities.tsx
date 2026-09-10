@@ -5,6 +5,8 @@ import {
   PlaneTakeoff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { whatTheyCanDo, type Doable } from "@/lib/whatTheyCanDo";
+import type { EmployeeProfile } from "@/lib/api/types";
 
 export interface AgenticCapability {
   id: string;
@@ -14,6 +16,14 @@ export interface AgenticCapability {
   prompt: string;
   colorClass: string;
   borderClass: string;
+  /**
+   * What this person has to be able to do for the tile to be worth offering.
+   *
+   * All four used to be shown to everybody, so a new joiner was offered leave she cannot
+   * take and a five-year employee was offered a visa case he does not have. Each tile now
+   * says what it is for and `whatTheyCanDo` decides who sees it.
+   */
+  needs: Doable;
   /**
    * Which panel this tile opens, if it opens one rather than asking a question.
    *
@@ -26,6 +36,7 @@ export interface AgenticCapability {
 export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
   {
     id: "leaves",
+    needs: "leave",
     title: "Leaves",
     description: "Apply and track leave requests",
     icon: CalendarCheck2,
@@ -35,6 +46,7 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
   },
   {
     id: "schooling",
+    needs: "schooling",
     title: "Kids Schooling",
     description: "Verify children school documents",
     icon: GraduationCap,
@@ -53,6 +65,7 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
     // with — but where somebody's own contract has got to is a fact HCS-11 holds, and the
     // panel is the honest way to show it.
     id: "contract",
+    needs: "contract",
     title: "Employment Contract",
     description: "Read and sign your contract",
     icon: FileSignature,
@@ -66,6 +79,7 @@ export const AGENTIC_CAPABILITIES: AgenticCapability[] = [
     // correctly declines them. What it does have is HC-PC-013: the documents a new joiner
     // provides before their first day. The tile now says that.
     id: "visa",
+    needs: "visa",
     title: "Employment Visa",
     description: "Send your joining documents",
     icon: PlaneTakeoff,
@@ -81,6 +95,8 @@ interface AgenticCapabilitiesProps {
   onOpenPanel?: (panel: NonNullable<AgenticCapability["opens"]>) => void;
   disabled?: boolean;
   className?: string;
+  /** Who is looking. Without them, nothing is offered rather than everything. */
+  employee?: EmployeeProfile | null | undefined;
 }
 
 export function AgenticCapabilities({
@@ -88,11 +104,20 @@ export function AgenticCapabilities({
   onOpenPanel,
   disabled,
   className,
+  employee,
 }: AgenticCapabilitiesProps) {
+  const canDo = whatTheyCanDo(employee);
+  const offered = AGENTIC_CAPABILITIES.filter((cap) => canDo.has(cap.needs));
+
+  // Before the directory answers there is nobody, and nobody can do anything. Drawing
+  // nothing for that moment is right: an empty space reads as loading, where the wrong
+  // four tiles read as an answer.
+  if (offered.length === 0) return null;
+
   return (
     <div className={cn("w-full", className)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {AGENTIC_CAPABILITIES.map((cap) => {
+        {offered.map((cap) => {
           const Icon = cap.icon;
           return (
             <div

@@ -7,6 +7,7 @@ import {
   Sparkles,
   UserCheck,
 } from "lucide-react";
+import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface FAQItem {
@@ -15,6 +16,37 @@ export interface FAQItem {
   icon: typeof Home;
   colorClass: string;
 }
+
+/**
+ * Three questions to start with, and which three depends on who is asking.
+ *
+ * "Can I carry over unused leave into next year?" was shown to everybody, including the
+ * six people who cannot take leave at all — the same offer that was on the tiles, in the
+ * quick actions and under any answer that mentioned the word.
+ *
+ * A joiner's three are answered by HC-PC-013, the clauses that cover the period before a
+ * first day. An employee's are the ones they actually have.
+ */
+export const NEW_JOINER_FAQS: FAQItem[] = [
+  {
+    id: "visa-documents",
+    question: "Which visa documents do I need to send?",
+    icon: FileText,
+    colorClass: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
+  },
+  {
+    id: "line-manager",
+    question: "Who is my line manager?",
+    icon: UserCheck,
+    colorClass: "text-sky-600 dark:text-sky-400 bg-sky-500/10",
+  },
+  {
+    id: "visa-deadline",
+    question: "What is the deadline for my visa documents?",
+    icon: RotateCcw,
+    colorClass: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+  },
+];
 
 export const DEFAULT_HR_FAQS: FAQItem[] = [
   {
@@ -42,6 +74,8 @@ interface SuggestedQuestionsProps {
   onSelect: (question: string) => void;
   disabled?: boolean;
   className?: string;
+  /** Somebody who has not started yet gets the three questions that apply to them. */
+  joining?: boolean;
 }
 
 export function SuggestedQuestions({
@@ -49,11 +83,13 @@ export function SuggestedQuestions({
   onSelect,
   disabled,
   className,
+  joining = false,
 }: SuggestedQuestionsProps) {
+  const standard = joining ? NEW_JOINER_FAQS : DEFAULT_HR_FAQS;
   const items: FAQItem[] =
     questions && questions.length > 0
       ? questions.slice(0, 3).map((q, idx) => {
-          const matchingDefault = DEFAULT_HR_FAQS.find(
+          const matchingDefault = standard.find(
             (d) => d.question.toLowerCase() === q.toLowerCase()
           );
           if (matchingDefault) return matchingDefault;
@@ -64,7 +100,7 @@ export function SuggestedQuestions({
             colorClass: "text-primary bg-primary/10",
           };
         })
-      : DEFAULT_HR_FAQS;
+      : standard;
 
   return (
     <div className={cn("w-full space-y-2", className)}>

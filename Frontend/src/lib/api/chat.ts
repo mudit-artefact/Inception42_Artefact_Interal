@@ -1,10 +1,9 @@
 import { apiRequest } from "./client";
 import { API_BASE_URL, isApiConfigured } from "./config";
-import { mockChat } from "./mock";
-import type { ChatRequest, ChatResponse } from "./types";
+import { ApiError, type ChatRequest, type ChatResponse } from "./types";
 
 /**
- * Send chat message to backend /api/v1/hcs01/query (or fallback to mock data).
+ * Send chat message to backend /api/v1/hcs01/query.
  */
 export async function sendChatMessage(
   message: string,
@@ -19,7 +18,10 @@ export async function sendChatMessage(
   },
 ): Promise<ChatResponse> {
   if (!isApiConfigured()) {
-    return mockChat(message, conversationId, options?.employeeId ?? null);
+    // Nothing to answer with, and nothing invented to answer with either. This used to
+    // fall back to a scripted chat that reported a leave balance nobody held, citing
+    // policy numbers this company does not use.
+    throw new ApiError("The concierge is not configured (VITE_API_BASE_URL).", 0);
   }
 
   const payload: ChatRequest = {
@@ -109,7 +111,10 @@ export async function streamChatMessage(
   },
 ): Promise<ChatResponse> {
   if (!isApiConfigured()) {
-    return mockChat(message, conversationId, options?.employeeId ?? null);
+    // Nothing to answer with, and nothing invented to answer with either. This used to
+    // fall back to a scripted chat that reported a leave balance nobody held, citing
+    // policy numbers this company does not use.
+    throw new ApiError("The concierge is not configured (VITE_API_BASE_URL).", 0);
   }
 
   const response = await fetch(`${API_BASE_URL}/api/v1/hcs01/query/stream`, {

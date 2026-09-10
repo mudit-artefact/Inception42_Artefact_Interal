@@ -979,21 +979,51 @@ WHAT_I_CAN_DO = {
     ),
 }
 
+# ── the four replies to a turn carrying no question ──────────────────────────
+#
+# Two of these used to end by offering to apply for leave, to everybody, which is how a new
+# joiner saying "thank you" was asked whether she wanted to book time off. She cannot: the
+# router turns leave away from anyone who has not started (`routing_rules._has_not_started`)
+# and answers "leave begins on your first day". So the assistant was volunteering a thing it
+# would then refuse — and unprompted, which is worse than the FAQ tile that merely invited
+# the same question and was removed for it.
+#
+# The fact needed was in the same state the reply is written from. It is consulted now, and
+# the joiner is pointed at what they can actually do.
+
 ACKNOWLEDGMENT_MESSAGES = {
+    "en": "Great! Let me know if there is anything else you need or would like to apply for.",
+    "ar": "ممتاز! أخبرني إذا كنت بحاجة إلى أي شيء آخر أو ترغب في تقديم أي طلب.",
+}
+
+ACKNOWLEDGMENT_MESSAGES_NEW_JOINER = {
     "en": (
-        "Great! Let me know if you need anything else or if you'd like to apply for leave."
+        "Great! Let me know if you need anything else about your documents, your contract "
+        "or your first day."
     ),
     "ar": (
-        "ممتاز! أخبرني إذا كنت بحاجة إلى أي استفسار آخر أو ترغب في تقديم طلب إجازة."
+        "ممتاز! أخبرني إذا كنت بحاجة إلى أي شيء بخصوص مستنداتك أو عقدك أو يومك الأول."
     ),
 }
 
 PLEASANTRY_MESSAGES = {
     "en": (
-        "I'm doing well, thank you for asking! How can I help you with your leaves or HR policies today?"
+        "I'm doing well, thank you for asking! How can I help you with your leave or the "
+        "People Code today?"
     ),
     "ar": (
-        "أنا بخير، شكراً لسؤالك! كيف يمكنني مساعدتك في استفساراتك أو إجازاتك اليوم؟"
+        "أنا بخير، شكراً لسؤالك! كيف يمكنني مساعدتك في إجازاتك أو سياسات الموارد البشرية اليوم؟"
+    ),
+}
+
+PLEASANTRY_MESSAGES_NEW_JOINER = {
+    "en": (
+        "I'm doing well, thank you for asking! How can I help you with your joining — your "
+        "documents, your contract, or what happens before your first day?"
+    ),
+    "ar": (
+        "أنا بخير، شكراً لسؤالك! كيف يمكنني مساعدتك بشأن انضمامك — مستنداتك أو عقدك أو ما "
+        "يحدث قبل يومك الأول؟"
     ),
 }
 

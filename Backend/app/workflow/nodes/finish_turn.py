@@ -10,6 +10,8 @@ import time
 
 from app.domain.employee_facts import EmployeeFacts
 from app.domain.enums import AnswerStatus, FallbackReason, QuestionIntent
+from app.domain.small_talk import ISLAMIC_GREETING, looks_like
+from app.workflow.routing_rules import ONBOARDING
 from app.services.citation_builder import build_employee_record_citation, build_policy_citations
 from app.workflow.conversation_memory import remember_turn
 from app.workflow.conversation_state import ConversationState
@@ -19,6 +21,8 @@ from app.workflow.routing_rules import LEAVE_INTENTS, ONBOARDING
 from app.workflow.prompts import (
     WHAT_I_CAN_DO,
     ACKNOWLEDGMENT_MESSAGES,
+    ACKNOWLEDGMENT_MESSAGES_NEW_JOINER,
+    PLEASANTRY_MESSAGES_NEW_JOINER,
     CONVERSATION_RECAP_MESSAGES,
     ESCALATION_MESSAGES,
     GRATITUDE_MESSAGES,
@@ -397,27 +401,6 @@ def _nothing_to_upload(state: ConversationState, language: str) -> dict:
 
 
 # Match Arabic script greetings or transliterated Islamic greetings (salam, salam e walekum, etc.)
-ISLAMIC_GREETING_PATTERN = re.compile(
-    r"\b(salam|salaam|salambay|assalam|assalamu|alaykum|alaikum|walekum|walaykum)\b"
-    r"|[\u0600-\u06FF]*سلام[\u0600-\u06FF]*|السلام\s+عليكم",
-    re.IGNORECASE,
-)
-
-ACKNOWLEDGMENT_PATTERN = re.compile(
-    r"^(ok|okay|k|noted|got it|all right|alright|understood|sounds good|sure|fine|great|perfect|done|تمام|حسنا|حسناً|ماشي|اوكي|أوكي|طيب|تسلم)[\.\!\s]*$",
-    re.IGNORECASE,
-)
-
-PLEASANTRY_PATTERN = re.compile(
-    r"\b(how are you|how're you|how r u|how are you doing|how is it going|how's it going|how do you do|how have you been|how are things|كيف حالك|شخبارك|كيفك|شلونك|عساك بخير)\b",
-    re.IGNORECASE,
-)
-
-GRATITUDE_PATTERN = re.compile(
-    r"^(thank you|thanks|thank u|thx|much appreciated|many thanks|thanks a lot|شكرا|شكراً|مشكور|تسلم|يعطيك العافية|جزاك الله خير)[\.\!\s]*$",
-    re.IGNORECASE,
-)
-
 
 def _recap_of_the_conversation(remembered_turns: list[dict] | None, lang: str) -> str:
     """
@@ -441,6 +424,15 @@ def _recap_of_the_conversation(remembered_turns: list[dict] | None, lang: str) -
     numbered = [f"{position}. \u201c{question}\u201d"
                 for position, question in enumerate(asked, start=1)]
     return "\n".join([copy["heading"], "", *numbered, "", copy["footer"]])
+
+
+def _just_say(answer: str) -> dict:
+    """A reply with nothing behind it — no sources, nothing looked up, nothing to check."""
+    return {
+        "final_answer": _clean_and_format_markdown(answer),
+        "citations": [],
+        "answer_status": AnswerStatus.VERIFIED.value,
+    }
 
 
 def generate_greeting(state: ConversationState) -> dict:
@@ -478,32 +470,57 @@ def generate_greeting(state: ConversationState) -> dict:
             "answer_status": AnswerStatus.VERIFIED.value,
         }
 
-    # 1. Acknowledgment (e.g. "ok", "got it", "noted")
-    if ACKNOWLEDGMENT_PATTERN.match(question):
-        answer = message_in_language(ACKNOWLEDGMENT_MESSAGES, lang)
-        return {
-            "final_answer": _clean_and_format_markdown(answer),
-            "citations": [],
-            "answer_status": AnswerStatus.VERIFIED.value,
-        }
+    # Which of the four this is — thanks, a pleasantry, a greeting, or an acknowledgement.
+    #
+    # This was four `if`s in a row, each with its own regex, and every regex was anchored to
+    # the whole message: it had to be *only* "ok" or *only* "thanks". "Okay, thank you" is
+    # both of those joined and is the commonest way in English to end a conversation, so it
+    # matched none of them and fell through to the greeting below — a hello, in reply to
+    # goodbye. Five of the nine most ordinary sign-offs did the same.
+    said = looks_like(question)
 
-    # 2. Gratitude (e.g. "thank you", "thanks", "شكراً")
-    if GRATITUDE_PATTERN.match(question):
-        answer = message_in_language(GRATITUDE_MESSAGES, lang)
-        return {
-            "final_answer": _clean_and_format_markdown(answer),
-            "citations": [],
-            "answer_status": AnswerStatus.VERIFIED.value,
-        }
+    # Somebody who has accepted an offer and not started. Two of the four replies below end
+    # by offering something to do next, and what they can do next is not the same.
+    #
+    # `routing_rules` already refuses leave to this person; a pleasantry that offers it is
+    # the assistant promising what the next step will decline. Checked here rather than
+    # written into the message, because the message cannot know who is reading it.
+    joining = (state.get("employee_facts") or {}).get("employment_status") == ONBOARDING
 
-    # 3. Conversational pleasantry (e.g. "how are you?", "كيف حالك")
-    if PLEASANTRY_PATTERN.search(question):
-        answer = message_in_language(PLEASANTRY_MESSAGES, lang)
-        return {
-            "final_answer": _clean_and_format_markdown(answer),
-            "citations": [],
-            "answer_status": AnswerStatus.VERIFIED.value,
-        }
+    if said == "thanks":
+        # The one reply with nothing to offer at the end of it, so it fits anybody.
+        return _just_say(message_in_language(GRATITUDE_MESSAGES, lang))
+
+    if said == "pleasantry":
+        return _just_say(
+            message_in_language(
+                PLEASANTRY_MESSAGES_NEW_JOINER if joining else PLEASANTRY_MESSAGES, lang
+            )
+        )
+
+    if said == "acknowledgement":
+        return _just_say(
+            message_in_language(
+                ACKNOWLEDGMENT_MESSAGES_NEW_JOINER if joining else ACKNOWLEDGMENT_MESSAGES,
+                lang,
+            )
+        )
+
+    # Nothing recognised, and not the first thing they have said.
+    #
+    # Greeting used to be the fallback here, which makes a hello the widest case when it
+    # should be the narrowest — mid-conversation it is the one reply that is always wrong,
+    # and it is exactly what "okay, thank you" was getting. An acknowledgement is the safe
+    # reading of an unrecognised aside: it fits a goodbye, a stray "cool", and a sentence
+    # nobody anticipated. A first turn still gets a proper welcome, below.
+    if said is None and (state.get("already_greeted") or state.get("remembered_turns")):
+        logger.info(f"Unrecognised aside from {state.get('employee_id')}; not greeting them")
+        return _just_say(
+            message_in_language(
+                ACKNOWLEDGMENT_MESSAGES_NEW_JOINER if joining else ACKNOWLEDGMENT_MESSAGES,
+                lang,
+            )
+        )
 
     # 4. Not the first hello of this conversation.
     #
@@ -533,7 +550,7 @@ def generate_greeting(state: ConversationState) -> dict:
     # word differs between a hello and a salam, and only that is chosen here.
     opening = (
         message_in_language(ISLAMIC_GREETING_OPENINGS, lang)
-        if ISLAMIC_GREETING_PATTERN.search(question)
+        if ISLAMIC_GREETING.search(question)
         else message_in_language(GREETING_OPENINGS, lang)
     )
     full_greeting = (

@@ -1,55 +1,45 @@
 import { apiRequest } from "./client";
-import { isApiConfigured } from "./config";
-import { MOCK_EMPLOYEES, getMockEmployee, type MockPersona } from "./mock";
 import type { EmployeeProfile } from "./types";
 
 /**
- * Fetch list of all employees from Mock Omni API.
- * Falls back to mock personas if API is not configured or fails.
+ * Everybody the directory holds.
+ *
+ * No mock fallback, and there used to be one — twelve invented personas substituted
+ * whenever the API could not be reached. It was written before new joiners existed, so it
+ * held twelve people where the directory holds eighteen, the six joiners were absent
+ * altogether, and none of the twelve carried an `employment_status`.
+ *
+ * That last part is what made it worse than useless. Screens ask "is this a new joiner?"
+ * by reading that field, and a field that is absent compares as **false rather than
+ * unknown** — so with the API down, every joiner silently became a current employee and
+ * was shown leave they cannot take instead of the visa documents they must send. A
+ * fallback whose failure mode is confident wrongness is worse than no fallback.
+ *
+ * It throws now, like the leave functions below and for the same reason: a page that
+ * cannot load says so.
  */
 export async function fetchEmployees(): Promise<EmployeeProfile[]> {
-  if (!isApiConfigured()) {
-    return MOCK_EMPLOYEES;
-  }
-
-  try {
-    const data = await apiRequest<EmployeeProfile[]>("/api/omni/employees");
-    if (Array.isArray(data) && data.length > 0) {
-      return data.map((emp) => ({
-        ...emp,
-        id: emp.id || emp.user_id || "EMP001",
-        jobTitle: emp.jobTitle || emp.role || "Employee",
-        policyLinks: emp.policyLinks ?? [],
-      }));
-    }
-    return MOCK_EMPLOYEES;
-  } catch (err) {
-    console.warn("Failed to fetch employees from API, falling back to mock data:", err);
-    return MOCK_EMPLOYEES;
-  }
+  const data = await apiRequest<EmployeeProfile[]>("/api/omni/employees");
+  if (!Array.isArray(data)) return [];
+  return data.map((emp) => ({
+    ...emp,
+    id: emp.id || emp.user_id || "",
+    jobTitle: emp.jobTitle || emp.role || "Employee",
+    policyLinks: emp.policyLinks ?? [],
+  }));
 }
 
-/**
- * Fetch a single employee profile by ID.
- * Falls back to mock persona if API is not configured or fails.
- */
+/** One person's profile. Throws if it cannot be read; see above. */
 export async function fetchEmployeeProfile(employeeId: string): Promise<EmployeeProfile> {
-  if (!isApiConfigured()) {
-    return getMockEmployee(employeeId);
-  }
-
-  try {
-    const data = await apiRequest<EmployeeProfile>(`/api/omni/employee/${encodeURIComponent(employeeId)}`);
-    return {
-      ...data,
-      id: data.id || data.user_id || employeeId,
-      jobTitle: data.jobTitle || data.role || "Employee",
-      policyLinks: data.policyLinks ?? [],
-    };
-  } catch (err) {
-    console.warn(`Failed to fetch employee ${employeeId} from API, falling back to mock:`, err);
-    return getMockEmployee(employeeId);
-  }
+  const data = await apiRequest<EmployeeProfile>(
+    `/api/omni/employee/${encodeURIComponent(employeeId)}`,
+  );
+  return {
+    ...data,
+    id: data.id || data.user_id || employeeId,
+    jobTitle: data.jobTitle || data.role || "Employee",
+    policyLinks: data.policyLinks ?? [],
+  };
 }
 
 /** One leave request as `My requests` lists it. */
@@ -83,10 +73,9 @@ export interface PendingApproval {
 /**
  * This employee's leave requests, newest first.
  *
- * No mock fallback, deliberately. The two functions above quietly substitute five invented
- * personas when the API is down, which is cosmetic on a chat and dishonest on a page headed
- * "My requests" — it would show somebody leave they never asked for. This throws, and the
- * page says it could not load.
+ * No mock fallback, and now nothing above has one either — this function's argument
+ * against inventing data was eventually taken by the whole file. It throws, and the page
+ * says it could not load.
  */
 export async function fetchLeaveRequests(employeeId: string): Promise<LeaveRequestRow[]> {
   return apiRequest<LeaveRequestRow[]>(

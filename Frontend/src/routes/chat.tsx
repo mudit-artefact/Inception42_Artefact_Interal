@@ -111,6 +111,7 @@ function ConversationPage() {
         className="flex min-h-0 flex-1 flex-col bg-card"
       >
         <ChatPanel
+            employee={employee}
           messages={concierge.active?.messages ?? []}
           status={concierge.status}
           stage={concierge.stage}

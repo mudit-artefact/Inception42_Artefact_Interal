@@ -65,7 +65,29 @@ export function UserSwitcher({
   className,
   activeJobTitle,
 }: UserSwitcherProps) {
-  const active = employees.find((e) => e.id === activeId || e.user_id === activeId) ?? employees[0]!;
+  const active = employees.find((e) => e.id === activeId || e.user_id === activeId) ?? employees[0];
+
+  // Nobody yet, or nobody at all.
+  //
+  // That `employees[0]!` above used to be safe by accident: the list started as twelve
+  // invented personas and so was never empty. With those gone it starts empty and fills
+  // when the directory is read, and the assertion became a crash on first paint — one
+  // undefined `.name` in the header, taking the whole page with it.
+  //
+  // A quiet placeholder is right for both cases: for the moment before the fetch lands,
+  // and for a directory that could not be read at all. The banner on the page says the
+  // latter; the header does not need to say it twice.
+  if (!active) {
+    return (
+      <div
+        className={cn("flex h-auto items-center gap-2 px-2 py-1.5", className)}
+        aria-hidden="true"
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-muted" />
+        <span className="hidden h-3 w-24 rounded bg-muted sm:block" />
+      </div>
+    );
+  }
 
   return (
     <DropdownMenu>

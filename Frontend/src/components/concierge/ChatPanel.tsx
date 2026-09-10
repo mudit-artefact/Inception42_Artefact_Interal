@@ -43,7 +43,9 @@ import { MessageFeedback } from "@/components/concierge/MessageFeedback";
 import { SourceCitations } from "@/components/concierge/SourceCitations";
 import { SuggestedQuestions } from "@/components/concierge/SuggestedQuestions";
 import { AgenticCapabilities } from "@/components/concierge/AgenticCapabilities";
-import { SUGGESTED_QUESTIONS } from "@/lib/api/mock";
+import { SUGGESTED_QUESTIONS } from "@/lib/suggestedQuestions";
+import { whatTheyCanDo } from "@/lib/whatTheyCanDo";
+import type { EmployeeProfile } from "@/lib/api/types";
 import type { ChatStatus } from "@/hooks/useConcierge";
 import type { ChatStage } from "@/lib/api/chat";
 import type { ChatMessage } from "@/lib/api/types";
@@ -59,6 +61,14 @@ interface ChatPanelProps {
   onFeedback: (id: string, value: "up" | "down") => void;
   isAwaitingClarification?: boolean;
   employeeId?: string;
+  /**
+   * Who is looking, so nothing is offered that would be refused.
+   *
+   * The tiles, the quick actions and the pill below were all shown to everybody: a new
+   * joiner was offered leave she cannot take, and every employee was offered "Approve
+   * Leave Requests" whether or not anybody reports to them.
+   */
+  employee?: EmployeeProfile | null | undefined;
 }
 
 function formatMessageContent(content: string): string {
@@ -104,7 +114,10 @@ export function ChatPanel({
   onFeedback,
   isAwaitingClarification = false,
   employeeId = "EMP001",
+  employee,
 }: ChatPanelProps) {
+  // What this person is able to do, so nothing below offers what would be refused.
+  const canDo = whatTheyCanDo(employee);
   const busy = status === "submitted" && stage !== null;
   const isEmpty = messages.length === 0;
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -149,6 +162,7 @@ export function ChatPanel({
               {/* Middle: 4 Clean Agentic Capability Boxes */}
               <div className="w-full">
                 <AgenticCapabilities
+                employee={employee}
                   onSelectCapability={(prompt) => onSend(prompt)}
                   onOpenPanel={(panel) => setOpenPanel(panel)}
                   disabled={busy}
@@ -215,6 +229,7 @@ export function ChatPanel({
                 m.intent !== "greeting" &&
                 i === messages.length - 1 &&
                 !m.action_payload &&
+                canDo.has("leave") &&
                 (m.content.toLowerCase().includes("leave") ||
                   m.content.toLowerCase().includes("balance") ||
                   m.content.toLowerCase().includes("vacation") ||
@@ -270,6 +285,10 @@ export function ChatPanel({
                 {/* Signing, not sending — chosen by action_type like the visa panel beside it. */}
                       {m.action_payload?.action_type === "CONTRACT_SIGNING" ? (
                         <div className="mt-3 pt-2 border-t border-border/40">
+                          {/* Not gated on what this person can do, unlike the menu below.
+                              The backend sent this action for this case; second-guessing
+                              it from the browser would leave the assistant offering the
+                              window in words with no button under it. */}
                           <button
                             type="button"
                             onClick={() => setOpenPanel("contract")}
@@ -417,6 +436,7 @@ export function ChatPanel({
               <SuggestedQuestions
                 onSelect={(q) => onSend(q)}
                 disabled={busy}
+                joining={!canDo.has("leave")}
               />
             </div>
           )}
@@ -480,81 +500,89 @@ export function ChatPanel({
                   </span>
                 </div>
                 <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionsOpen(false);
-                      onSend("I want to apply for leave");
-                    }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-primary/10 transition-colors group"
-                  >
-                    <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5 group-hover:scale-105 transition-transform">
-                      <CalendarPlus className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">Submit Leave Request</div>
-                      <div className="text-[10px] text-muted-foreground">Apply for annual, sick, or remote work</div>
-                    </div>
-                  </button>
+                  {canDo.has("leave") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        onSend("I want to apply for leave");
+                      }}
+                      className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-primary/10 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5 group-hover:scale-105 transition-transform">
+                        <CalendarPlus className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-foreground">Submit Leave Request</div>
+                        <div className="text-[10px] text-muted-foreground">Apply for annual, sick, or remote work</div>
+                      </div>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionsOpen(false);
-                      setOpenPanel("contract");
-                    }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-primary/10 transition-colors group"
-                  >
-                    <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5 group-hover:scale-105 transition-transform">
-                      <FileSignature className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">
-                        Sign Your Contract
+                  {canDo.has("contract") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        setOpenPanel("contract");
+                      }}
+                      className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-primary/10 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-primary/15 text-primary mt-0.5 group-hover:scale-105 transition-transform">
+                        <FileSignature className="size-4" />
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        Read and sign your employment contract
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-foreground">
+                          Sign Your Contract
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Read and sign your employment contract
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionsOpen(false);
-                      setOpenPanel("visa-documents");
-                    }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-amber-500/10 transition-colors group"
-                  >
-                    <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 mt-0.5 group-hover:scale-105 transition-transform">
-                      <PlaneTakeoff className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">
-                        Upload Visa Documents
+                  {canDo.has("visa") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        setOpenPanel("visa-documents");
+                      }}
+                      className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-amber-500/10 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 mt-0.5 group-hover:scale-105 transition-transform">
+                        <PlaneTakeoff className="size-4" />
                       </div>
-                      <div className="text-[10px] text-muted-foreground">
-                        Send your employment visa joining documents
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-foreground">
+                          Upload Visa Documents
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Send your employment visa joining documents
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionsOpen(false);
-                      setOpenPanel("school-documents");
-                    }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-pink-500/10 transition-colors group"
-                  >
-                    <div className="p-1.5 rounded-lg bg-pink-500/15 text-pink-600 dark:text-pink-400 mt-0.5 group-hover:scale-105 transition-transform">
-                      <GraduationCap className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">Upload School Documents</div>
-                      <div className="text-[10px] text-muted-foreground">Submit HCS-11 school verification documents</div>
-                    </div>
-                  </button>
+                  {canDo.has("schooling") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        setOpenPanel("school-documents");
+                      }}
+                      className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-pink-500/10 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-pink-500/15 text-pink-600 dark:text-pink-400 mt-0.5 group-hover:scale-105 transition-transform">
+                        <GraduationCap className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-foreground">Upload School Documents</div>
+                        <div className="text-[10px] text-muted-foreground">Submit HCS-11 school verification documents</div>
+                      </div>
+                    </button>
+                  )}
 
                   <button
                     type="button"
@@ -573,22 +601,24 @@ export function ChatPanel({
                     </div>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActionsOpen(false);
-                      onSend("What leave requests do I need to approve?");
-                    }}
-                    className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-blue-500/10 transition-colors group"
-                  >
-                    <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 mt-0.5 group-hover:scale-105 transition-transform">
-                      <CheckCircle2 className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-foreground">Approve Leave Requests</div>
-                      <div className="text-[10px] text-muted-foreground">Review pending team approvals as manager</div>
-                    </div>
-                  </button>
+                  {canDo.has("approvals") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        onSend("What leave requests do I need to approve?");
+                      }}
+                      className="w-full flex items-start gap-2.5 p-2 rounded-xl text-left cursor-pointer hover:bg-blue-500/10 transition-colors group"
+                    >
+                      <div className="p-1.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 mt-0.5 group-hover:scale-105 transition-transform">
+                        <CheckCircle2 className="size-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold text-foreground">Approve Leave Requests</div>
+                        <div className="text-[10px] text-muted-foreground">Review pending team approvals as manager</div>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
@@ -622,7 +652,9 @@ export function ChatPanel({
                   ? "Add a note with your file (optional)…"
                   : isAwaitingClarification
                   ? "Please provide more details to clarify your question…"
-                  : "Ask anything about leave policies, submit requests, check balances…"
+                  : canDo.has("leave")
+                    ? "Ask anything about leave policies, submit requests, check balances…"
+                    : "Ask anything about your documents, your contract or joining…"
               }
               disabled={busy}
               aria-label="Message Dalīl"

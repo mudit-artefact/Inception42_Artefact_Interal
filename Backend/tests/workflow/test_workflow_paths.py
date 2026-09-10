@@ -25,8 +25,14 @@ def test_a_greeting_is_answered_by_name_without_gathering_evidence(
     assert result["answer_status"] == AnswerStatus.VERIFIED
     assert "Ahmed" in result["final_answer"] or "Hello" in result["final_answer"]
     assert result["citations"] == []
-    # Reading the question is the only call a greeting should cost.
-    assert fake_language_model.call_count == 1
+    # A greeting now costs no model call at all.
+    #
+    # It used to cost one — the reading step. "Hello" matched none of the conversational
+    # shortcuts, because those only covered "ok", "thanks" and "how are you", so a plain
+    # hello went to the model to be told it was a greeting. It is recognised deterministically
+    # now, which is both cheaper and one fewer thing that can come back with a different
+    # answer on a different day.
+    assert fake_language_model.call_count == 0
 
 
 def test_an_out_of_scope_question_is_declined(

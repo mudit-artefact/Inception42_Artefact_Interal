@@ -1,28 +1,34 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchEmployees, fetchEmployeeProfile } from "@/lib/api/employee";
-import { MOCK_EMPLOYEE, MOCK_EMPLOYEES, getMockEmployee } from "@/lib/api/mock";
 import type { EmployeeProfile } from "@/lib/api/types";
 
 const STORAGE_KEY = "hcs01.activeEmployee";
 
 /**
- * Persona switcher that connects to Mock Omni backend while falling back
- * gracefully to local mock personas.
+ * Who is signed in, and everybody they can switch to.
+ *
+ * Nobody, until the directory has been read. It used to start as an invented persona and
+ * keep it if the fetch failed, which meant a screen could not tell "we have not looked
+ * yet" from "we looked and this is who it is" — and the invented people carried no
+ * `employment_status`, so with the API down every new joiner read as a current employee.
+ * `null` says the thing a placeholder person cannot.
  */
 export function useActiveEmployee() {
-  const [employees, setEmployees] = useState<EmployeeProfile[]>(MOCK_EMPLOYEES);
-  const [employeeId, setEmployeeId] = useState<string>(MOCK_EMPLOYEE.id);
-  const [employee, setEmployee] = useState<EmployeeProfile>(MOCK_EMPLOYEE);
+  const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
+  const [employeeId, setEmployeeId] = useState<string>("");
+  const [employee, setEmployee] = useState<EmployeeProfile | null>(null);
+  /** The directory could not be read at all. */
+  const [unreachable, setUnreachable] = useState(false);
   /**
    * Whether `employeeId` is the real answer yet.
    *
-   * It starts as a mock persona's id and is replaced once the directory has been fetched
-   * and the saved choice read back. Anything keyed on the employee — the conversation
-   * store, most obviously — is rebuilt when it changes, so work started before this is
-   * true can be thrown away mid-flight. That is not a hypothetical: a question typed on
-   * the dashboard went into a conversation that was discarded a moment later when the id
-   * settled to somebody else, and it happened only when the saved persona differed from
-   * the default, which is why it looked intermittent.
+   * It starts empty and is filled once the directory has been fetched and the saved choice
+   * read back. Anything keyed on the employee — the conversation store, most obviously —
+   * is rebuilt when it changes, so work started before this is true can be thrown away
+   * mid-flight. That is not a hypothetical: a question typed on the dashboard went into a
+   * conversation that was discarded a moment later when the id settled to somebody else,
+   * and it happened only when the saved persona differed from the default, which is why it
+   * looked intermittent.
    */
   const [settled, setSettled] = useState(false);
 
@@ -52,8 +58,10 @@ export function useActiveEmployee() {
       setEmployee(found);
       setSettled(true);
     }).catch(() => {
-      // The mock persona stands, and it is not going to change again.
-      if (active) setSettled(true);
+      // Nobody is signed in, and saying so is the whole point of removing the personas.
+      if (!active) return;
+      setUnreachable(true);
+      setSettled(true);
     });
 
     return () => {
@@ -69,11 +77,15 @@ export function useActiveEmployee() {
       /* ignore */
     }
 
-    void fetchEmployeeProfile(id).then((profile) => {
-      setEmployee(profile);
-    });
+    void fetchEmployeeProfile(id)
+      .then((profile) => setEmployee(profile))
+      .catch(() => {
+        // Keep whoever the directory already gave us rather than blanking the header:
+        // the list was read successfully a moment ago, so the person is real even if this
+        // one request failed.
+      });
   }, []);
 
-  return { employee, employees, employeeId, selectEmployee, settled };
+  return { employee, employees, employeeId, selectEmployee, settled, unreachable };
 }
 
