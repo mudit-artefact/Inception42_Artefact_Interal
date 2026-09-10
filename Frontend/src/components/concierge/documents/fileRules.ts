@@ -9,9 +9,18 @@
 export const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-/** The browser's own accept list, matching ALLOWED_TYPES. */
-export const ACCEPTED_FILE_INPUT =
-  ".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg";
+/**
+ * The browser's own accept list — file endings only, deliberately.
+ *
+ * Naming the media types here as well (application/pdf and friends) makes macOS
+ * resolve each one through its type database before the open panel can decide what
+ * to allow. A cold lookup can land after the panel is already up, and every file
+ * shows greyed out until you cancel and click again. Endings need no lookup.
+ *
+ * This is a filter, not a check. validateFile below is the check, and HCS-11
+ * checks again after that.
+ */
+export const ACCEPTED_FILE_INPUT = ".pdf,.png,.jpg,.jpeg";
 
 /** What is wrong with this file, or null if nothing is. */
 export function validateFile(file: File): string | null {

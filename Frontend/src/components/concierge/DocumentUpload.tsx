@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useDocumentUpload } from "@/hooks/useDocumentUpload";
+import { ACCEPTED_FILE_INPUT } from "./documents/fileRules";
 
 interface DocumentUploadProps {
   employeeId: string;
@@ -583,7 +584,7 @@ export function DocumentUpload({ employeeId, onClose }: DocumentUploadProps) {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                accept={ACCEPTED_FILE_INPUT}
                 multiple
                 onChange={handleFileSelect}
                 className="hidden"
