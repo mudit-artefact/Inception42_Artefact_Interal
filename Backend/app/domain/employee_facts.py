@@ -169,6 +169,10 @@ class EmployeeFacts:
     # allowlist entry of its own, because it is part of who somebody is rather than a
     # subject anybody asks about directly.
     employment_status: str = ""
+    # The city, where `location` above is the desk — "Abu Dhabi" against "Abu Dhabi Office,
+    # Level 7". Down here with the other defaulted fields rather than beside `location`,
+    # because a dataclass cannot carry a default in front of a required field.
+    work_location: str = ""
     # None until HCS-11 has been asked, and after asking if it could not be reached. An
     # empty list means it answered and this employee has no claims — a different thing,
     # and the employee must not be told one when the truth is the other.
@@ -190,6 +194,7 @@ class EmployeeFacts:
             email=stored["email"],
             phone=stored["phone"],
             location=stored["location"],
+            work_location=stored.get("work_location", ""),
             start_date=stored["start_date"],
             years_of_service=stored["years_of_service"],
             probation_status=stored["probation_status"],
@@ -280,6 +285,7 @@ class EmployeeFacts:
             "email": self.email,
             "phone": self.phone,
             "location": self.location,
+            "work_location": self.work_location,
             "start_date": self.start_date,
             "years_of_service": self.years_of_service,
             "probation_status": self.probation_status,

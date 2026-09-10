@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Home, MessageSquare, PanelLeft } from "lucide-react";
+import { Home, MessageSquare, PanelLeft, Route as RouteIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { InceptionLogo } from "@/components/common/InceptionLogo";
 import { NotificationCenter } from "@/components/concierge/NotificationCenter";
@@ -24,8 +24,12 @@ export const APP_TITLE = "Dalīl";
  * problem, so the cap went and the page went with it.
  */
 const NAV = [
-  { to: "/", label: "Home", icon: Home },
-  { to: "/chat", label: "Conversations", icon: MessageSquare },
+  { to: "/", label: "Home", icon: Home, joinersOnly: false },
+  { to: "/chat", label: "Conversations", icon: MessageSquare, joinersOnly: false },
+  // The one item that is not for everybody. It is a real page over real data — which is
+  // the test the two rejected above failed — but it describes a journey that is over for
+  // most people, and a link to somebody else's journey is worse than no link.
+  { to: "/onboarding", label: "My Onboarding", icon: RouteIcon, joinersOnly: true },
 ] as const;
 
 interface AppShellProps {
@@ -63,6 +67,11 @@ export function AppShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const path = useRouterState({ select: (state) => state.location.pathname });
+  // Somebody who has accepted an offer and not started. The field is the honest answer and
+  // is absent from the mock the browser falls back to when the API is down, so being on the
+  // page counts too — otherwise the link vanishes from under somebody standing on it.
+  const joining =
+    employee?.employment_status === "Onboarding" || path.startsWith("/onboarding");
   const navigate = useNavigate();
 
   /**
@@ -78,12 +87,24 @@ export function AppShell({
   const switchTo = (id: string) => {
     onSelectEmployee(id);
     setMobileNavOpen(false);
-    if (path !== "/") void navigate({ to: "/" });
+    if (path === "/") return;
+
+    // Onboarding is the exception to going home, when the person switched to is also a new
+    // joiner. The rule above exists because a page quietly becomes about somebody else;
+    // here it stays about the same *kind* of person, and the page redraws around them.
+    // Bouncing between two joiners is how you compare them, and going home each time makes
+    // that three clicks instead of one. Switching to somebody who has started still goes
+    // home, because there is nothing on this page for them.
+    const next = employees.find((person) => person.id === id || person.user_id === id);
+    if (path.startsWith("/onboarding") && next?.employment_status === "Onboarding") return;
+
+    void navigate({ to: "/" });
   };
 
   const navigation = (
     <nav aria-label="Sections" className="space-y-1 p-2">
-      {NAV.map(({ to, label, icon: Icon }) => {
+      {NAV.filter((item) => !item.joinersOnly || joining).map(
+        ({ to, label, icon: Icon }) => {
         const current = to === "/" ? path === "/" : path.startsWith(to);
         return (
           <Link
@@ -102,7 +123,8 @@ export function AppShell({
             {label}
           </Link>
         );
-      })}
+        },
+      )}
     </nav>
   );
 

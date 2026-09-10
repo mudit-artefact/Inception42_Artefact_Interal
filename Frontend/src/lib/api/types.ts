@@ -147,6 +147,8 @@ export interface EmployeeProfile {
   probation_status?: string | undefined;
   years_of_service?: number | undefined;
   start_date?: string | undefined;
+  /** The city, not the desk — "Abu Dhabi", where the record's `location` is a floor. */
+  work_location?: string | undefined;
   /**
    * "Active" | "On Leave" | "Onboarding" | "Terminated".
    *

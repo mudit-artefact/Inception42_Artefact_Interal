@@ -134,11 +134,49 @@ export function buildRequestRows(sources: {
 
 export type StepState = "done" | "current" | "waiting" | "untracked";
 
+/** Which part of the journey a step belongs to, for the board that groups them. */
+export type StepPhase = "before" | "processing" | "ready";
+
 export interface JoiningStep {
   key: string;
   label: string;
   detail: string;
   state: StepState;
+  phase: StepPhase;
+  /**
+   * Whose move it is. Static text, because no system holds a per-step owner — HCS-11's
+   * three statuses say where a case *is*, not who has it. It is worth saying anyway: the
+   * commonest question a new joiner asks is whether they are waiting on themselves or on
+   * us, and the answer is a property of the process rather than of their case.
+   */
+  owner: string;
+  /**
+   * Whether this step counts towards the progress figure.
+   *
+   * Two of the seven can never be ticked — nothing tracks the medical, and Day 1 is a date
+   * no system flips. Counting them would cap a joiner who has done everything at 71%,
+   * which reads as unfinished when nothing is. So the figure spans the five that can
+   * actually complete, and reaches 100% exactly when the visa reaches the PRO.
+   *
+   * This replaces a flat refusal to show any percentage at all. The objection then was
+   * that a figure spanning an untracked step is part invention — which it is, and which is
+   * why the untracked steps are excluded rather than the figure dropped.
+   */
+  counts: boolean;
+  /** Something to do about it, said the way the assistant expects to be asked. */
+  action?: { label: string; prompt: string };
+}
+
+/** How far along, over the steps that can actually finish. */
+export function joiningProgress(steps: JoiningStep[]): {
+  done: number;
+  total: number;
+  percent: number;
+} {
+  const counted = steps.filter((step) => step.counts);
+  const done = counted.filter((step) => step.state === "done").length;
+  const total = counted.length;
+  return { done, total, percent: total === 0 ? 0 : Math.round((done / total) * 100) };
 }
 
 /**
@@ -190,6 +228,9 @@ export function joiningSteps(
       // start date agreed".
       detail: "Your start date is agreed",
       state: "done",
+      phase: "before",
+      owner: "You",
+      counts: true,
     },
     {
       key: "contract",
@@ -212,6 +253,14 @@ export function joiningSteps(
       // Current when it is waiting, and it sits before the documents step on purpose: it
       // is the first thing to do, and HCS-11's own screen says so too.
       state: contract?.is_signed ? "done" : "current",
+      phase: "before",
+      owner: "You",
+      counts: true,
+      // Opens the same signing panel the home page card opens, by asking for it in
+      // the assistant's own words. One way in, not a second one built here.
+      ...(contract?.is_signed
+        ? {}
+        : { action: { label: "Read and sign", prompt: "I want to sign my contract" } }),
     },
     {
       key: "documents",
@@ -235,6 +284,17 @@ export function joiningSteps(
       // HCS-11 says so itself — so calling this "waiting" would grey out a step they can
       // act on today. The heading takes the first of them, which is the contract.
       state: somethingToCorrect ? "current" : everythingIn ? "done" : "current",
+      phase: "before",
+      owner: "You",
+      counts: true,
+      ...(everythingIn && !somethingToCorrect
+        ? {}
+        : {
+            action: {
+              label: somethingToCorrect ? "Send a corrected copy" : "Continue",
+              prompt: "I want to upload my visa documents",
+            },
+          }),
     },
     {
       key: "checked",
@@ -249,6 +309,9 @@ export function joiningSteps(
       // waits is the honest reading — collapsing the two would tell somebody their
       // application had been lodged when it is sitting on a desk.
       state: assessed ? "done" : everythingIn ? "current" : "waiting",
+      phase: "processing",
+      owner: "HC Services",
+      counts: true,
     },
     {
       key: "visa",
@@ -257,6 +320,9 @@ export function joiningSteps(
         ? "Lodged on your behalf"
         : "Sent to the PRO once every check has passed",
       state: withThePro ? "done" : "waiting",
+      phase: "processing",
+      owner: "The PRO",
+      counts: true,
     },
     {
       key: "medical",
@@ -265,6 +331,10 @@ export function joiningSteps(
       // not misleading by omission, marked so an absence is not read as a state.
       detail: "Not tracked here — People & Culture will be in touch",
       state: "untracked",
+      phase: "processing",
+      owner: "People & Culture",
+      // Nothing tracks it, so nothing can tick it. See `counts` on `JoiningStep`.
+      counts: false,
     },
     {
       key: "day-one",
@@ -275,6 +345,10 @@ export function joiningSteps(
       // wrong. The record's date is the fallback for anybody with no contract.
       detail: readableDate(contract?.start_date || startDate) || "To be confirmed",
       state: "waiting",
+      phase: "ready",
+      owner: "You and your team",
+      // A date, not a milestone. Nothing in either system ever flips it.
+      counts: false,
     },
   ];
 }

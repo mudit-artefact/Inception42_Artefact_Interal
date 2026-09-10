@@ -4,8 +4,6 @@ import { AlertCircle, FileText, Loader2, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { ActionCards } from "@/components/home/ActionCards";
-import { BeforeYouJoin } from "@/components/home/BeforeYouJoin";
-import { JoiningTimeline } from "@/components/home/JoiningTimeline";
 import { NewChatBox } from "@/components/home/NewChatBox";
 import { RequestsTable } from "@/components/home/RequestsTable";
 import { AppShell, APP_TITLE } from "@/components/layout/AppShell";
@@ -13,7 +11,7 @@ import { useActiveEmployee } from "@/hooks/useActiveEmployee";
 import { fetchLeaveRequests, fetchPendingApprovals } from "@/lib/api/employee";
 import { getActiveCase, getEmployeeCases } from "@/lib/api/hcs11";
 import { getVisaCases } from "@/lib/api/visa";
-import { buildActionCards, buildRequestRows, joiningSteps } from "@/lib/home";
+import { buildActionCards, buildRequestRows } from "@/lib/home";
 
 const DESCRIPTION =
   "What needs your attention across your HR journey — your requests, your documents, and Dalīl when you need it.";
@@ -110,16 +108,13 @@ function HomePage() {
 
   const firstName = (employee?.name ?? "").split(" ")[0] ?? "";
 
-  // Somebody who has accepted an offer and not started. Everything below is for them and
-  // nobody else — an employee's page is exactly as it was.
+  // Nothing here is new-joiner-only any more.
   //
-  // This is the one place a check on `employment_status` is right. Elsewhere it decided
-  // what to *fetch*, and a missing field then silently hid a new joiner's visa documents;
-  // here it decides what to *add*, so a missing field costs a joiner two panels rather
-  // than hiding something they had to act on.
-  const joining = employee?.employment_status === "Onboarding";
-  const steps = joiningSteps(employee?.start_date, visa.data?.[0]);
-
+  // The joining timeline and the "before you join" questions were the only two panels one
+  // kind of person saw and another did not, and they now have a page of their own. What is
+  // left is the same page for everybody: the cards under Notifications differ because the
+  // *data* differs — a joiner has a contract to sign where a manager has leave to approve —
+  // and that is a page reading its contents, not a page deciding who you are.
   return (
     <AppShell
       employees={employees}
@@ -178,8 +173,6 @@ function HomePage() {
             </div>
           )}
 
-          {joining && !loading && <JoiningTimeline steps={steps} />}
-
           <section className="rounded-xl border bg-card">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <h3 className="flex items-center gap-2 font-display text-base font-semibold">
@@ -204,7 +197,6 @@ function HomePage() {
             {loading ? <Waiting /> : <RequestsTable rows={rows} />}
           </section>
 
-          {joining && <BeforeYouJoin />}
 
           </div>
         </div>

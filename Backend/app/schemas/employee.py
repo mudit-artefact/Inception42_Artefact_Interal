@@ -54,6 +54,11 @@ class EmployeeProfile(BaseModel):
     manager: str
     email: str
     start_date: str
+    # The city they work in — "Abu Dhabi", not "Abu Dhabi Office, Level 7". Both are on the
+    # record; this is the one a person says when asked where they work, and the other is a
+    # desk. Added for the joining screens, which name the place alongside the job title and
+    # the start date, all three read off the record rather than guessed from the entity.
+    work_location: str = ""
     balances: list[LeaveBalanceItem] = Field(default_factory=list)
     policyLinks: list[PolicyLink] = Field(default_factory=list)
 

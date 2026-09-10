@@ -62,6 +62,7 @@ def build_profile(facts: EmployeeFacts, direct_reports: int = 0) -> EmployeeProf
         manager=facts.manager_name,
         email=facts.email,
         start_date=facts.start_date,
+        work_location=facts.work_location,
         balances=_balances_for_the_current_leave_year(facts),
         policyLinks=choose_quick_links_for(facts.probation_status),
         employment_status=facts.employment_status or "Active",

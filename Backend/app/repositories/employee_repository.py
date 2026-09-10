@@ -131,6 +131,7 @@ def get_employee_facts(session: Session, employee_id: str) -> EmployeeFacts:
         email=employee.email,
         phone=employee.phone,
         location=employee.location,
+        work_location=employee.work_location,
         start_date=employee.start_date,
         years_of_service=employee.years_of_service,
         probation_status=employee.probation_status,
